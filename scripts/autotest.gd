@@ -575,6 +575,13 @@ func _ui(race: String) -> void:
 	m.hud._left_action("build_menu")
 	await frames(4)
 	check(m.hud.card.get_child_count() >= 7, "%s: BUILD opens the build menu (%d cards)" % [race, m.hud.card.get_child_count()])
+	var screen := Rect2(Vector2.ZERO, m.get_viewport().get_visible_rect().size)
+	var off := 0
+	for c in m.hud.card.get_children():
+		var r: Rect2 = (c as Control).get_global_rect()
+		if not screen.encloses(r):
+			off += 1
+	check(off == 0, "%s: every build card is on screen (%d off)" % [race, off])
 	await shot("50_%s_build_menu" % race)
 	m.hud._card_action("build:%s" % Defs.building_id(race, "barracks"))
 	await frames(4)

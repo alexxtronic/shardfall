@@ -243,14 +243,18 @@ func _command_card() -> void:
 	card_panel.anchor_right = 1.0
 	card_panel.anchor_top = 1.0
 	card_panel.anchor_bottom = 1.0
-	card_panel.offset_left = -416
+	# five columns fit a race's eight buildings plus Back in two rows; if a card ever holds
+	# more, the panel grows up and left rather than off the bottom of the screen
+	card_panel.offset_left = -514
 	card_panel.offset_right = -8
 	card_panel.offset_top = -200
 	card_panel.offset_bottom = -8
+	card_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	card_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	root.add_child(card_panel)
 	blockers.append(card_panel)
 	card = GridContainer.new()
-	card.columns = 4
+	card.columns = 5
 	card.add_theme_constant_override("h_separation", 6)
 	card.add_theme_constant_override("v_separation", 6)
 	card_panel.add_child(card)
