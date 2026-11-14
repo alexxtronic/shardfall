@@ -50,6 +50,7 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
   - With an army selected, tap the ground to attack-move or tap an enemy to attack it. With workers selected, tapping the ground moves them and tapping crystals or an extractor sends them to harvest.
   - Drag to pan, pinch to zoom, and tap the minimap to jump the camera.
   - ARMY selects every fighter, IDLE selects idle workers, and BASE jumps to your main. BUILD opens the structures; the nearest worker builds them.
+  - **Group select.** Hold ARMY for a moment and a menu opens: all army, ground, air, workers, idle workers, and one entry per unit type you have, each with its count. Slide your finger onto a group and let go to select all of it, wherever it is on the map, then tap where to send it. If you let go on ARMY itself, the menu stays open so you can tap a group instead.
 - **High ground.** Plateaus sit 2.6 m above the ground below, edged by cliffs that nothing walks over. Ramps are the only way up. A ground unit can't see up a cliff until it climbs, and a ground shot fired uphill misses 30% of the time. Flyers ignore both.
 - **Winning.** Destroy every enemy building.
 
@@ -100,7 +101,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
     - `map_gen.gd` builds it, authoring player 1's half and mirroring it;
     - `weather.gd` adds the particles.
   - **Interface:**
-    - `commander.gd` (touch input and orders), `hud.gd`, `minimap.gd`, `overlay.gd`, `camera_rig.gd`;
+    - `commander.gd` (touch input and orders), `hud.gd`, `group_menu.gd` (the hold-ARMY group select), `minimap.gd`, `overlay.gd`, `camera_rig.gd`;
     - `title.gd` and the overlays `settings_panel.gd`, `leaderboard_panel.gd` and `credits_panel.gd`;
     - `tutorial.gd`, the guided first match;
     - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads.
@@ -127,7 +128,8 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `terrain`: ramps, cliffs, uphill misses, picking on plateaus;
   - `profile`: rating, scores and the results screen;
   - `seats`: neither seat starts ahead (mirrored grid, equal harvest, equal march to the enemy);
-  - `tutorial`: every lesson passes on the player's action, the bot waits, Skip works, and the leaderboard is untouched.
+  - `tutorial`: every lesson passes on the player's action, the bot waits, Skip works, and the leaderboard is untouched;
+  - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
 
   `--only=previews` is not a test. It re-bakes the map previews (`assets/ui/maps/`), the app icon and the boot splash after a map or art change.
 - **Balance.** It runs headless and rewrites `docs/BALANCE.md`:

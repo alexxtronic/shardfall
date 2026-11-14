@@ -47,7 +47,7 @@ func setup(w: World, h: Hud, r: CameraRig, c: Commander) -> void:
 		["SUPPLY", "Every unit takes supply. Tap BUILD (left), choose %s, tap the ground to place it, then tap again or ✓." % _a(sup_n), _has.bind("supply")],
 		["PRODUCTION", "Now place %s from BUILD.%s" % [_a(bar_n), power], _has.bind("barracks")],
 		["AN ARMY", "When the %s is finished, tap it and train 4 %ss." % [bar_n, inf_n], _army_of.bind(4)],
-		["MOVE OUT", "Tap ARMY to select every fighter, tap Attack, then tap the ground ahead. They fight anything they meet on the way.", _moving],
+		["MOVE OUT", "Tap ARMY to select every fighter (hold ARMY and slide to pick just ground, air or one unit type). Then tap Attack and tap the ground ahead: they fight anything they meet on the way.", _moving],
 		["DESTROY THEM", "The enemy is awake. Their base is the red mark at the top right of the minimap. Climb the ramps: units can't see up a cliff, and shots fired uphill miss 30% of the time. Destroy every enemy building!", func() -> bool: return false],
 	]
 	_card()

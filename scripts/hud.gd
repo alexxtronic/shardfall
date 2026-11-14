@@ -31,6 +31,13 @@ var blockers: Array = []
 var refresh_t: float = 0.0
 var sel_sig: String = ""
 var idle_btn: Button
+var army_btn: Button
+var group_menu: GroupMenu       # open while ARMY is held (or after a hold, until a tap)
+var hold_t: float = -1.0        # when the current ARMY press began, -1 when not pressed
+var sliding: bool = false       # the menu follows the finger until it lifts
+var eat_tap: bool = false       # the ARMY release that ends a hold is not a tap
+var close_frame: int = -1
+const HOLD_OPEN := 0.3          # seconds of holding ARMY before the group menu opens
 
 
 func setup(w: World, c: Commander, r: CameraRig) -> void:
@@ -179,6 +186,14 @@ func _left_buttons() -> void:
 		b.pressed.connect(func(): _left_action(a))
 		v.add_child(b)
 		blockers.append(b)
+		if a == "army":
+			army_btn = b
+			b.button_down.connect(_army_down)
+			# a small corner mark: there's more behind a hold
+			var more := UiKit.head("›", 18, UiKit.accent.lerp(Color.WHITE, 0.2))
+			more.position = Vector2(72, 20)
+			more.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			b.add_child(more)
 		if a == "idle":
 			idle_btn = b
 			# a count badge in the corner
@@ -201,6 +216,12 @@ func _left_buttons() -> void:
 
 
 func _left_action(a: String) -> void:
+	if a == "army":
+		if eat_tap:
+			eat_tap = false
+			return
+		close_groups()
+		_army_tip()
 	Sfx.play("click")
 	if a == "build_menu":
 		# build without selecting a worker first: the nearest one goes
@@ -209,6 +230,117 @@ func _left_action(a: String) -> void:
 		_refresh_card(true)
 		return
 	cmd.action(a)
+
+
+# ---------------------------------------------------------------- group select (hold ARMY)
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+func _army_down() -> void:
+	eat_tap = false
+	if group_menu:
+		close_groups()
+	hold_t = _now()
+
+
+## Open the group menu beside the left buttons. `slide`: it follows the finger that is
+## still holding ARMY, and picks whatever group that finger lifts on.
+func open_groups(slide: bool) -> void:
+	if group_menu or world.over:
+		return
+	group_menu = GroupMenu.new()
+	root.add_child(group_menu)
+	group_menu.build(world, pid)
+	group_menu.position = Vector2(104, 64)
+	group_menu.picked.connect(pick_group)
+	blockers.append(group_menu)
+	sliding = slide
+	eat_tap = slide
+	Sfx.play("open", 1.1, -6.0)
+	Input.vibrate_handheld(18)
+
+
+func close_groups() -> void:
+	if group_menu:
+		blockers.erase(group_menu)
+		group_menu.queue_free()
+		group_menu = null
+	sliding = false
+
+
+func pick_group(kind: String) -> void:
+	var list := GroupMenu.members(world, pid, kind)
+	close_groups()
+	if list.is_empty():
+		return
+	cmd.set_selection(list)
+	Sfx.play("click")
+	Input.vibrate_handheld(12)
+	# one line for the latest pick, not a stack of them
+	for c in msg_box.get_children():
+		if c.has_meta("group"):
+			msg_box.remove_child(c)
+			c.queue_free()
+	show_message("%s selected. Tap where to send them." % GroupMenu.describe(kind, list.size()), "hint")
+	for c in msg_box.get_children():
+		if String(c.get_meta("text", "")).ends_with("Tap where to send them."):
+			c.set_meta("group", true)
+
+
+## The first few ARMY taps teach the hold.
+func _army_tip() -> void:
+	var n := int(Prefs.get_v("army_tip"))
+	if n < 3:
+		Prefs.set_v("army_tip", n + 1)
+		show_message("Tip: hold ARMY and slide to pick ground, air, workers or one unit type", "hint")
+
+
+func _input(ev: InputEvent) -> void:
+	if group_menu == null and hold_t < 0.0 and close_frame != Engine.get_process_frames():
+		return
+	if ev is InputEventMouseMotion:
+		if sliding and group_menu:
+			group_menu.hot_at(ev.position)
+		return
+	var pos := Vector2.ZERO
+	var pressed := false
+	if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+		pos = ev.position
+		pressed = ev.pressed
+	elif ev is InputEventScreenTouch and ev.index == 0:
+		pos = ev.position
+		pressed = ev.pressed
+	elif ev is InputEventScreenDrag and ev.index == 0:
+		if sliding and group_menu:
+			group_menu.hot_at(ev.position)
+		return
+	else:
+		return
+	if not pressed:
+		# the finger that held ARMY lifts (touch and mouse both report it; act once)
+		if hold_t >= 0.0:
+			hold_t = -1.0
+			if sliding and group_menu:
+				sliding = false
+				var k := group_menu.hot_at(pos)
+				if k != "":
+					pick_group(k)
+				elif not army_btn.get_global_rect().has_point(pos):
+					close_groups()
+				# lifted on ARMY itself: the menu stays open for a tap
+		return
+	# a new press: inside the menu or on ARMY is theirs; anywhere else just closes it
+	if group_menu and not sliding:
+		if group_menu.get_global_rect().has_point(pos) or army_btn.get_global_rect().has_point(pos):
+			return
+		close_groups()
+		close_frame = Engine.get_process_frames()
+		get_viewport().set_input_as_handled()
+	elif group_menu == null and close_frame == Engine.get_process_frames():
+		# the same press, reported again as touch or mouse
+		get_viewport().set_input_as_handled()
 
 
 func _minimap() -> void:
@@ -379,6 +511,8 @@ func _menu_pick(a: String) -> void:
 func _process(delta: float) -> void:
 	if world == null:
 		return
+	if hold_t >= 0.0 and group_menu == null and _now() - hold_t >= HOLD_OPEN:
+		open_groups(true)
 	var pl: PlayerState = world.players[pid]
 	lbl_min.text = str(pl.minerals)
 	lbl_slime.text = str(pl.slime)

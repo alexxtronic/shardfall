@@ -108,6 +108,8 @@ func _run() -> void:
 		await _seats()
 	if want("tutorial"):
 		await _tutorial()
+	if want("groups"):
+		await _groups()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -515,6 +517,110 @@ func _tutorial() -> void:
 	m.queue_free()
 	m = null
 	await frames(2)
+
+
+## Hold ARMY and slide: the group menu opens after a moment, lights the group under the
+## finger, and selects it when the finger lifts. A quick tap still takes the whole army; a
+## hold released on ARMY leaves the menu open for a tap; lifting on nothing changes nothing.
+func _groups() -> void:
+	await start(["ambron", "void"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var home: Vector2 = w.sites[w.players[0].start_site]["center"]
+	for i in 3:
+		w.spawn_unit(Defs.unit_id("ambron", "infantry"), 0, home + Vector2(-6 + i, 7))
+	w.spawn_unit(Defs.unit_id("ambron", "heavy"), 0, home + Vector2(-2, 8))
+	for i in 2:
+		w.spawn_unit(Defs.unit_id("ambron", "air_light"), 0, home + Vector2(2 + i, 7))
+	await frames(3)
+	var army_c: Vector2 = hud.army_btn.get_global_rect().get_center()
+	# a quick tap: the whole army, as before
+	await _tap(army_c)
+	check(m.cmd.selection.size() == 6 and hud.group_menu == null, "a quick ARMY tap selects all 6 fighters, no menu (%d)" % m.cmd.selection.size())
+	# hold and slide to each group
+	for spec in [["ground", 4], ["air", 2], ["workers", 6], ["type:ambron_lancer", 3]]:
+		var ok := await _hold_slide(hud, army_c, spec[0])
+		var sel: Array = m.cmd.selection
+		var right := sel.size() == int(spec[1])
+		for u in sel:
+			if not GroupMenu.members(w, 0, spec[0]).has(u):
+				right = false
+		check(ok and right and hud.group_menu == null, "hold ARMY, slide to %s, lift: %d selected (%d)" % [spec[0], spec[1], sel.size()])
+	var group_lines := 0
+	for c in hud.msg_box.get_children():
+		if c.has_meta("group") and not c.is_queued_for_deletion():
+			group_lines += 1
+	check(group_lines == 1, "only the latest pick's line shows (%d)" % group_lines)
+	# a hold lifted on ARMY keeps the menu open; a tap on a group picks it
+	m.cmd.set_selection([])
+	await _press(army_c)
+	await get_tree().create_timer(0.45).timeout
+	await shot("95_group_menu")
+	await _release(army_c)
+	check(hud.group_menu != null and m.cmd.selection.is_empty(), "a hold lifted on ARMY leaves the menu open and selects nothing")
+	await _tap(hud.group_menu.option_center("air"))
+	check(hud.group_menu == null and m.cmd.selection.size() == 2, "then tapping AIR picks the flyers (%d)" % m.cmd.selection.size())
+	# sliding off to nothing changes nothing
+	await _press(army_c)
+	await get_tree().create_timer(0.45).timeout
+	await _slide(army_c, Vector2(700, 600))
+	await _release(Vector2(700, 600))
+	check(hud.group_menu == null and m.cmd.selection.size() == 2, "lifting outside the menu closes it and keeps the selection")
+	# idle workers: none idle at the start, so it can't be picked
+	await _press(army_c)
+	await get_tree().create_timer(0.45).timeout
+	var idle_b: Button = hud.group_menu.find_child("idle", true, false)
+	check(idle_b != null and idle_b.disabled, "an empty group is greyed out")
+	await _release(army_c)
+	hud.close_groups()
+	await frames(2)
+
+
+func _press(sp: Vector2) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = 0
+	e.position = sp
+	e.pressed = true
+	Input.parse_input_event(e)
+	await frames(2)
+
+
+func _release(sp: Vector2) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = 0
+	e.position = sp
+	e.pressed = false
+	Input.parse_input_event(e)
+	await frames(3)
+
+
+func _slide(a: Vector2, b: Vector2) -> void:
+	var prev := a
+	for i in 6:
+		var p := a.lerp(b, float(i + 1) / 6.0)
+		var d := InputEventScreenDrag.new()
+		d.index = 0
+		d.position = p
+		d.relative = p - prev
+		prev = p
+		Input.parse_input_event(d)
+		await frames(1)
+
+
+## Press ARMY, wait for the menu, slide onto a group and lift. False if the menu never opened.
+func _hold_slide(hud: Hud, army_c: Vector2, kind: String) -> bool:
+	await _press(army_c)
+	await get_tree().create_timer(0.45).timeout
+	if hud.group_menu == null:
+		await _release(army_c)
+		return false
+	await frames(2)
+	var to: Vector2 = hud.group_menu.option_center(kind)
+	await _slide(army_c, to)
+	if kind == "ground":
+		await shot("96_group_slide")
+	await _release(to)
+	return true
 
 
 func _tut_wait(tut: Tutorial, want_step: int) -> void:
