@@ -122,7 +122,8 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `title`, `economy`, `touch`, `build`, `army`, `combat`, `expand`, `void`, `ui`, `models`, `fx` and `full`;
   - `maps`: each map is an exact mirror, every base is reachable and fully stocked;
   - `terrain`: ramps, cliffs, uphill misses, picking on plateaus;
-  - `profile`: rating, scores and the results screen.
+  - `profile`: rating, scores and the results screen;
+  - `seats`: neither seat starts ahead (mirrored grid, equal harvest, equal march to the enemy).
 
   `--only=previews` is not a test. It re-bakes the map previews (`assets/ui/maps/`), the app icon and the boot splash after a map or art change.
 - **Balance.** It runs headless and rewrites `docs/BALANCE.md`:
@@ -131,7 +132,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -- --balance
   ```
 
-  Add `--quick` for fewer trials or `--nogames` to skip the full games. `-- --balance --game --seed=N` prints a timeline of one bot-vs-bot game.
+  Add `--quick` for fewer trials or `--nogames` to skip the full games. `-- --balance --game --seed=N` prints a timeline of one bot-vs-bot game (`--map=ID`, `--races=a,b` and `--swap` pick the map, the races and the seats).
 - **Script check.** It loads every script, so all parse errors show at once:
 
   ```bash

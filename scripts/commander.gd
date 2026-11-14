@@ -735,7 +735,7 @@ func _builder_for(at: Vector2):
 		if u.order == Unit.O.BUILD:
 			continue
 		var d: float = u.p.distance_to(at) + (4.0 if u.carry > 0 else 0.0)
-		if u.order == Unit.O.GATHER and u.gnode is Building:
+		if u.order == Unit.O.GATHER and is_instance_valid(u.gnode) and u.gnode is Building:
 			d += 30.0
 		if d < bd:
 			bd = d

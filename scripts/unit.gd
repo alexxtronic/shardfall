@@ -486,6 +486,7 @@ func _step_gather(dt: float) -> void:
 				return
 			if _follow(dt) or base.dist_to(p) <= radius + 0.45:
 				if base.dist_to(p) <= radius + 0.9:
+					var delivered := carry_kind
 					world.deposit(owner_id, carry_kind, carry)
 					carry = 0
 					carry_kind = ""
@@ -493,7 +494,7 @@ func _step_gather(dt: float) -> void:
 						gstate = "to_node"
 						set_goal(_node_spot(gnode))
 					else:
-						_find_new_node()
+						_find_new_node(delivered)
 				else:
 					_go_to_base()
 		_:
@@ -547,9 +548,11 @@ func _exit_extractor() -> void:
 		visible = shown
 
 
-func _find_new_node() -> void:
+## A new node of the same kind as the last job. `hint` is what was just delivered, since
+## a destroyed extractor may already be freed and can't be asked what it was.
+func _find_new_node(hint: String = "") -> void:
 	var kind := "mineral"
-	if gnode is Building or carry_kind == "slime":
+	if hint == "slime" or carry_kind == "slime" or (is_instance_valid(gnode) and gnode is Building):
 		kind = "slime"
 	var n = world.nearest_resource(owner_id, p, kind)
 	if n == null and kind == "slime":
@@ -597,7 +600,7 @@ func status_text() -> String:
 	if is_worker:
 		match order:
 			O.GATHER:
-				if gnode is Building:
+				if is_instance_valid(gnode) and gnode is Building:
 					return "Harvesting Void Slime"
 				return "Harvesting crystals"
 			O.BUILD:

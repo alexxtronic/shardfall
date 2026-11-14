@@ -96,13 +96,18 @@ func rect_free(origin: Vector2i, sz: Vector2i) -> bool:
 	return true
 
 
-## The nearest walkable cell to p (spiral search).
-func nearest_walkable(p: Vector2, max_r: int = 24) -> Vector2:
+## The nearest free spot to p (spiral search). Cells at the same distance (all four sides of a building,
+## say) go to the one nearest `toward`, by default the map centre, never to whichever the
+## scan meets first: a fixed scan order favours one corner, so the two mirrored seats
+## would resolve the same order differently.
+func nearest_walkable(p: Vector2, max_r: int = 24, toward = null) -> Vector2:
 	var c := cell_of(p)
 	if walkable(c):
 		return p
+	var tw: Vector2 = toward if toward is Vector2 else Vector2(size, size) * 0.5
 	var best := p
 	var best_d := INF
+	var best_t := INF
 	for r in range(1, max_r):
 		for dy in range(-r, r + 1):
 			for dx in range(-r, r + 1):
@@ -112,8 +117,10 @@ func nearest_walkable(p: Vector2, max_r: int = 24) -> Vector2:
 				if walkable(cc):
 					var cp := center_of(cc)
 					var d := cp.distance_squared_to(p)
-					if d < best_d:
+					var t := cp.distance_squared_to(tw)
+					if d < best_d - 0.001 or (d < best_d + 0.001 and t < best_t):
 						best_d = d
+						best_t = t
 						best = cp
 		if best_d < INF:
 			return best
@@ -122,8 +129,8 @@ func nearest_walkable(p: Vector2, max_r: int = 24) -> Vector2:
 
 ## A path from a to b as world points, pulled tight. The first point is a.
 func find_path(a: Vector2, b: Vector2, radius: float = 0.4) -> PackedVector2Array:
-	var start := nearest_walkable(a, 6)
-	var goal := nearest_walkable(b)
+	var start := nearest_walkable(a, 6, b)
+	var goal := nearest_walkable(b, 24, a)
 	var sc := cell_of(start)
 	var gc := cell_of(goal)
 	var out := PackedVector2Array()

@@ -33,8 +33,16 @@ var _want_q: Vector2 = Vector2.ZERO   # where the last building was wanted
 
 
 func _ready() -> void:
-	cfg = LEVELS.get(difficulty, LEVELS["normal"])
+	cfg = (LEVELS.get(difficulty, LEVELS["normal"]) as Dictionary).duplicate()
 	race = world.players[pid].race
+	# a little variety per game, the same range for both seats: first wave size, how
+	# fast the waves grow, when to expand, and which beat the brain thinks on. Without
+	# it two bots launch on the same second and the map's tiniest asymmetry picks the
+	# winner every game.
+	cfg["first_wave"] = int(cfg["first_wave"]) + randi_range(-4, 4)
+	cfg["wave_step"] = maxi(2, int(cfg["wave_step"]) + randi_range(-2, 2))
+	cfg["expand_at"] = float(cfg["expand_at"]) * randf_range(0.85, 1.15)
+	think_t = 1.0 + randf() * float(cfg["think"])
 	wave_supply = int(cfg["first_wave"])
 	var s: Dictionary = world.sites[world.players[pid].start_site]
 	home = s["center"]
@@ -158,7 +166,7 @@ func _economy(workers: Array, built_mains: Array) -> void:
 			for u in workers:
 				if on >= ext_want:
 					break
-				if u.order == Unit.O.GATHER and u.gnode is ResourceNode and u.carry == 0 and u.p.distance_to(e.p) < 22.0:
+				if u.order == Unit.O.GATHER and is_instance_valid(u.gnode) and u.gnode is ResourceNode and u.carry == 0 and u.p.distance_to(e.p) < 22.0:
 					u.cmd_gather(e)
 					on += 1
 	# idle workers go to the least crowded base's crystals
@@ -181,7 +189,7 @@ func _best_mineral(from: Vector2, built_mains: Array):
 		if nodes.is_empty():
 			continue
 		for u in world.units:
-			if u.owner_id == pid and u.is_worker and u.order == Unit.O.GATHER and u.gnode is ResourceNode and u.gnode.p.distance_to(b.p) < 12.0:
+			if u.owner_id == pid and u.is_worker and u.order == Unit.O.GATHER and is_instance_valid(u.gnode) and u.gnode is ResourceNode and u.gnode.p.distance_to(b.p) < 12.0:
 				miners += 1
 		var sat := float(miners) / float(nodes.size() * 2)
 		var s := sat * 40.0 + from.distance_to(b.p) * 0.2
@@ -198,6 +206,12 @@ func _supply(pl: PlayerState) -> void:
 	if cap >= Defs.SUPPLY_MAX:
 		return
 	var used: int = world.supply_used(pid)
+	# Ambron: production needs a finished relay's field, so the first relay goes up a
+	# little before the barracks is wanted (at 13 supply), as a player would build it
+	if Defs.needs_power(bid("barracks")) and used >= 10 and pl.minerals >= 100 \
+			and _mine("supply", true).is_empty() and _pending("supply") == 0:
+		_build("supply")
+		return
 	var producers := 0
 	for b in world.buildings:
 		if b.owner_id == pid and not b.dead and b.built and b.produces().size() > 0:
@@ -427,7 +441,7 @@ func _builder(at: Vector2):
 	for u in world.units:
 		if u.owner_id != pid or u.dead or not u.is_worker or u.hidden_inside or u.build_id != "":
 			continue
-		if u.order == Unit.O.GATHER and u.gnode is Building:
+		if u.order == Unit.O.GATHER and is_instance_valid(u.gnode) and u.gnode is Building:
 			continue
 		var d: float = u.p.distance_to(at) + (5.0 if u.carry > 0 else 0.0)
 		if d < bd:

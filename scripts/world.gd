@@ -76,8 +76,9 @@ func setup(c: Dictionary) -> void:
 		theme = Maps.THEMES["alien"]
 	else:
 		MapGen.build(self, map_name)
+		var swap := bool(c.get("swap_sites", false))
 		for i in players.size():
-			start_player(i, i)
+			start_player(i, (players.size() - 1 - i) if swap else i)
 	if visuals and human >= 0:
 		fog = Fog.new()
 		fog.world = self
@@ -677,7 +678,7 @@ func on_building_done(b: Building) -> void:
 		var n := 0
 		var cands: Array = []
 		for u in units:
-			if u.owner_id == b.owner_id and u.is_worker and u.order == Unit.O.GATHER and u.gnode is ResourceNode and u.carry == 0:
+			if u.owner_id == b.owner_id and u.is_worker and u.order == Unit.O.GATHER and is_instance_valid(u.gnode) and u.gnode is ResourceNode and u.carry == 0:
 				cands.append(u)
 		cands.sort_custom(func(a, c): return a.p.distance_to(b.p) < c.p.distance_to(b.p))
 		for u in cands:
@@ -751,14 +752,26 @@ func suggest_spot(pid: int, bid: String, q: Vector2) -> Variant:
 	var bd: Dictionary = Defs.buildings[bid]
 	var sz: int = int(bd["size"])
 	var c0 := Vector2i(int(floor(q.x - sz * 0.5 + 0.5)), int(floor(q.y - sz * 0.5 + 0.5)))
+	# score by the exact distance from q to the footprint's centre, ties to the one nearer
+	# the map centre: a scan-order tie-break would favour one corner, which the two
+	# mirrored seats don't share
+	var mid := Vector2(grid.size, grid.size) * 0.5
+	var half := Vector2(sz, sz) * 0.5
 	var best = null
 	var best_d := INF
+	var best_t := INF
 	for dy in range(-14, 15):
 		for dx in range(-14, 15):
-			var d := float(dx * dx + dy * dy)
-			if d >= best_d or d > 196.0:
+			if dx * dx + dy * dy > 196:
 				continue
 			var c := c0 + Vector2i(dx, dy)
+			var ctr := Vector2(c) + half
+			var d := ctr.distance_squared_to(q)
+			if d > best_d + 0.001:
+				continue
+			var t := ctr.distance_squared_to(mid)
+			if d > best_d - 0.001 and t >= best_t:
+				continue
 			if not can_place(pid, bid, c):
 				continue
 			if not grid.rect_free(c - Vector2i(1, 1), Vector2i(sz + 2, sz + 2)):
@@ -766,6 +779,7 @@ func suggest_spot(pid: int, bid: String, q: Vector2) -> Variant:
 			if _near_resources(c, sz, 2.0):
 				continue
 			best_d = d
+			best_t = t
 			best = c
 	return best
 

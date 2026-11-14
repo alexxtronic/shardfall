@@ -45,15 +45,23 @@ Margin is Ambron's value left minus Void's, as a share of the starting value: 0%
 
 ## 5. Full games, bot against bot (normal)
 
-| Game | P1 | P2 | Winner | Time |
-|---|---|---|---|---|
-| 1 | ambron | void | void | 16:23 |
-| 2 | void | ambron | void | 17:52 |
-| 3 | ambron | void | void | 14:15 |
-| 4 | void | ambron | void | 20:20 |
-| 5 | ambron | void | ambron | 18:36 |
-| 6 | void | ambron | void | 19:32 |
+Each map is played from both seats with both races, each game on its own seed. Each bot rolls a little variety per game (wave size and timing), so a dozen games is a small sample: read a gap under about 4 games as noise.
 
-Ambron 1, Void 5, unfinished 0.
+| Game | Map | P1 | P2 | Winner | Time |
+|---|---|---|---|---|---|
+| 1 | Shatterfield | ambron | void | ambron | 11:35 |
+| 2 | Frostspire Pass | ambron | void | ambron | 19:17 |
+| 3 | Ember Rift | ambron | void | void | 16:01 |
+| 4 | Shatterfield | void | ambron | ambron | 15:48 |
+| 5 | Frostspire Pass | void | ambron | void | 19:23 |
+| 6 | Ember Rift | void | ambron | ambron | 19:44 |
+| 7 | Shatterfield | ambron | void | void | 19:32 |
+| 8 | Frostspire Pass | ambron | void | ambron | 18:58 |
+| 9 | Ember Rift | ambron | void | void | 14:38 |
+| 10 | Shatterfield | void | ambron | void | 12:12 |
+| 11 | Frostspire Pass | void | ambron | void | 15:54 |
+| 12 | Ember Rift | void | ambron | void | 18:58 |
 
-Run time: 246.3 s
+Ambron 5, Void 7, unfinished 0. By seat: P1 7, P2 5.
+
+Run time: 337.9 s

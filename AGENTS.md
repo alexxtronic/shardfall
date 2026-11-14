@@ -20,6 +20,12 @@ Both races must have identical power per resource spent. Never give one race a u
   - Main bases may only go on the hand-placed site cells.
   - Other buildings use `World.suggest_spot` to keep a one-cell lane and stay off crystal lines.
 - **The bot:** `BotAI` uses the same costs and rules as the player, with no extra income. Run `-- --balance --game --seed=N` to read its game timeline when tuning it.
+  - Add `--map=ID --races=a,b` to choose the matchup, and `--swap` to start each player on the other main. A swapped game should come out as the mirror image of the unswapped one.
+  - Each bot rolls a little variety at the start (first wave size, wave growth, expansion timing, think phase), from the same range for both seats. Keep it: without it, both bots launch on the same second and the map's tiniest asymmetry decides every game.
+- **Mirror fairness (2026-11-14):** both seats must face exactly the same game.
+  - Never break an equal-distance tie by scan order, because a fixed order favours one corner and the mirrored seat resolves it differently.
+  - Break ties toward a reference point that mirrors with the seat: the requester, or the map centre. `PathGrid.nearest_walkable` and `World.suggest_spot` do this.
+  - The `seats` autotest checks that the grid is an exact mirror, that both seats harvest alike, and that the march to the enemy main is within 2%.
 
 ## Art pipeline (Alex, 2026-11-14)
 

@@ -39,7 +39,7 @@ func _one_game() -> void:
 			sd = int(a.substr(7))
 		if a.begins_with("--map="):
 			map_id = Maps.resolve(a.substr(6))
-	_full_game(races, sd, map_id)
+	_full_game(races, sd, map_id, args.has("--swap"))
 	get_tree().quit()
 
 
@@ -134,20 +134,23 @@ func _run() -> void:
 	var games := 0 if args.has("--nogames") else (Maps.LIST.size() * 2 if quick else Maps.LIST.size() * 4)
 	_log("## 5. Full games, bot against bot (normal)")
 	_log("")
-	_log("Each map is played from both seats with both races.")
+	_log("Each map is played from both seats with both races, each game on its own seed. Each bot rolls a little variety per game (wave size and timing), so a dozen games is a small sample: read a gap under about 4 games as noise.")
 	_log("")
 	_log("| Game | Map | P1 | P2 | Winner | Time |")
 	_log("|---|---|---|---|---|---|")
 	var wins := {"ambron": 0, "void": 0, "none": 0}
+	var seat_wins := [0, 0]
 	for g in games:
 		var races := ["ambron", "void"] if (g / Maps.LIST.size()) % 2 == 0 else ["void", "ambron"]
 		var map_id: String = Maps.LIST[g % Maps.LIST.size()]
 		var res := _full_game(races, g, map_id)
 		var wr: String = "none" if res[0] < 0 else races[res[0]]
 		wins[wr] += 1
+		if res[0] >= 0:
+			seat_wins[res[0]] += 1
 		_log("| %d | %s | %s | %s | %s | %s |" % [g + 1, Maps.DEFS[map_id]["name"], races[0], races[1], wr, UiKit.fmt_time(res[1])])
 	_log("")
-	_log("Ambron %d, Void %d, unfinished %d." % [wins["ambron"], wins["void"], wins["none"]])
+	_log("Ambron %d, Void %d, unfinished %d. By seat: P1 %d, P2 %d." % [wins["ambron"], wins["void"], wins["none"], seat_wins[0], seat_wins[1]])
 	_log("")
 	_log("Run time: %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	var f := FileAccess.open("res://docs/BALANCE.md", FileAccess.WRITE)
@@ -283,17 +286,26 @@ func _spawn_army(w: World, pid: int, mix: Array, x: float, race: String) -> void
 
 
 ## A full bot-vs-bot game on the real map. Returns [winner or -1, game time].
-func _full_game(races: Array, s: int, map_id: String = "shatterfield") -> Array:
+func _full_game(races: Array, s: int, map_id: String = "shatterfield", swap: bool = false) -> Array:
 	seed(s * 31 + 5)
 	var w := World.new()
 	add_child(w)
-	w.setup({"map": map_id, "visuals": false, "human": -1, "races": races, "ai": [true, true], "difficulty": "normal"})
+	w.setup({"map": map_id, "visuals": false, "human": -1, "races": races, "ai": [true, true], "difficulty": "normal", "swap_sites": swap})
 	var t := 0.0
 	var limit := 40.0 * 60.0
 	var next_log := 0.0
+	var states := {}
+	if verbose:
+		for ai in w.ais:
+			print("bot P%d rolls first wave %d, wave step %d, expand every %.0f s" % [ai.pid + 1, ai.cfg["first_wave"], ai.cfg["wave_step"], ai.cfg["expand_at"]])
 	while t < limit and not w.over:
 		w.step(0.1)
 		t += 0.1
+		if verbose:
+			for ai in w.ais:
+				if states.get(ai.pid, "") != ai.state:
+					states[ai.pid] = ai.state
+					print("  %s P%d -> %s (army %d supply)" % [UiKit.fmt_time(w.time), ai.pid + 1, ai.state, ai.sent_supply if ai.state == "attack" else 0])
 		if verbose and t >= next_log:
 			next_log += 120.0
 			_timeline(w)
@@ -351,9 +363,14 @@ func _timeline(w: World) -> void:
 					army += 1
 					army_sup += u.supply
 		var bs := {}
+		var dark := 0
 		for b in w.buildings:
 			if b.owner_id == pl.id and not b.dead:
 				bs[b.slot] = int(bs.get(b.slot, 0)) + 1
+				if b.built and b.needs_power and not w.is_powered(b):
+					dark += 1
+		if dark > 0:
+			bs["UNPOWERED"] = dark
 		var st := "-"
 		for ai in w.ais:
 			if ai.pid == pl.id:

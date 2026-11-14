@@ -104,6 +104,8 @@ func _run() -> void:
 		await _terrain()
 	if want("profile"):
 		await _profile()
+	if want("seats"):
+		await _seats()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -389,6 +391,48 @@ func _terrain() -> void:
 	var sp := m.rig.to_screen(Vector3(main_c.x + 4, Terrain.LEVEL_H, main_c.y - 8))
 	var g := m.rig.screen_to_ground(sp)
 	check(g.distance_to(main_c + Vector2(4, -8)) < 0.5, "tapping the plateau picks the plateau (%.2f m off)" % g.distance_to(main_c + Vector2(4, -8)))
+
+## Neither seat starts ahead: the grid is an exact mirror, both sides' starting workers
+## harvest the same amount on every map, and the march to the enemy main is the same.
+func _seats() -> void:
+	for id in Maps.LIST:
+		for races in [["ambron", "ambron"], ["void", "ambron"]]:
+			var w := World.new()
+			add_child(w)
+			w.setup({"map": id, "visuals": false, "human": -1, "races": races, "ai": [false, false]})
+			if races[0] == "ambron":
+				var odd := 0
+				var n: int = w.grid.size
+				for y in n:
+					for x in n:
+						if w.grid.kind_at(Vector2i(x, y)) != w.grid.kind_at(Vector2i(n - 1 - x, n - 1 - y)):
+							odd += 1
+				check(odd == 0, "%s: the walkable grid is an exact mirror (%d cells differ)" % [id, odd])
+			for i in 3600:
+				w.step(0.05)
+			var a: int = w.players[0].gathered_m
+			var b: int = w.players[1].gathered_m
+			check(absi(a - b) <= maxi(a, b) * 0.06, "%s %s: both seats harvest alike in 3 min (%d vs %d)" % [id, races, a, b])
+			if races[0] == "ambron":
+				# the walk from each main's front door to the other main is the same
+				var s0: Dictionary = w.sites[0]
+				var s1: Dictionary = w.sites[1]
+				var from0: Vector2 = s0["center"] - (s0["dir"] as Vector2) * 8.0
+				var from1: Vector2 = s1["center"] - (s1["dir"] as Vector2) * 8.0
+				var l0 := _path_len(w.grid.find_path(from0, s1["center"]))
+				var l1 := _path_len(w.grid.find_path(from1, s0["center"]))
+				# A* breaks equal-cost ties its own way, so allow a couple of percent
+				check(absf(l0 - l1) <= maxf(l0, l1) * 0.02, "%s: the march to the enemy main is the same from both seats (%.1f vs %.1f m)" % [id, l0, l1])
+			w.queue_free()
+			await frames(1)
+
+
+func _path_len(path: PackedVector2Array) -> float:
+	var l := 0.0
+	for i in range(1, path.size()):
+		l += path[i - 1].distance_to(path[i])
+	return l
+
 
 ## The leaderboard: a game against the bot moves the rating, sets a best score and lands in
 ## the history; the results screen and the leaderboard panel show it.
