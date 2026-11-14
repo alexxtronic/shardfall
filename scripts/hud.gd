@@ -61,7 +61,14 @@ func setup(w: World, c: Commander, r: CameraRig) -> void:
 	cmd.selection_changed.connect(_on_selection)
 	cmd.mode_changed.connect(_on_mode)
 	world.message.connect(show_message)
-	world.alert.connect(func(at): minimap.ping(at); Sfx.play("alert"))
+	world.alert.connect(func(at):
+		minimap.ping(at)
+		Sfx.play("alert")
+		Sfx.combat()
+		Sfx.announce("look_out"))
+	world.building_destroyed.connect(func(b):
+		if b.owner_id >= 0 and b.owner_id != pid and b.shown:
+			Sfx.announce("objective_achieved" if b.slot == "main" else "target_destroyed"))
 	world.unit_ready.connect(func(u): Sfx.play("ready", 1.0, -6.0))
 	_on_selection()
 

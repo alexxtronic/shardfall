@@ -39,6 +39,8 @@ func _ready() -> void:
 				if typeof(v) == typeof(DEFAULTS[k]):
 					data[k] = v
 	apply()
+	if not persist:
+		AudioServer.set_bus_mute(0, true)    # test runs stay quiet
 
 
 func get_v(key: String):
@@ -74,4 +76,4 @@ func _vol(bus: String, v: float) -> void:
 	if i < 0:
 		return
 	AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.0001)))
-	AudioServer.set_bus_mute(i, v <= 0.001)
+	AudioServer.set_bus_mute(i, v <= 0.001 or (bus == "Master" and not persist))

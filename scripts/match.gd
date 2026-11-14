@@ -34,6 +34,9 @@ func start(c: Dictionary) -> void:
 	rig.dist = 30.0
 	rig.focus_h = world.height_at(rig.focus)
 	world.cam = rig
+	Sfx.set_voice_for(String(world.players[0].race))
+	Sfx.music(String(world.theme.get("music", "")), String(world.theme.get("battle", "")))
+	Sfx.ambience(String(world.theme.get("ambience", "")))
 	var weather := Weather.new()
 	add_child(weather)
 	weather.setup(rig, String(world.theme.get("weather", "")))
@@ -111,7 +114,8 @@ func _on_menu(a: String) -> void:
 
 func _on_over(winner: int) -> void:
 	var won := winner == 0
-	Sfx.play("win" if won else "lose")
+	Sfx.sting("win" if won else "lose")
+	get_tree().create_timer(1.4).timeout.connect(func(): Sfx.announce("mission_completed" if won else "mission_failed"))
 	cmd.set_selection([])
 	end_layer = CanvasLayer.new()
 	end_layer.layer = 20

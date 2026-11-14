@@ -14,17 +14,17 @@ const LOOK := {
 	"bolt": [Color(0.35, 0.9, 1.0), "streak", 0.09, 0.0, "bolt"],
 	"glob": [Color(0.55, 1.0, 0.25), "ball", 0.13, 0.6, "glob"],
 	"shell": [Color(1.0, 0.62, 0.2), "ball", 0.16, 0.2, "shell"],
-	"shard": [Color(0.95, 0.88, 0.7), "spike", 0.12, 0.4, "glob"],
+	"shard": [Color(0.95, 0.88, 0.7), "spike", 0.12, 0.4, "crack"],
 	"missile": [Color(0.4, 0.95, 1.0), "spike", 0.12, 2.2, "missile"],
-	"spine": [Color(0.92, 0.84, 0.66), "spike", 0.18, 2.6, "missile"],
+	"spine": [Color(0.92, 0.84, 0.66), "spike", 0.18, 2.6, "crack"],
 	"cannon": [Color(0.4, 0.9, 1.0), "ball", 0.28, 0.0, "shell"],
 	"bomb": [Color(0.55, 1.0, 0.25), "ball", 0.3, -0.5, "glob"],
 	"flame": [Color(1.0, 0.5, 0.12), "", 0.0, 0.0, "flame"],
-	"acid": [Color(0.5, 1.0, 0.2), "", 0.0, 0.0, "flame"],
+	"acid": [Color(0.5, 1.0, 0.2), "", 0.0, 0.0, "acid"],
 	"beam": [Color(0.4, 0.92, 1.0), "", 0.0, 0.0, "beam"],
-	"bile": [Color(0.55, 1.0, 0.2), "", 0.0, 0.0, "beam"],
+	"bile": [Color(0.55, 1.0, 0.2), "", 0.0, 0.0, "acid"],
 	"zap": [Color(0.4, 0.9, 1.0), "", 0.0, 0.0, ""],
-	"bite": [Color(0.6, 1.0, 0.3), "", 0.0, 0.0, ""],
+	"bite": [Color(0.6, 1.0, 0.3), "", 0.0, 0.0, "bite"],
 	"lightning": [Color(0.55, 0.85, 1.0), "", 0.0, 0.0, "zap"],
 	"slime": [Color(0.5, 1.0, 0.2), "ball", 0.2, 1.4, "slime"],
 }
@@ -540,6 +540,8 @@ func death(e) -> void:
 		_burst(at, Color(0.45, 0.25, 0.6), 18 + int(big * 10), 4.0 + big)
 		_burst(at, Color(0.55, 1.0, 0.25), 10 + int(big * 6), 3.0 + big)
 		Sfx.play_at("splat", e.p, 1.0 if big < 2.0 else 0.6)
+		if big >= 1.6:
+			Sfx.play_at("screech", e.p, 1.0 if big < 2.4 else 0.75)
 	else:
 		_flash(at, Color(1.0, 0.65, 0.25), 0.5 + big * 0.6, 0.45, 2.2)
 		_flash(at, Color(1.0, 0.95, 0.8), 0.3 + big * 0.3, 0.2, 1.6)

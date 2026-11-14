@@ -836,14 +836,41 @@ func _models() -> void:
 func _fx() -> void:
 	await start(["ambron", "void"], false)
 	if Sfx.enabled:
+		var names := Sfx.streams.keys()
 		var rec := 0
-		for n in ["bolt", "beam", "boom", "shell", "slime"]:
+		var synth: Array = []
+		for n in names:
 			var s = Sfx.streams[n]
 			if s is Array and s[0] is AudioStreamOggVorbis and not (s[0] as AudioStreamOggVorbis).loop:
 				rec += 1
-		check(rec == 5, "recorded clips replace the synthesised sounds, unlooped (%d of 5)" % rec)
+			else:
+				synth.append(n)
+		synth.sort()
+		check(synth == ["alert", "lose", "win"], "every effect but the alarm has recorded clips, unlooped (synth: %s)" % [synth])
 		check(Sfx.streams["bolt"].size() == 5, "bolt has five variants")
-		check(Sfx.streams["glob"] is AudioStreamWAV, "a sound without a clip keeps its synthesised version")
+		check(Sfx.streams["alert"] is AudioStreamWAV, "a sound without a clip keeps its synthesised version")
+		var th: Dictionary = m.world.theme
+		check(Sfx.calm.playing and Sfx.calm_name == th["music"], "the map's music plays (%s)" % Sfx.calm_name)
+		check(Sfx.amb.playing and (Sfx.amb.stream as AudioStreamOggVorbis).loop, "the map's ambience loops")
+		Sfx.combat()
+		await frames(2)
+		check(Sfx.battle.playing and Sfx.battle_name == th["battle"], "fighting brings in the battle track")
+		var missing: Array = []
+		for kind in ["female", "male"]:
+			for line in ["look_out", "target_destroyed", "objective_achieved", "mission_completed", "mission_failed", "new_highscore"]:
+				if not ResourceLoader.exists("%s%s/%s.ogg" % [Sfx.VOICE_DIR, kind, line]):
+					missing.append(kind + "/" + line)
+		for id in ["menu", "win", "lose", "battle_a", "battle_ember"]:
+			if not ResourceLoader.exists(Sfx.MUSIC_DIR + id + ".ogg"):
+				missing.append(id)
+		for id in Maps.LIST:
+			var t: Dictionary = Maps.theme_of(id)
+			for f in [Sfx.MUSIC_DIR + String(t["music"]), Sfx.AMB_DIR + String(t["ambience"])]:
+				if not ResourceLoader.exists(f + ".ogg"):
+					missing.append(f)
+		check(missing.is_empty(), "every music track, ambience and voice line exists (%s missing)" % [missing])
+		Sfx.announce("look_out")
+		check(Sfx.announcer.playing, "the announcer speaks")
 	var w: World = m.world
 	w.fog.enabled = false
 	var c := Vector2(72, 84)

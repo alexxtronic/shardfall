@@ -7,6 +7,7 @@ signal message(text: String, kind: String)
 signal game_over(winner: int)
 signal alert(at: Vector2)
 signal unit_ready(u: Unit)
+signal building_destroyed(b: Building)
 
 const HASH := 4.0
 
@@ -487,6 +488,7 @@ func kill(e: Entity, src: Entity) -> void:
 		for s in sites:
 			if s["taken_by"] == b.owner_id and b.slot == "main" and Vector2i(s["cell"]) == b.cell:
 				s["taken_by"] = -1
+		building_destroyed.emit(b)
 	if visuals:
 		fx.death(e)
 

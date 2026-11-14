@@ -85,6 +85,8 @@ func _ready() -> void:
 	h.add_child(pb)
 	extra_buttons = h
 	_help(root)
+	Sfx.music("menu")
+	Sfx.ambience("")
 	_set_race(String(Prefs.get_v("race")), false)
 	_set_enemy(String(Prefs.get_v("enemy")), false)
 	_set_diff(String(Prefs.get_v("difficulty")), false)
