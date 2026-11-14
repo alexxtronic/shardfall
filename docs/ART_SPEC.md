@@ -50,10 +50,10 @@ Buildings should fill their footprint (a little inset, about 0.15 m each side) s
 | `ambron_worker` | Harvester | Alex's Tripo drone (existing model) |
 | `ambron_lancer` | Lancer | Ranged infantry robot with an energy rifle (Tripo) |
 | `ambron_bulwark` | Bulwark | Heavy armoured mech-trooper with a shield arm and arm cannon (Tripo) |
-| `ambron_scorcher` | Scorcher | Hover/tracked flame tank, twin nozzle flamer turret (Blender) |
-| `ambron_hailfire` | Hailfire | Tracked missile launcher, angled multi-tube pod (Blender) |
-| `ambron_dart` | Dart | Fast light interceptor, small swept wings, twin cannons (Blender) |
-| `ambron_monolith` | Monolith | Slow heavy gunship, wide hull, big underslung cannon (Blender) |
+| `ambron_scorcher` | Scorcher | Hover flame tank with a twin-nozzle flamer turret (Tripo) |
+| `ambron_hailfire` | Hailfire | Two-legged missile walker with twin multi-tube pods (Tripo) |
+| `ambron_dart` | Dart | Fast light interceptor, small swept wings, twin cannons (Tripo) |
+| `ambron_monolith` | Monolith | Slow heavy gunship, four ducted fans, big underslung cannon (Tripo) |
 | `ambron_sovereign` | Sovereign | Giant four-legged walking titan with a beam cannon (Tripo) |
 | `ambron_citadel` | Citadel | Main base: drop-off, trains Harvesters |
 | `ambron_relay` | Power Relay | Supply structure: obelisk with a floating crystal |

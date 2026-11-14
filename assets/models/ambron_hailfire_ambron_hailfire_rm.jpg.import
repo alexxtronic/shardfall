@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0caim804qj8t"
-path="res://.godot/imported/ambron_monolith_ambron_palette.png-26b9b682e47536e041ba0f946e5dae9d.ctex"
+uid="uid://cvlbbcawja0pn"
+path="res://.godot/imported/ambron_hailfire_ambron_hailfire_rm.jpg-7a0e176b6bf5300a4279f2f8576fbb9f.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "73425ffd9f8920eeed8aa06eb69cd6a2"
+"md5": "41be95c16c817c69ce3a99732b3b039d"
 }
 
 [deps]
 
-source_file="res://assets/models/ambron_monolith_ambron_palette.png"
-dest_files=["res://.godot/imported/ambron_monolith_ambron_palette.png-26b9b682e47536e041ba0f946e5dae9d.ctex"]
+source_file="res://assets/models/ambron_hailfire_ambron_hailfire_rm.jpg"
+dest_files=["res://.godot/imported/ambron_hailfire_ambron_hailfire_rm.jpg-7a0e176b6bf5300a4279f2f8576fbb9f.ctex"]
 
 [params]
 

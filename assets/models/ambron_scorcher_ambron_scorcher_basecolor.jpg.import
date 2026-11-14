@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://pmk7i14aypk6"
-path="res://.godot/imported/ambron_dart_ambron_palette_mr.png-934ac6f2587e5996cfd56fbaaa40d658.ctex"
+uid="uid://batwiuvgsgy1f"
+path="res://.godot/imported/ambron_scorcher_ambron_scorcher_basecolor.jpg-4f10b9fd3ad29b1c60b90e548d0d263f.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "cdc52df379baba16eba6bff3bc4e83b5"
+"md5": "885032a5be8d0748fe04733909af3f8e"
 }
 
 [deps]
 
-source_file="res://assets/models/ambron_dart_ambron_palette_mr.png"
-dest_files=["res://.godot/imported/ambron_dart_ambron_palette_mr.png-934ac6f2587e5996cfd56fbaaa40d658.ctex"]
+source_file="res://assets/models/ambron_scorcher_ambron_scorcher_basecolor.jpg"
+dest_files=["res://.godot/imported/ambron_scorcher_ambron_scorcher_basecolor.jpg-4f10b9fd3ad29b1c60b90e548d0d263f.ctex"]
 
 [params]
 

@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0pk2ct33qdyh"
-path="res://.godot/imported/ambron_dart_ambron_palette.png-cf83a6c5ae060a9062fd70a0b0ceabce.ctex"
+uid="uid://bbf4hsfl1jlbp"
+path="res://.godot/imported/ambron_dart_ambron_dart_basecolor.jpg-74bf06dec5443375d388883f165b56d6.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "73425ffd9f8920eeed8aa06eb69cd6a2"
+"md5": "74733a1e12e7adf64c95c57cab073671"
 }
 
 [deps]
 
-source_file="res://assets/models/ambron_dart_ambron_palette.png"
-dest_files=["res://.godot/imported/ambron_dart_ambron_palette.png-cf83a6c5ae060a9062fd70a0b0ceabce.ctex"]
+source_file="res://assets/models/ambron_dart_ambron_dart_basecolor.jpg"
+dest_files=["res://.godot/imported/ambron_dart_ambron_dart_basecolor.jpg-74bf06dec5443375d388883f165b56d6.ctex"]
 
 [params]
 

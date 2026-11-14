@@ -1,0 +1,73 @@
+{
+ "id": "ambron_monolith",
+ "raw_tris": 9348,
+ "decimated": [
+  9348,
+  8000
+ ],
+ "size_m": [
+  2.557,
+  2.566,
+  1.2
+ ],
+ "faces_by_material": {
+  "body": 7455,
+  "team": 545
+ },
+ "images": [
+  [
+   "ambron_monolith_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_monolith_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_monolith_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 6
+   },
+   {
+    "name": "fly_loop",
+    "seconds": 1.583,
+    "channels": 6
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.417,
+    "channels": 6
+   }
+  ],
+  "triangles": 8000,
+  "materials": [
+   "ambron_ambron_monolith_body",
+   "team"
+  ],
+  "images": 3,
+  "joints": [
+   2
+  ],
+  "bytes": 937776
+ }
+}

@@ -1,0 +1,73 @@
+{
+ "id": "ambron_dart",
+ "raw_tris": 9498,
+ "decimated": [
+  9498,
+  6000
+ ],
+ "size_m": [
+  1.718,
+  1.517,
+  0.6
+ ],
+ "faces_by_material": {
+  "body": 5456,
+  "team": 544
+ },
+ "images": [
+  [
+   "ambron_dart_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_dart_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_dart_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 6
+   },
+   {
+    "name": "fly_loop",
+    "seconds": 1.583,
+    "channels": 6
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.417,
+    "channels": 6
+   }
+  ],
+  "triangles": 6000,
+  "materials": [
+   "ambron_ambron_dart_body",
+   "team"
+  ],
+  "images": 3,
+  "joints": [
+   2
+  ],
+  "bytes": 672188
+ }
+}

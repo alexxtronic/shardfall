@@ -1,0 +1,78 @@
+{
+ "id": "ambron_hailfire",
+ "raw_tris": 9616,
+ "decimated": [
+  9616,
+  7000
+ ],
+ "size_m": [
+  1.224,
+  0.903,
+  1.6
+ ],
+ "faces_by_material": {
+  "body": 6791,
+  "team": 209
+ },
+ "images": [
+  [
+   "ambron_hailfire_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_hailfire_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_hailfire_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "hips",
+  "torso",
+  "thigh_L",
+  "shin_L",
+  "thigh_R",
+  "shin_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 21
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 21
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.917,
+    "channels": 21
+   }
+  ],
+  "triangles": 7000,
+  "materials": [
+   "ambron_ambron_hailfire_body",
+   "team"
+  ],
+  "images": 3,
+  "joints": [
+   7
+  ],
+  "bytes": 878940
+ }
+}
