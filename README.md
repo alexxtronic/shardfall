@@ -75,7 +75,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - **Simulation:** `world.gd`, `unit.gd`, `building.gd`, `map_gen.gd`, `path_grid.gd`, `fog.gd`. It is deterministic and steps on its own, so it runs headless at any speed.
   - **Interface:** `commander.gd` (touch input and orders), `hud.gd`, `minimap.gd`, `overlay.gd`, `camera_rig.gd`.
   - **Opponent:** `bot_ai.gd`, the bot, which plays by the same rules (easy, normal, hard).
-  - **Look and sound:** `models.gd` loads GLBs and animates them; `fx.gd` and `sfx.gd` make the effects and synthesised sound.
+  - **Look and sound:** `models.gd` loads GLBs and animates them; `fx.gd` makes the effects; `sfx.gd` plays recorded clips from `assets/sfx/` (Kenney Sci-Fi Sounds, CC0; see its `CREDITS.md`) and synthesises every sound without one.
   - **Data:** `defs.gd` holds every number in the game.
 - `assets/models/<id>.glb` and `assets/icons/<id>.png` are the art. `docs/ART_SPEC.md` is the contract every model follows.
 - `art/<group>/build.py` are the Blender scripts that build each art group, with a production log per asset and the final review renders.

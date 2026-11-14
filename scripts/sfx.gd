@@ -1,9 +1,13 @@
 extends Node
-## Sound effects, synthesised at start-up (no audio files). play_at() fades a
-## sound with its distance from the camera's focus and skips far-away ones.
+## Sound effects. Every sound has a synthesised version made at start-up; a recorded clip in
+## assets/sfx/ replaces it: <name>.ogg, plus optional variants <name>_2.ogg ... <name>_6.ogg
+## that play() picks between at random. play_at() fades a sound with its distance from the
+## camera's focus and skips far-away ones.
 
 const RATE := 22050
 const VOICES := 18
+const SFX_DIR := "res://assets/sfx/"
+const MAX_VARIANTS := 6
 
 var streams: Dictionary = {}
 var players: Array = []
@@ -25,6 +29,7 @@ func _ready() -> void:
 		add_child(p)
 		players.append(p)
 	_make_all()
+	_load_files()
 
 
 func play(name: String, pitch: float = 1.0, vol: float = 0.0) -> void:
@@ -37,7 +42,8 @@ func play(name: String, pitch: float = 1.0, vol: float = 0.0) -> void:
 	recent[name] = now
 	var p: AudioStreamPlayer = players[next_voice]
 	next_voice = (next_voice + 1) % VOICES
-	p.stream = streams[name]
+	var s = streams[name]
+	p.stream = s.pick_random() if s is Array else s
 	p.pitch_scale = pitch * randf_range(0.94, 1.06)
 	p.volume_db = volume_db + vol
 	p.play()
@@ -49,6 +55,19 @@ func play_at(name: String, at: Vector2, pitch: float = 1.0) -> void:
 		return
 	var k := 1.0 - d / hear_radius
 	play(name, pitch, linear_to_db(maxf(0.05, k)) - 4.0)
+
+
+# ---------------------------------------------------------------- recorded clips
+
+func _load_files() -> void:
+	for name in streams.keys():
+		var found: Array = []
+		for i in range(1, MAX_VARIANTS + 1):
+			var path: String = SFX_DIR + name + ("" if i == 1 else "_%d" % i) + ".ogg"
+			if ResourceLoader.exists(path):
+				found.append(load(path))
+		if not found.is_empty():
+			streams[name] = found
 
 
 # ---------------------------------------------------------------- synthesis

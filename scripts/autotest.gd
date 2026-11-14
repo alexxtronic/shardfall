@@ -659,6 +659,15 @@ func _models() -> void:
 ## Towers and Void weapons in action, close up, in real time.
 func _fx() -> void:
 	await start(["ambron", "void"], false)
+	if Sfx.enabled:
+		var rec := 0
+		for n in ["bolt", "beam", "boom", "shell", "slime"]:
+			var s = Sfx.streams[n]
+			if s is Array and s[0] is AudioStreamOggVorbis and not (s[0] as AudioStreamOggVorbis).loop:
+				rec += 1
+		check(rec == 5, "recorded clips replace the synthesised sounds, unlooped (%d of 5)" % rec)
+		check(Sfx.streams["bolt"].size() == 5, "bolt has five variants")
+		check(Sfx.streams["glob"] is AudioStreamWAV, "a sound without a clip keeps its synthesised version")
 	var w: World = m.world
 	w.fog.enabled = false
 	var c := Vector2(72, 84)
