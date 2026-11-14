@@ -65,7 +65,7 @@ const UNIT_SLOTS := {
 		"weapon": {"dmg": 12.0, "cd": 1.5, "range": 3.5, "ground": true, "air": false, "splash": 1.8, "bonus": {"light": 10.0}, "proj": 0.0},
 	},
 	"vehicle_missile": {
-		"cost": [125, 75], "supply": 3, "time": 30.0, "hp": 170.0, "armor": 1.0,
+		"cost": [125, 75], "supply": 3, "time": 30.0, "hp": 180.0, "armor": 1.0,
 		"speed": 2.6, "radius": 0.85, "air": false, "sight": 11.0,
 		"tags": ["armored", "mech"], "model_h": 1.5, "model_w": 2.0,
 		"weapon": {"dmg": 20.0, "cd": 2.2, "range": 9.0, "ground": true, "air": false, "splash": 0.7, "bonus": {"armored": 40.0}, "proj": 14.0},

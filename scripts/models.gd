@@ -114,6 +114,11 @@ static func fit(inst: Node3D, w: float, h: float) -> float:
 	return s
 
 
+static var team_mats: Dictionary = {}
+
+
+## Recolour every material named team* to the player colour. The recoloured
+## copies are shared, so all units of a player batch together.
 static func tint_team(root: Node, col: Color) -> void:
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var m3: MeshInstance3D = mi
@@ -122,12 +127,15 @@ static func tint_team(root: Node, col: Color) -> void:
 		for i in m3.mesh.get_surface_count():
 			var m: Material = m3.get_active_material(i)
 			if m and m.resource_name.to_lower().begins_with("team"):
-				var nm := (m as StandardMaterial3D).duplicate() if m is StandardMaterial3D else StandardMaterial3D.new()
-				nm.albedo_color = col
-				nm.emission_enabled = true
-				nm.emission = col
-				nm.emission_energy_multiplier = 0.6
-				m3.set_surface_override_material(i, nm)
+				var key := "%d_%s" % [m.get_instance_id(), col.to_html()]
+				if not team_mats.has(key):
+					var nm := (m as StandardMaterial3D).duplicate() if m is StandardMaterial3D else StandardMaterial3D.new()
+					nm.albedo_color = col
+					nm.emission_enabled = true
+					nm.emission = col
+					nm.emission_energy_multiplier = 0.6
+					team_mats[key] = nm
+				m3.set_surface_override_material(i, team_mats[key])
 
 
 static func _anim_player(root: Node) -> AnimationPlayer:
@@ -157,8 +165,34 @@ static func attach_unit(w, u) -> void:
 	inner.name = "Model"
 	var ap := _anim_player(inner)
 	if ap:
+		var names := _anim_names(ap)
+		for key in ["idle", "walk", "run", "fly"]:
+			if names.has(key):
+				var an: Animation = ap.get_animation(names[key])
+				if an:
+					an.loop_mode = Animation.LOOP_LINEAR
+		if names.has("attack"):
+			var at: Animation = ap.get_animation(names["attack"])
+			if at:
+				at.loop_mode = Animation.LOOP_NONE
 		u.set_meta("anim", ap)
-		u.set_meta("anim_names", _anim_names(ap))
+		u.set_meta("anim_names", names)
+		if names.has("idle"):
+			ap.play(names["idle"])
+			ap.seek(randf() * ap.current_animation_length, true)
+	var tur := inner.find_children("turret", "Node3D", true, false)
+	if tur.size() > 0:
+		u.set_meta("turret", tur[0])
+		u.set_meta("turret_rot", (tur[0] as Node3D).rotation.y)
+	if u.is_worker:
+		var gem := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.22, 0.3, 0.22)
+		gem.mesh = pm
+		gem.position = Vector3(0, float(u.def["model_h"]) + 0.12, 0)
+		gem.visible = false
+		holder.add_child(gem)
+		u.set_meta("gem", gem)
 	u.make_ring(u.radius, Color(0.3, 1.0, 0.45, 0.9))
 	u.make_team_disc(u.radius * 0.95)
 	if u.is_air:
@@ -283,22 +317,49 @@ static func animate_unit(u, delta: float) -> void:
 	if not u.visible or u.visual == null:
 		return
 	var model: Node3D = u.visual
+	if u.has_meta("gem"):
+		var gem: MeshInstance3D = u.get_meta("gem")
+		gem.visible = u.carry > 0
+		if gem.visible:
+			gem.material_override = mat(Color(1.0, 0.78, 0.2), 1.2, 0.3) if u.carry_kind == "mineral" else mat(Color(0.55, 0.25, 0.95), 1.5, 0.2)
+			gem.rotation.y = t * 2.0
+	if u.has_meta("turret"):
+		var tn: Node3D = u.get_meta("turret")
+		var base: float = u.get_meta("turret_rot")
+		var aim := base
+		if u.target != null and is_instance_valid(u.target) and not u.target.dead:
+			var to: Vector2 = u.target.p - u.p
+			aim = base + wrapf(atan2(to.x, to.y) - u.facing, -PI, PI)
+		tn.rotation.y = lerp_angle(tn.rotation.y, aim, clampf(delta * 6.0, 0.0, 1.0))
 	if u.has_meta("anim"):
 		var ap: AnimationPlayer = u.get_meta("anim")
 		var names: Dictionary = u.get_meta("anim_names")
+		var busy: float = u.get_meta("atk_until", -1.0)
+		# a fresh shot starts the attack animation from the top
+		if u.attack_anim > 0.3 and names.has("attack") and t >= busy - 0.05:
+			var alen: float = ap.get_animation(names["attack"]).length
+			var cdv: float = float(u.weapon.get("cd", 1.0))
+			ap.speed_scale = maxf(1.0, alen / maxf(0.2, cdv * 0.9))
+			ap.play(names["attack"], 0.06)
+			ap.seek(0.0, true)
+			u.set_meta("atk_until", t + alen / ap.speed_scale)
+			return
+		if t < busy:
+			return
 		var want := "idle"
-		if u.attack_anim > 0.0 and names.has("attack"):
-			want = "attack"
-		elif u.moving:
+		if u.moving:
 			want = "walk" if names.has("walk") else ("run" if names.has("run") else "idle")
-		if u.is_air and names.has("fly") and want != "attack":
+		if u.is_air and names.has("fly") and u.moving:
 			want = "fly"
 		if names.has(want) and ap.current_animation != names[want]:
-			ap.play(names[want], 0.15)
+			ap.play(names[want], 0.2)
 		if u.moving and want == "walk":
-			ap.speed_scale = clampf(u.speed / 3.0, 0.6, 1.6)
+			ap.speed_scale = clampf(u.speed / 3.0, 0.7, 1.5)
 		else:
 			ap.speed_scale = 1.0
+		# a little lean into fast flight
+		if u.is_air:
+			model.rotation.x = lerpf(model.rotation.x, 0.12 if u.moving else 0.0, clampf(delta * 4.0, 0.0, 1.0))
 		return
 	# procedural motion for unrigged models
 	var bob := 0.0
@@ -341,6 +402,8 @@ static func attach_building(w, b) -> void:
 	inner.name = "Model"
 	var floaty := inner.find_children("*float*", "Node3D", true, false)
 	floaty.append_array(inner.find_children("*glow_core*", "Node3D", true, false))
+	floaty.append_array(inner.find_children("*_crystal", "Node3D", true, false))
+	floaty.append_array(inner.find_children("*halo*", "Node3D", true, false))
 	if floaty.size() > 0:
 		b.set_meta("floaty", floaty[0])
 		b.set_meta("floaty_y", (floaty[0] as Node3D).position.y)

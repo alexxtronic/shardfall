@@ -43,7 +43,7 @@ func shot(name: String) -> void:
 
 
 func want(n: String) -> bool:
-	return only == "" or only == n
+	return only == "" or n in only.split(",")
 
 
 ## Fast-forward the simulation (no rendering in between).
@@ -154,11 +154,7 @@ func _touch() -> void:
 	var cmd := m.cmd
 	await frames(2)
 	# tap a worker
-	var u: Unit = null
-	for x in w.units:
-		if x.owner_id == 0 and x.is_worker and rig.sees(x.p):
-			u = x
-			break
+	var u: Unit = _clear_worker()
 	if u == null:
 		check(false, "a worker is on screen")
 		return
@@ -167,9 +163,16 @@ func _touch() -> void:
 	await _tap(sp)
 	check(cmd.selection.size() == 1 and cmd.selection[0] is Unit and cmd.selection[0].owner_id == 0, "tap selects a unit")
 	# tap ground moves it
-	var g := u.p + Vector2(5, -6)
+	# an open bit of ground near it, clear of buildings, units and the HUD
+	var g := u.p
+	for i in 40:
+		var q := u.p + Vector2(cos(i * 0.9), sin(i * 0.9)) * (4.0 + i * 0.2)
+		var qs := rig.to_screen(Vector3(q.x, 0, q.y))
+		if w.grid.kind_at(Vector2i(q)) == 0 and w.units_near(q, 1.5).is_empty() and not m.hud.blocks(qs) and Rect2(80, 80, 1120, 400).has_point(qs):
+			g = q
+			break
 	await _tap(rig.to_screen(Vector3(g.x, 0, g.y)))
-	var sel_u: Unit = cmd.selection[0]
+	var sel_u: Unit = u
 	check(sel_u.order == Unit.O.MOVE and sel_u.goal.distance_to(g) < 2.5, "tap on ground moves the selected worker")
 	# send it back to work by tapping a crystal
 	var cr = w.nearest_resource(0, sel_u.p, "mineral")
@@ -192,17 +195,23 @@ func _touch() -> void:
 	await shot("04_box_selected")
 	# double tap selects all of a type
 	cmd.set_selection([])
-	var u2: Unit = null
-	for x in w.units:
-		if x.owner_id == 0 and x.is_worker and rig.sees(x.p) and not x.hidden_inside:
-			u2 = x
-			break
+	var u2: Unit = _clear_worker()
 	var sp2 := rig.to_screen(Vector3(u2.p.x, u2.height * 0.45, u2.p.y))
 	await _tap(sp2)
 	await _tap(rig.to_screen(Vector3(u2.p.x, u2.height * 0.45, u2.p.y)))
 	check(cmd.selection.size() >= 5, "double-tap selects all of that type on screen (%d)" % cmd.selection.size())
 	cmd.action("gather")
 	cmd.set_selection([])
+
+
+## A worker that is on screen and not under a HUD panel.
+func _clear_worker() -> Unit:
+	for x in m.world.units:
+		if x.owner_id == 0 and x.is_worker and not x.hidden_inside and m.rig.sees(x.p):
+			var sp: Vector2 = m.rig.to_screen(Vector3(x.p.x, x.height * 0.45, x.p.y))
+			if not m.hud.blocks(sp) and Rect2(80, 80, 1120, 400).has_point(sp):
+				return x
+	return null
 
 
 func _tap(sp: Vector2) -> void:
@@ -442,7 +451,7 @@ func _combat() -> void:
 	w.fog.enabled = false
 	m.cmd.set_selection(mine)
 	await frames(2)
-	await _tap(m.rig.to_screen(Vector3(spot.x + 8, 0, spot.y)))
+	await _tap(m.rig.to_screen(Vector3(spot.x + 3, 0, spot.y - 7)))
 	check(mine[0].order == Unit.O.AMOVE, "tap on ground with army attack-moves")
 	for i in 40:
 		w.step(0.05)

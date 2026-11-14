@@ -73,6 +73,7 @@ PAL_OVERRIDE = {
     "void_abyss": {"chitin_dark": "#2E1A40", "chitin": "#4A2A63", "chitin_hi": "#734398", "chitin_deep": "#140818"},
 }
 TEAM_GREY = "#C8C8C8"
+STATE = {}  # values a builder hands to produce() (e.g. the pod core pivot)
 
 
 def palette(bid):
@@ -688,7 +689,8 @@ def tendril(name, pts, r0, r1, ribs, kind="flesh", ring=8, per=4):
 
 def patch(name, A, B, C, D, kind="flesh", nu=6, nv=5, sag=None, thick=0.03, scallop=0.0):
     """A thin two-sided membrane sheet over the bilinear patch A-B-C-D (A-B top edge, D-C bottom),
-    bulging by `sag` in the middle; the bottom edge is scalloped like a bat wing's trailing edge."""
+    bulging by `sag` in the middle; the bottom edge is scalloped like a bat wing's trailing edge (`scallop`
+    is the fraction of each column the edge rises between the finger points, so the sheet never folds)."""
     A, B, C, D = (Vector(x) for x in (A, B, C, D))
     sag = Vector(sag) if sag is not None else Vector((0, 0, 0))
     verts = []
@@ -696,10 +698,9 @@ def patch(name, A, B, C, D, kind="flesh", nu=6, nv=5, sag=None, thick=0.03, scal
         v = j / (nv - 1)
         for i in range(nu):
             u = i / (nu - 1)
-            p = (A * (1 - u) + B * u) * (1 - v) + (D * (1 - u) + C * u) * v
+            vv = v * (1 - scallop * abs(math.sin(u * math.pi * 2)))
+            p = (A * (1 - u) + B * u) * (1 - vv) + (D * (1 - u) + C * u) * vv
             p += sag * (4 * u * (1 - u)) * (0.4 + 0.6 * v)
-            if j == nv - 1 and scallop:
-                p += (A - D).normalized() * scallop * abs(math.sin(u * math.pi * 2))
             verts.append(p)
     faces = []
     for j in range(nv - 1):
@@ -838,11 +839,13 @@ def build_pod(rr):
         hit = cast_in(bvh, (0, 0, 0.05), sph(th, math.radians(34)))
         plate_on(f"petal{k}", hit, DOWN, 0.46 * rr.uniform(0.9, 1.1), 0.42, hook=0.45, cross=0.35, bow=0.05,
                  thick=0.06, lift=8, bvh=bvh)
-    eggs = [((0.0, 0.04, 1.02), 0.56, 1.28, UP, 0.34),
+    eggs = [((0.0, 0.04, 1.08), 0.57, 1.34, UP, 0.35),
             ((-0.5, -0.3, 0.5), 0.27, 1.25, (-0.5, -0.3, 1.0), 0.16),
             ((0.5, -0.17, 0.47), 0.25, 1.25, (0.5, -0.17, 1.0), 0.15),
             ((0.22, 0.52, 0.44), 0.24, 1.25, (0.22, 0.5, 1.0), 0.14),
             ((-0.42, 0.38, 0.4), 0.2, 1.2, (-0.4, 0.4, 1.0), 0.12)]
+    c0, r0_, _sz, ax0, _rc = eggs[0]
+    STATE["core_pivot"] = Vector(c0) - Vector(ax0).normalized() * r0_ * 0.06
     for i, (c, r, sz, ax, rc) in enumerate(eggs):
         blob(f"egg{i}", c, r, "membrane", scale=(1, 1, sz), seg=16 if i == 0 else 12, rings=12 if i == 0 else 8,
              lump=0.05, seed=i + 3, axis=ax)
@@ -859,7 +862,7 @@ def build_pod(rr):
         th = 2 * math.pi * k / 5 + 0.3
         rd = radial(th)
         c0 = Vector((0, 0.04, 0))
-        ctrl = [(0.62, 0.22), (0.74, 0.7), (0.72, 1.2), (0.55, 1.68), (0.3, 1.95), (0.1, 2.06)]
+        ctrl = [(0.62, 0.22), (0.76, 0.75), (0.74, 1.28), (0.57, 1.8), (0.31, 2.08), (0.1, 2.2)]
         path = catmull([c0 + rd * r + UP * z for r, z in ctrl], per=3)
         nn = len(path)
         radii = [0.09 * (1 - i / (nn - 1)) ** 0.75 for i in range(nn)]
@@ -876,17 +879,19 @@ def build_maw(rr):
     prof = [(1.00, 0.00), (0.985, 0.18), (0.93, 0.45), (0.83, 0.75), (0.73, 0.98), (0.67, 1.12), (0.63, 1.22),
             (0.585, 1.27), (0.53, 1.25), (0.48, 1.13), (0.42, 0.95), (0.34, 0.78), (0.22, 0.64), (0.1, 0.58),
             (0.0, 0.57)]
-    col = lathe("maw_collar", [(r * R0, z) for r, z in prof], "flesh", seg=30, square=4.0, sq_top=0.7,
+    ZS = 1.16  # r2: the collar stands taller (overall 2.1 -> ~2.5 m)
+    col = lathe("maw_collar", [(r * R0, z * ZS) for r, z in prof], "flesh", seg=30, square=4.0, sq_top=0.7,
                 shear=shear, lump=0.05, seed=3.0)
     col["flex"] = True
     bvh = bvh_of(col)
-    zmax = 1.27
+    zmax = 1.27 * ZS
 
     def sh(p):
         return Vector((p.x, p.y + shear * p.z / zmax, p.z))
 
-    for ti, (z, n, W, L, ph) in enumerate(((0.2, 12, 0.88, 0.8, 0.0), (0.6, 11, 0.74, 0.62, 0.5),
-                                           (0.93, 10, 0.56, 0.45, 0.0))):
+    for ti, (z, n, W, L, ph) in enumerate(((0.2, 12, 0.88, 0.8, 0.0), (0.6, 11, 0.74, 0.66, 0.5),
+                                           (0.93, 10, 0.56, 0.5, 0.0))):
+        z *= ZS
         for k in range(n):
             th = 2 * math.pi * (k + ph) / n + rr.uniform(-0.05, 0.05)
             hit = cast_in(bvh, (0, shear * z / zmax, z), radial(th))
@@ -897,32 +902,37 @@ def build_maw(rr):
         for k in range(n):
             th = 2 * math.pi * (k + 0.5 * ri) / n
             rd = radial(th)
-            p = sh(Vector((rd.x * rf * R0, rd.y * rf * R0, z)))
+            p = sh(Vector((rd.x * rf * R0, rd.y * rf * R0, z * ZS)))
             horn(f"tooth{ri}_{k}", p, -rd * 0.75 + DOWN * 0.5, ln, r0, DOWN, math.radians(45), segs=4, ring=6, flat=0.7)
     for k in range(7):
         th = 2 * math.pi * k / 7 + math.pi / 7
         rd = radial(th)
-        p = sh(Vector((rd.x * 0.62 * R0, rd.y * 0.62 * R0, 1.16)))
-        horn(f"hook{k}", p, rd * 0.5 + UP, 1.15, 0.115, -rd, math.radians(105), segs=8, ring=7, flat=0.7)
+        p = sh(Vector((rd.x * 0.62 * R0, rd.y * 0.62 * R0, 1.16 * ZS)))
+        horn(f"hook{k}", p, rd * 0.45 + UP, 1.32, 0.12, -rd, math.radians(96), segs=9, ring=7, flat=0.7)
     for k in range(7):
         th = 2 * math.pi * k / 7
         rd = radial(th)
-        p = sh(Vector((rd.x * 0.6 * R0, rd.y * 0.6 * R0, 1.27)))
+        p = sh(Vector((rd.x * 0.6 * R0, rd.y * 0.6 * R0, 1.27 * ZS)))
         nodule(f"team{k}", (p, (rd + UP).normalized()), 0.085, seed=k)
-    blob("throat", sh(Vector((0, 0, 0.6))), 0.34, "glow", scale=(1, 1, 0.45), lump=0.15, seed=4)
+    blob("throat", sh(Vector((0, 0, 0.6 * ZS))), 0.34, "glow", scale=(1, 1, 0.45), lump=0.15, seed=4)
     for k, th in enumerate((0.4, 2.5, 4.4)):
-        hit = cast_in(bvh, (0, 0, 0.45), radial(th) + UP * 0.1)
+        hit = cast_in(bvh, (0, 0, 0.45 * ZS), radial(th) + UP * 0.1)
         sac(f"sac{k}", hit, 0.16, embed=0.35, seed=k + 2)
+    # r2: feeding tendrils sprawl out over the slime pile's corners and curl at the tips (were hanging straps)
     for k in range(4):
         th = math.pi / 4 + k * math.pi / 2
         rd = radial(th)
-        pts = [rd * 0.8 + UP * 0.72, rd * 1.2 + UP * 0.66, rd * 1.5 + UP * 0.32, rd * 1.58 + DOWN * 0.15]
-        tendril(f"tendril{k}", pts, 0.2, 0.09, 4)
+        tg = UP.cross(rd) * (1 if k % 2 else -1)
+        pts = [rd * 0.85 + UP * 0.8, rd * 1.2 + UP * 0.62, rd * 1.47 + UP * 0.26, rd * 1.64 + UP * 0.07,
+               rd * 1.68 + tg * 0.17 + UP * 0.06, rd * 1.56 + tg * 0.3 + UP * 0.2]
+        tendril(f"tendril{k}", pts, 0.18, 0.035, 7)
     for k in range(4):
         th = k * math.pi / 2 + 0.3
         rd = radial(th)
-        pts = [rd * 0.9 + UP * 0.55, rd * 1.18 + UP * 0.45, rd * 1.3 + UP * 0.15, rd * 1.3 + DOWN * 0.15]
-        tendril(f"tendril_s{k}", pts, 0.12, 0.06, 3, ring=7)
+        tg = UP.cross(rd)
+        pts = [rd * 0.95 + UP * 0.55, rd * 1.16 + UP * 0.42, rd * 1.3 + UP * 0.13, rd * 1.33 + tg * 0.15 + UP * 0.04,
+               rd * 1.25 + tg * 0.26 + UP * 0.12]
+        tendril(f"tendril_s{k}", pts, 0.11, 0.03, 5, ring=7)
 
 
 def build_nest(rr):
@@ -959,13 +969,13 @@ def build_nest(rr):
     for k in range(5):
         th = math.pi / 2 + (k - 2) * math.radians(42)
         rd = radial(th)
-        horn(f"spike{k}", rd * 1.14 + UP * 0.3, UP + rd * 0.22, 2.55 - 0.18 * abs(k - 2), 0.14, -rd,
-             math.radians(68), segs=9, ring=8, flat=0.7)
+        horn(f"spike{k}", rd * 1.14 + UP * 0.3, UP + rd * 0.18, 2.72 - 0.2 * abs(k - 2), 0.145, -rd,
+             math.radians(58), segs=9, ring=8, flat=0.7)
     for s in (-1, 1):
         th = front + s * math.radians(36)
         rd = radial(th)
-        horn(f"gate{s}", rd * 1.1 + UP * 0.3, UP + rd * 0.4 + Vector((0, -0.25, 0)), 1.3, 0.14,
-             Vector((-s * 0.6, -0.4, 0.3)), math.radians(70), segs=8, ring=8, flat=0.7)
+        horn(f"gate{s}", rd * 1.05 + UP * 0.3, UP + rd * 0.25, 1.45, 0.14,
+             Vector((-s * 0.8, -0.1, 0.35)), math.radians(70), segs=8, ring=8, flat=0.7)
     loop = [Vector((1.1 * math.cos(2 * math.pi * k / 30), 1.1 * math.sin(2 * math.pi * k / 30), 0.4)) for k in range(30)]
     sweep("ribs", loop, ribbed(30, 0.13, 0.13, 10, 0.25, end_taper=False), "flesh", ring=8, closed=True, side=UP)
     for k, th in enumerate((0.15, math.pi - 0.15, math.pi / 2 + 0.4)):
@@ -987,7 +997,7 @@ def build_warren(rr):
         ("ELLIPSOID", (0, -0.8, 0.3), 1.2, (0.95, 0.75, 0.95), False),
         ("BALL", (-0.8, 0.3, 0.2), 0.9, None, False),
         ("BALL", (0.8, 0.3, 0.2), 0.9, None, False),
-    ], 1.16, 1.24, 1.6, res=0.06, amp=0.045, seed=4.0,
+    ], 1.1, 1.15, 1.7, res=0.06, amp=0.045, seed=4.0,
         cutters=[((0, -1.25, 0.18), (0.56, 0.95, 0.82), 0.06)])
     bvh = bvh_of(mass)
     front = min(v.co.y for v in mass.data.vertices)
@@ -1030,13 +1040,13 @@ def build_warren(rr):
         hit = cast_in(bvh, (0, 0.3, 0.4), sph(th, math.radians(10)))
         plate_on(f"rump{k}", hit, DOWN, 0.9, 0.55, hook=0.25, cross=0.35, bow=0.05, thick=0.11, lift=8, bvh=bvh)
     for k in range(6):
-        y = -0.4 + 0.33 * k
+        y = -0.45 + 0.23 * k
         hit = cast(bvh, (0, y, 12), DOWN)
         if hit is None:
             continue
-        ln = 1.15 + 0.3 * math.sin(math.pi * (k + 0.5) / 6)
-        horn(f"spine{k}", hit[0] - UP * 0.12, UP + Vector((0, 0.3, 0)), ln, 0.13, Vector((0, 1, 0)),
-             math.radians(55), segs=8, ring=8, flat=0.6)
+        ln = 1.15 + 0.5 * math.sin(math.pi * (k + 0.5) / 6)
+        horn(f"spine{k}", hit[0] - UP * 0.12, UP + Vector((0, 0.12, 0)), ln, 0.14, Vector((0, 1, 0)),
+             math.radians(32), segs=8, ring=8, flat=0.6)
     for s in (-1, 1):
         for k in range(3):
             y = -0.3 + 0.55 * k
@@ -1101,8 +1111,9 @@ def build_aerie(rr):
         tipb = pts[6]
         j2 = min(range(n), key=lambda q: abs(spine[q].z - (z - 1.3)))
         side = UP.cross(rd) * 0.18
-        patch(f"flap{k}", spine[i] + rd * 0.12, tipb, tipb + DOWN * 0.55 - rd * 0.2 + side, spine[j2] + rd * 0.25,
-              nu=7, nv=5, sag=rd * 0.12 + DOWN * 0.1, thick=0.035, scallop=0.2)
+        # r3: a bat wing, tapering from the hook tip back down to the spire (was a near-rectangular banner)
+        patch(f"flap{k}", spine[i] + rd * 0.12, tipb, tipb + DOWN * 0.36 - rd * 0.34 + side, spine[j2] + rd * 0.22,
+              nu=9, nv=5, sag=rd * 0.14 + DOWN * 0.12, thick=0.035, scallop=0.32)
     horn("crest", spine[-1] - UP * 0.1, UP, 0.62, 0.11, Vector((0.3, 0, 1)), math.radians(15), segs=5, ring=7)
     for j, (z, a, r) in enumerate(((1.75, 3.6, 0.2), (1.55, 3.95, 0.17), (1.95, 3.85, 0.15), (1.45, 0.6, 0.18),
                                    (1.7, 0.85, 0.15))):
@@ -1142,7 +1153,8 @@ def build_abyss(rr):
     ], 1.3, 1.15, 4.4, res=0.07, amp=0.05, seed=7.0,
         cutters=[((0, 0, 2.95), (0.17, 2.2, 2.45), 0.15), ((0, 0, 4.75), (0.42, 2.0, 0.85), 0.1)])
     bvh = bvh_of(mass)
-    blob("rift", (0, 0.0, 2.3), 1.0, "glow", scale=(0.07, 0.62, 1.85), seg=12, rings=12, lump=0.1, seed=2)
+    blob("rift", (0, 0.0, 1.55), 1.0, "glow", scale=(0.06, 0.44, 1.15), seg=12, rings=10, lump=0.1, seed=2)
+    blob("rift2", (0, 0.0, 3.35), 1.0, "glow", scale=(0.05, 0.3, 0.95), seg=10, rings=8, lump=0.1, seed=3)
     for k, (x, y, z, r) in enumerate(((0.0, -0.95, 0.45, 0.3), (-0.3, -1.05, 0.3, 0.2), (0.32, -1.0, 0.32, 0.22))):
         blob(f"riftsac{k}", (x, y, z), r, "glow", lump=0.12, seed=k + 3)
     tiers = ((0.8, 5, 1.1, 1.35), (1.55, 5, 1.0, 1.3), (2.3, 4, 0.95, 1.2), (3.0, 4, 0.82, 1.05),
@@ -1361,15 +1373,15 @@ def sh_chitin(g, P):
 
 def sh_flesh(g, P):
     ao = g.ao()
-    w = g.wave(5.0, 4.0, 2.0, "Z")
+    w = g.wave(2.6, 9.0, 3.0, "Z", g.warp(0.55, 1.3))
     n1 = g.noise(3.0, 3.0, 0.55)
     veins = g.mr(g.edge(3.5, g.warp(0.35, 2.0)), 0.0, 0.04, 1.0, 0.0)
-    col = g.mix(g.mr(w, 0.15, 0.85), P["flesh_dark"], P["flesh"])
+    col = g.mix(g.mr(w, 0.1, 0.9, 0.25, 0.8), P["flesh_dark"], P["flesh"])
     col = g.mix(g.mr(n1, 0.55, 0.75, 0.0, 0.45), col, P["flesh_hi"])
     col = g.mix(g.math("MULTIPLY", veins, 0.55), col, P["flesh_deep"])
     col = g.mix(g.mr(ao, 0.2, 0.9, 0.9, 0.0), col, P["flesh_deep"])
     rough = g.mr(n1, 0.2, 0.8, 0.28, 0.42)
-    height = g.math("SUBTRACT", g.math("MULTIPLY", w, 0.8), g.math("MULTIPLY", veins, 0.3))
+    height = g.math("SUBTRACT", g.math("MULTIPLY", w, 0.45), g.math("MULTIPLY", veins, 0.3))
     return col, rough, height, 0.55
 
 
@@ -1411,10 +1423,10 @@ def sh_glow(g, P):
 
 
 def sh_membrane(g, P):
-    veins = g.mr(g.edge(3.5, g.warp(0.4, 2.5)), 0.0, 0.022, 1.0, 0.0)
+    veins = g.mr(g.edge(3.0, g.warp(0.6, 1.8)), 0.0, 0.016, 1.0, 0.0)
     n1 = g.noise(3.0, 3.0, 0.55)
     col = g.mix(g.mr(n1, 0.3, 0.7), P["memb_a"], P["memb_b"])
-    col = g.mix(g.math("MULTIPLY", veins, 0.6), col, P["memb_vein"])
+    col = g.mix(g.math("MULTIPLY", veins, 0.42), col, P["memb_vein"])
     return col, 0.18, veins, 0.35
 
 
@@ -1492,9 +1504,9 @@ def final_material(name, imgs, kind):
         g.L.new(c.outputs["Color"], b.inputs["Emission Color"])
         b.inputs["Emission Strength"].default_value = 2.5
     elif kind == "membrane":
+        # translucent, not emissive: only materials named glow* emit (the game pulses those)
         b.inputs["Alpha"].default_value = 0.6
-        g.L.new(c.outputs["Color"], b.inputs["Emission Color"])
-        b.inputs["Emission Strength"].default_value = 0.25
+        b.inputs["Emission Strength"].default_value = 0.0
         m.surface_render_method = "BLENDED"
     return m
 
@@ -1883,6 +1895,9 @@ def produce(bid, round_name):
         select_only([body] + teams, active=body)
         bpy.ops.object.join()
         body = bpy.context.view_layer.objects.active
+    for v in body.data.vertices:
+        if v.co.z < 0.0:
+            v.co.z = 0.0
     strip_attrs(body)
     for m in list(bpy.data.materials):
         if m.users == 0:
@@ -1893,7 +1908,7 @@ def produce(bid, round_name):
         strip_attrs(core)
         lo, hi, _ = model_bounds([core])
         # pivot the core on its main (largest, central) sac so a pulse by scale stays in place
-        c = Vector((0.0, 0.05, 1.03))
+        c = STATE.get("core_pivot", Vector((0.0, 0.04, 1.05))).copy()
         core.data.transform(Matrix.Translation(-c))
         core.location = c
         core.parent = body

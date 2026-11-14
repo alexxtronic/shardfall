@@ -8,46 +8,52 @@ Margin is Ambron's value left minus Void's, as a share of the starting value: 0%
 
 | Slot | Ambron unit | Void unit | Ambron win rate | Avg margin |
 |---|---|---|---|---|
-| infantry | Lancer | Spitter | 50% | -2% |
-| heavy | Bulwark | Mauler | 25% | -11% |
-| vehicle_flame | Scorcher | Acidback | 75% | +5% |
-| vehicle_missile | Hailfire | Spinefiend | 0% | -18% |
-| air_light | Dart | Skitter | 50% | +2% |
+| infantry | Lancer | Spitter | 40% | -4% |
+| heavy | Bulwark | Mauler | 50% | -2% |
+| vehicle_flame | Scorcher | Acidback | 50% | +0% |
+| vehicle_missile | Hailfire | Spinefiend | 40% | -4% |
+| air_light | Dart | Skitter | 50% | +0% |
 | air_heavy | Monolith | Gorgon | 50% | +0% |
-| special | Sovereign | Leviathan | 100% | +7% |
+| special | Sovereign | Leviathan | 100% | +8% |
 
 ## 2. Mixed armies, same composition
 
 | Composition | Ambron win rate | Avg margin |
 |---|---|---|
-| infantry 60%, heavy 40% | 25% | -7% |
-| infantry 40%, vehicle_flame 30%, vehicle_missile 30% | 62% | +2% |
-| heavy 30%, vehicle_missile 30%, air_light 20%, air_heavy 20% | 50% | +0% |
-| infantry 30%, heavy 20%, special 50% | 50% | +3% |
+| infantry 60%, heavy 40% | 30% | -6% |
+| infantry 40%, vehicle_flame 30%, vehicle_missile 30% | 70% | +2% |
+| heavy 30%, vehicle_missile 30%, air_light 20%, air_heavy 20% | 40% | -7% |
+| infantry 30%, heavy 20%, special 50% | 35% | +0% |
 
 ## 3. Random armies
 
-16 random composition pairs, each played with the races swapped: Ambron wins **46%**, average margin -2%.
+40 random composition pairs, each played with the races swapped: Ambron wins **51%**, average margin +0%.
 
-**Overall Ambron win rate across all battles: 48%** (target 50%, within about 10 points is noise at these sample sizes).
+**Overall Ambron win rate across all battles: 50%** (target 50%, within about 10 points is noise at these sample sizes).
 
 ## 4. Counter table (Ambron vs Ambron, equal value): row's margin against column
 
 | | infantry | heavy | vehicle_flame | vehicle_missile | air_light | air_heavy | special |
 |---|---|---|---|---|---|---|---|
-| infantry | - | -68% | -60% | -10% | +80% | +67% | -73% |
-| heavy | +66% | - | +15% | -70% | -100% | -100% | -64% |
-| vehicle_flame | +62% | -12% | - | -36% | -100% | -100% | -72% |
-| vehicle_missile | -11% | +70% | +37% | - | -100% | -100% | +3% |
-| air_light | -82% | +100% | +100% | +100% | - | +100% | -88% |
-| air_heavy | -67% | +100% | +100% | +100% | -100% | - | -27% |
-| special | +72% | +63% | +71% | -4% | +89% | +38% | - |
+| infantry | - | -68% | -61% | +27% | +81% | +67% | -74% |
+| heavy | +68% | - | +10% | -68% | -100% | -100% | -63% |
+| vehicle_flame | +62% | -13% | - | -36% | -100% | -100% | -73% |
+| vehicle_missile | -27% | +68% | +41% | - | -100% | -100% | +10% |
+| air_light | -81% | +100% | +100% | +100% | - | +100% | -88% |
+| air_heavy | -68% | +100% | +100% | +100% | -100% | - | -31% |
+| special | +75% | +63% | +71% | -9% | +89% | +36% | - |
 
 ## 5. Full games, bot against bot (normal)
 
 | Game | P1 | P2 | Winner | Time |
 |---|---|---|---|---|
+| 1 | ambron | void | void | 31:51 |
+| 2 | void | ambron | ambron | 25:56 |
+| 3 | ambron | void | none | 40:00 |
+| 4 | void | ambron | ambron | 33:43 |
+| 5 | ambron | void | ambron | 23:03 |
+| 6 | void | ambron | ambron | 31:22 |
 
-Ambron 0, Void 0, unfinished 0.
+Ambron 4, Void 1, unfinished 1.
 
-Run time: 31.1 s
+Run time: 235.5 s

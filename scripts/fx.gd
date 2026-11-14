@@ -311,7 +311,7 @@ func death(e) -> void:
 	if not world.visuals or not e.shown:
 		return
 	var void_race: bool = e.def.get("race", "") == "void"
-	var big: float = e.radius * (2.0 if e is Building else 1.0)
+	var big: float = minf(e.radius * (2.0 if e is Building else 1.0), 3.2)
 	var at := Vector3(e.p.x, (e.fly if e is Unit else 0.0) + 0.5, e.p.y)
 	if void_race:
 		_flash(at, Color(0.5, 1.0, 0.25), 0.4 + big * 0.5, 0.45, 2.2)
