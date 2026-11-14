@@ -42,3 +42,6 @@ art/tripo/raw/
 art/tripo/review/inspect/
 art/tripo/review/round1/
 art/tripo/review/round2/
+
+# Local Claude Code settings
+.claude/settings.local.json

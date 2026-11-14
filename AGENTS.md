@@ -21,6 +21,20 @@ Both races must have identical power per resource spent. Never give one race a u
   - Other buildings use `World.suggest_spot` to keep a one-cell lane and stay off crystal lines.
 - **The bot:** `BotAI` uses the same costs and rules as the player, with no extra income. Run `-- --balance --game --seed=N` to read its game timeline when tuning it.
 
+## Art pipeline (Alex, 2026-11-14)
+
+1. **Reference first.** Every new model starts with a ChatGPT reference image in the game's style, made before any modelling.
+   - Attach `art/ref/<race>_style_reference.png` and a finished concept from `art/tripo/concepts/` as style references.
+   - Show one asset only, in a three-quarter front view from slightly above, on a flat light-grey background.
+   - Save the image as `art/<group>/concepts/shardfall_<id>.png`.
+2. **Pick the tool for what it does best.**
+   - **Kiln:** hard-surface, architectural and modular art, such as buildings, extractors, supply structures, resource nodes, rocks, map props, and projectile or effect meshes. Use the `kiln-author-asset`, `kiln-refine-asset` and `kiln-qa-asset` skills and the `kiln_workspace` MCP server (`.kiln/AGENTS.md`).
+     - Build the model in Kiln JavaScript from the reference, and compare Kiln's renders against the reference before exporting the GLB.
+     - Export the source to `art/kiln/<id>.kiln.js` and commit it. `.kiln/programs` is a local store and stays out of git.
+   - **Tripo:** organic creatures and character units (`art/tripo/README.md`).
+   - **Blender:** fitting, rigging and animating Tripo models, plus any finishing pass on a Kiln GLB (splitting team and glow materials, applying the triangle budget).
+3. **Kiln models follow the art contract below.** Kiln is Y-up like glTF, so a Kiln model stands on y = 0 and faces +Z. That is the same as Blender's −Y front.
+
 ## Art contract
 
 `docs/ART_SPEC.md` is the contract for every model:

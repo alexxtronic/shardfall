@@ -1,0 +1,1 @@
+{"mcpServers": {"kiln_workspace":{"command":"/opt/homebrew/Cellar/node/25.2.1/bin/node","args":["/opt/homebrew/lib/node_modules/@instruktlabs/kiln/dist/mcp-server.mjs"],"env":{"KILN_PROGRAM_STORE":"/Users/alexdamore/Desktop/Vibe_Code/shardfall/.kiln/programs","KILN_RENDER":"auto","KILN_WORKSPACE":"/Users/alexdamore/Desktop/Vibe_Code/shardfall"}}}}
