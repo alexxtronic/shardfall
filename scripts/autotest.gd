@@ -90,6 +90,10 @@ func _run() -> void:
 		await start(["void", "ambron"], false)
 		await _build("void")
 		await _army("void")
+	if want("ui"):
+		for race in ["ambron", "void"]:
+			await start([race, "void" if race == "ambron" else "ambron"], false)
+			await _ui(race)
 	if want("models"):
 		await _models()
 	if want("full"):
@@ -165,10 +169,10 @@ func _touch() -> void:
 	# tap ground moves it
 	# an open bit of ground near it, clear of buildings, units and the HUD
 	var g := u.p
-	for i in 40:
-		var q := u.p + Vector2(cos(i * 0.9), sin(i * 0.9)) * (4.0 + i * 0.2)
+	for i in 80:
+		var q := u.p + Vector2(cos(i * 0.9), sin(i * 0.9)) * (4.0 + i * 0.15)
 		var qs := rig.to_screen(Vector3(q.x, 0, q.y))
-		if w.grid.kind_at(Vector2i(q)) == 0 and w.units_near(q, 1.5).is_empty() and not m.hud.blocks(qs) and Rect2(80, 80, 1120, 400).has_point(qs):
+		if w.grid.kind_at(Vector2i(q)) == 0 and w.units_near(q, 3.0).is_empty() and not w._near_resources(Vector2i(q), 1, 2.5) and not m.hud.blocks(qs) and Rect2(80, 80, 1120, 400).has_point(qs):
 			g = q
 			break
 	await _tap(rig.to_screen(Vector3(g.x, 0, g.y)))
@@ -492,6 +496,43 @@ func _expand() -> void:
 		check(dropped, "workers harvest at the new base")
 		m.rig.look_at_ground(nat)
 		await shot("21_expansion")
+
+
+## The screens a player goes through to build and train, captured on screen.
+func _ui(race: String) -> void:
+	var w: World = m.world
+	var pl: PlayerState = w.players[0]
+	pl.minerals = 2000
+	pl.slime = 1000
+	m.hud._left_action("build_menu")
+	await frames(4)
+	check(m.hud.card.get_child_count() >= 7, "%s: BUILD opens the build menu (%d cards)" % [race, m.hud.card.get_child_count()])
+	await shot("50_%s_build_menu" % race)
+	m.hud._card_action("build:%s" % Defs.building_id(race, "barracks"))
+	await frames(4)
+	check(m.cmd.mode == Commander.M.PLACE, "%s: picking a building shows the placement ghost" % race)
+	await shot("51_%s_placing" % race)
+	var cell0: Vector2i = m.cmd.place_cell
+	m.cmd.confirm_place()
+	await frames(2)
+	ff(4.0)
+	await frames(2)
+	await shot("52_%s_constructing" % race)
+	ff(50.0)
+	var bar: Building = null
+	for b in w.buildings:
+		if b.owner_id == 0 and b.slot == "barracks":
+			bar = b
+	check(bar != null and bar.built, "%s: the infantry building was built where it was placed" % race)
+	if bar:
+		m.cmd.set_selection([bar])
+		m.rig.look_at_ground(bar.p + Vector2(0, 4))
+		await frames(4)
+		m.hud._card_action("train:%s" % Defs.unit_id(race, "infantry"))
+		m.hud._card_action("train:%s" % Defs.unit_id(race, "heavy"))
+		await frames(4)
+		check(bar.queue.size() == 2, "%s: train buttons queue units" % race)
+		await shot("53_%s_training" % race)
 
 
 func _models() -> void:

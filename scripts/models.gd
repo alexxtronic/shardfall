@@ -200,9 +200,6 @@ static func attach_unit(w, u) -> void:
 			u.ring.position.y = -u.fly + 0.06
 		if u.team_disc:
 			u.team_disc.position.y = -u.fly + 0.03
-			var m: StandardMaterial3D = u.team_disc.material_override
-			var c := Color(0, 0, 0, 0.35)
-			m.albedo_color = c
 	if u.shown == false:
 		u.visible = false
 
@@ -408,7 +405,7 @@ static func attach_building(w, b) -> void:
 		b.set_meta("floaty", floaty[0])
 		b.set_meta("floaty_y", (floaty[0] as Node3D).position.y)
 	b.make_ring(sz * 0.62, Color(0.3, 1.0, 0.45, 0.9))
-	b.make_team_disc(sz * 0.55)
+	b.make_team_disc(sz * 0.5, 0.12)
 
 
 static func _placeholder_building(root: Node3D, slot: String, race: String, sz: float, h: float, team: Color) -> void:

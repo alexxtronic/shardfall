@@ -1,0 +1,184 @@
+{
+ "id": "ambron_worker",
+ "triangles": 7852,
+ "size_m": [
+  0.816,
+  0.634,
+  0.944
+ ],
+ "glb_bytes": 423328,
+ "bones": 11,
+ "bone_names": [
+  "root",
+  "body",
+  "lens",
+  "fin_L",
+  "fin_R",
+  "disc_L",
+  "disc_R",
+  "arm_L",
+  "scoop",
+  "cargo",
+  "arm_R"
+ ],
+ "vertices": 4034,
+ "verts_with_one_weight": 4034,
+ "verts_without_weight": 0,
+ "materials": [
+  "ambron_body",
+  "glow_cyan",
+  "glow_crystal"
+ ],
+ "tris_by_bone": {
+  "arm_L": 600,
+  "arm_R": 600,
+  "body": 3896,
+  "cargo": 168,
+  "disc_L": 656,
+  "disc_R": 656,
+  "fin_L": 152,
+  "fin_R": 152,
+  "lens": 108,
+  "scoop": 864
+ },
+ "muzzle": {
+  "bone": "scoop",
+  "rest_world": [
+   0.0,
+   -0.31,
+   0.18
+  ]
+ },
+ "motion": {
+  "idle_loop": {
+   "frames": 72,
+   "seconds": 2.4,
+   "loop": true,
+   "lowest_z_min": 0.0002,
+   "lowest_z_max": 0.0442,
+   "end_vs_start_m": 0.0,
+   "end_vs_rest_m": 0.024107,
+   "max_travel_m": 0.064
+  },
+  "walk_loop": {
+   "frames": 24,
+   "seconds": 0.8,
+   "loop": true,
+   "lowest_z_min": 0.0307,
+   "lowest_z_max": 0.0735,
+   "end_vs_start_m": 0.0,
+   "end_vs_rest_m": 0.174666,
+   "max_travel_m": 0.185
+  },
+  "attack": {
+   "frames": 15,
+   "seconds": 0.5,
+   "loop": false,
+   "lowest_z_min": 0.0,
+   "lowest_z_max": 0.0364,
+   "end_vs_start_m": 0.0,
+   "end_vs_rest_m": 0.0,
+   "max_travel_m": 0.289
+  }
+ },
+ "glb": {
+  "triangles": 7852,
+  "animations": [
+   {
+    "name": "attack",
+    "channels": 33,
+    "seconds": 0.5
+   },
+   {
+    "name": "idle_loop",
+    "channels": 33,
+    "seconds": 2.4
+   },
+   {
+    "name": "walk_loop",
+    "channels": 33,
+    "seconds": 0.8
+   }
+  ],
+  "skins": [
+   {
+    "joints": 11
+   }
+  ],
+  "nodes": [
+   "cargo",
+   "muzzle",
+   "scoop",
+   "arm_L",
+   "arm_R",
+   "disc_L",
+   "disc_R",
+   "fin_L",
+   "fin_R",
+   "lens",
+   "body",
+   "root",
+   "body",
+   "rig"
+  ],
+  "materials": [
+   "ambron_body",
+   "glow_cyan",
+   "glow_crystal"
+  ],
+  "meshes": 1
+ },
+ "reimport": {
+  "actions": [
+   [
+    "attack",
+    [
+     0.0,
+     15.0
+    ],
+    0.5
+   ],
+   [
+    "idle_loop",
+    [
+     0.0,
+     72.0
+    ],
+    2.4
+   ],
+   [
+    "walk_loop",
+    [
+     0.0,
+     24.0
+    ],
+    0.8
+   ]
+  ],
+  "armatures": [
+   [
+    "rig",
+    11
+   ]
+  ],
+  "meshes": [
+   [
+    "body",
+    7852,
+    [
+     "ambron_body",
+     "glow_cyan",
+     "glow_crystal"
+    ]
+   ]
+  ],
+  "empties": [
+   [
+    "muzzle",
+    "rig",
+    "scoop"
+   ]
+  ],
+  "lowest_z": 0.0
+ }
+}

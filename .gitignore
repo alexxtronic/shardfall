@@ -29,7 +29,9 @@ art/**/source/*.zip
 art/ambron_buildings/review/round[1-3]/
 art/ambron_vehicles/review/round[1-3]/
 art/neutral/review/round[1-6]/
-art/void_buildings/review/
+art/void_buildings/review/r0/
+art/void_buildings/review/r1/
+art/void_buildings/review/fast/
 
 # Scratch debugging probes
 tools/probe.*

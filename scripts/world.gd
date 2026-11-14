@@ -629,6 +629,39 @@ func can_place(pid: int, bid: String, c: Vector2i) -> bool:
 	return true
 
 
+## The nearest good spot for a building near q: the footprint is free, a
+## one-cell lane round it stays open, and it keeps off the crystal lines.
+func suggest_spot(pid: int, bid: String, q: Vector2) -> Variant:
+	var bd: Dictionary = Defs.buildings[bid]
+	var sz: int = int(bd["size"])
+	var c0 := Vector2i(int(floor(q.x - sz * 0.5 + 0.5)), int(floor(q.y - sz * 0.5 + 0.5)))
+	var best = null
+	var best_d := INF
+	for dy in range(-14, 15):
+		for dx in range(-14, 15):
+			var d := float(dx * dx + dy * dy)
+			if d >= best_d or d > 196.0:
+				continue
+			var c := c0 + Vector2i(dx, dy)
+			if not can_place(pid, bid, c):
+				continue
+			if not grid.rect_free(c - Vector2i(1, 1), Vector2i(sz + 2, sz + 2)):
+				continue
+			if _near_resources(c, sz, 2.0):
+				continue
+			best_d = d
+			best = c
+	return best
+
+
+func _near_resources(c: Vector2i, sz: int, gap: float) -> bool:
+	var rect := Rect2(Vector2(c), Vector2(sz, sz)).grow(gap)
+	for r in resources:
+		if not r.dead and rect.intersects(Rect2(Vector2(r.cell), Vector2(r.cells))):
+			return true
+	return false
+
+
 ## The best main-base spot near q, if q is close to an open base site.
 func snap_main(q: Vector2) -> Variant:
 	for s in sites:

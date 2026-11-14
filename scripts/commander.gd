@@ -599,6 +599,10 @@ func start_place(bid: String) -> void:
 			start = best_s["center"]
 			rig.look_at_ground(start)
 	place_cell = _cell_for(bid, start)
+	if String(bd["slot"]) != "extractor" and String(bd["slot"]) != "main":
+		var spot = world.suggest_spot(pid, bid, start)
+		if spot != null:
+			place_cell = spot
 	_make_ghost(bid)
 	set_mode(M.PLACE)
 	_say("Tap to move, tap again (or ✓) to build", "hint")

@@ -1,0 +1,72 @@
+{
+ "id": "void_skitter",
+ "triangles": 7644,
+ "parts": 73,
+ "inward_parts": [],
+ "size_m": [
+  1.378,
+  1.332,
+  0.74
+ ],
+ "bones": 16,
+ "bone_names": [
+  "root",
+  "body",
+  "head",
+  "mand_L",
+  "mand_R",
+  "tail1",
+  "tail2",
+  "tail3",
+  "wing1_L",
+  "wing2_L",
+  "wing1_R",
+  "wing2_R",
+  "scythe_L",
+  "scythe_R",
+  "leg_L",
+  "leg_R"
+ ],
+ "glb_bytes": 720708,
+ "materials": [
+  "void_skin",
+  "glow_acid",
+  "team"
+ ],
+ "actions": {
+  "idle_loop": 2.4,
+  "fly_loop": 0.6,
+  "attack": 0.5
+ },
+ "muzzle": {
+  "bone": "head",
+  "rest": [
+   0.0,
+   -0.605,
+   0.423
+  ]
+ },
+ "reimport": {
+  "animations_seconds": {
+   "attack": 0.5,
+   "fly_loop": 0.6,
+   "idle_loop": 2.4
+  },
+  "armatures": [
+   "rig"
+  ],
+  "bones": 16,
+  "skinned_meshes": [
+   "void_skitter"
+  ],
+  "triangles": 7644,
+  "materials": [
+   "glow_acid",
+   "team",
+   "void_skin"
+  ],
+  "empties": [
+   "muzzle"
+  ]
+ }
+}

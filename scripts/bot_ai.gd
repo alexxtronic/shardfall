@@ -7,9 +7,9 @@ extends Node
 ## in waves that grow over time.
 
 const LEVELS := {
-	"easy": {"think": 1.4, "worker_cap": 26, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6},
-	"normal": {"think": 0.7, "worker_cap": 44, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0},
-	"hard": {"think": 0.35, "worker_cap": 64, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8},
+	"easy": {"think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6},
+	"normal": {"think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0},
+	"hard": {"think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8},
 }
 
 var world
@@ -129,7 +129,13 @@ func _count(slot: String) -> int:
 # ---------------------------------------------------------------- economy
 
 func _economy(workers: Array, built_mains: Array) -> void:
-	# extractors want three each
+	# extractors want three each, fewer when slime is piling up
+	var pl: PlayerState = world.players[pid]
+	var ext_want := 3
+	if pl.slime > 1000 and pl.slime > pl.minerals * 3:
+		ext_want = 1
+	elif pl.slime > 500 and pl.slime > pl.minerals * 2:
+		ext_want = 2
 	var exts := _mine("extractor", false)
 	for e in exts:
 		if e.slime_node == null or e.slime_node.amount <= 0:
@@ -138,9 +144,18 @@ func _economy(workers: Array, built_mains: Array) -> void:
 		for u in workers:
 			if u.order == Unit.O.GATHER and u.gnode == e:
 				on += 1
-		if on < 3:
+		if on > ext_want:
 			for u in workers:
-				if on >= 3:
+				if on <= ext_want:
+					break
+				if u.order == Unit.O.GATHER and u.gnode == e and not u.hidden_inside and u.carry == 0:
+					var n = _best_mineral(u.p, built_mains)
+					if n:
+						u.cmd_gather(n)
+						on -= 1
+		if on < ext_want:
+			for u in workers:
+				if on >= ext_want:
 					break
 				if u.order == Unit.O.GATHER and u.gnode is ResourceNode and u.carry == 0 and u.p.distance_to(e.p) < 22.0:
 					u.cmd_gather(e)
@@ -225,7 +240,7 @@ func _tech(pl: PlayerState, workers: Array, mains: Array, active: Array) -> void
 		want = "airfield"
 	elif n_special == 0 and world.has_built(pid, bid("airfield")) and t > 480.0 * td:
 		want = "special"
-	elif _free_slime_near_mains() > 0 and _live_extractors() < active.size() * 2 and t > 240.0 * td:
+	elif _free_slime_near_mains() > 0 and _live_extractors() < active.size() * 2 and t > 240.0 * td and pl.slime < 600:
 		want = "extractor"
 	else:
 		# more production as the economy grows
@@ -415,24 +430,31 @@ func _spot(slot: String) -> Variant:
 			if _reserved(s["cell"]):
 				return null
 			return s["cell"]
-	var bd: Dictionary = Defs.buildings[bid(slot)]
-	var sz: int = int(bd["size"])
 	var mains := _mine("main", false)
 	if mains.is_empty():
 		return null
-	var anchor: Vector2 = mains[0].p
-	var away := base_dir
-	var rng := RandomNumberGenerator.new()
-	rng.seed = int(world.time * 10.0) + pid
-	for attempt in 60:
-		var r := 6.5 + float(attempt) * 0.18
-		var a := atan2(away.y, away.x) + rng.randf_range(-1.6, 1.6)
-		var q := anchor + Vector2(cos(a), sin(a)) * r
-		var c := Vector2i(int(floor(q.x - sz * 0.5 + 0.5)), int(floor(q.y - sz * 0.5 + 0.5)))
-		# keep a one-cell lane round every building
-		if world.grid.rect_free(c - Vector2i(1, 1), Vector2i(sz + 2, sz + 2)) and world.can_place(pid, bid(slot), c) and not _reserved(c) and not _near_minerals(c, sz):
+	# home first, then the other bases; build on the side away from the crystals
+	var tries: Array = []
+	for i in mains.size():
+		var mb: Building = mains[i]
+		var away := base_dir if i == 0 else _away_from_minerals(mb)
+		tries.append(mb.p + away * 7.0)
+	for q in tries:
+		var c = world.suggest_spot(pid, bid(slot), q)
+		if c != null and not _reserved(c):
 			return c
 	return null
+
+
+## The direction from a main base that points away from its crystals.
+func _away_from_minerals(mb: Building) -> Vector2:
+	var sum := Vector2.ZERO
+	for r in world.resources:
+		if not r.dead and r.p.distance_to(mb.p) < 12.0:
+			sum += r.p - mb.p
+	if sum.length() < 0.01:
+		return base_dir
+	return -sum.normalized()
 
 
 func _near_minerals(c: Vector2i, sz: int) -> bool:
@@ -531,7 +553,9 @@ func _army(army: Array) -> void:
 			loose.append(u)
 	if loose.size() > 0:
 		world.command_move(loose, rally, false)
-	if supply >= wave_supply or world.supply_used(pid) >= 190:
+	var used: int = world.supply_used(pid)
+	var cap: int = world.supply_cap(pid)
+	if supply >= mini(wave_supply, 70) or used >= 180 or (used >= cap - 1 and supply >= 20):
 		state = "attack"
 		sent_supply = supply
 		last_wave_t = world.time

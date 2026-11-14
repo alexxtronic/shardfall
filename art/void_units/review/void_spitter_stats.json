@@ -1,0 +1,114 @@
+{
+ "id": "void_spitter",
+ "triangles": 4298,
+ "vertices": 2281,
+ "size_m": [
+  0.401,
+  0.956,
+  1.167
+ ],
+ "bones": 16,
+ "bone_names": [
+  "root",
+  "pelvis",
+  "chest",
+  "head",
+  "jaw",
+  "arm_L_1",
+  "arm_L_2",
+  "arm_R_1",
+  "arm_R_2",
+  "sac",
+  "thigh_L",
+  "shin_L",
+  "foot_L",
+  "thigh_R",
+  "shin_R",
+  "foot_R"
+ ],
+ "non_manifold_edges": 0,
+ "glb_bytes": 297772,
+ "materials": [
+  "void_unit",
+  "team",
+  "glow_acid"
+ ],
+ "clips": {
+  "idle_loop": {
+   "frames": 72,
+   "seconds": 2.4
+  },
+  "walk_loop": {
+   "frames": 24,
+   "seconds": 0.8
+  },
+  "attack": {
+   "frames": 15,
+   "seconds": 0.5
+  }
+ },
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.5,
+    "channels": 48
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.4,
+    "channels": 48
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.8,
+    "channels": 48
+   }
+  ],
+  "triangles": 4298,
+  "materials": [
+   "void_unit",
+   "team",
+   "glow_acid"
+  ],
+  "joints": [
+   16
+  ],
+  "meshes": [
+   "void_spitter"
+  ],
+  "nodes": [
+   "void_spitter"
+  ]
+ },
+ "reimport": {
+  "actions": [
+   [
+    "attack",
+    0.5
+   ],
+   [
+    "idle_loop",
+    2.4
+   ],
+   [
+    "walk_loop",
+    0.8
+   ]
+  ],
+  "armatures": [
+   "rig"
+  ],
+  "meshes": [
+   [
+    "Icosphere",
+    80
+   ],
+   [
+    "void_spitter",
+    4298
+   ]
+  ],
+  "bones": 16
+ }
+}

@@ -32,7 +32,11 @@ func _one_game() -> void:
 		if a.begins_with("--races="):
 			races = Array(a.substr(8).split(","))
 	verbose = true
-	_full_game(races, 1)
+	var sd := 1
+	for a in args:
+		if a.begins_with("--seed="):
+			sd = int(a.substr(7))
+	_full_game(races, sd)
 	get_tree().quit()
 
 

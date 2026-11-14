@@ -1,0 +1,116 @@
+{
+ "id": "void_spinefiend",
+ "triangles": 5508,
+ "vertices": 2910,
+ "size_m": [
+  1.221,
+  2.13,
+  1.491
+ ],
+ "bones": 18,
+ "bone_names": [
+  "root",
+  "body",
+  "chest",
+  "head",
+  "jaw",
+  "leg_f_L_1",
+  "leg_f_L_2",
+  "leg_f_R_1",
+  "leg_f_R_2",
+  "hips",
+  "tail_1",
+  "tail_2",
+  "leg_r_L_1",
+  "leg_r_L_2",
+  "leg_r_R_1",
+  "leg_r_R_2",
+  "fan",
+  "fan_shot"
+ ],
+ "non_manifold_edges": 0,
+ "glb_bytes": 361228,
+ "materials": [
+  "void_unit",
+  "team",
+  "glow_acid"
+ ],
+ "clips": {
+  "idle_loop": {
+   "frames": 84,
+   "seconds": 2.8
+  },
+  "walk_loop": {
+   "frames": 30,
+   "seconds": 1.0
+  },
+  "attack": {
+   "frames": 18,
+   "seconds": 0.6
+  }
+ },
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.6,
+    "channels": 54
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.8,
+    "channels": 54
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 54
+   }
+  ],
+  "triangles": 5508,
+  "materials": [
+   "void_unit",
+   "team",
+   "glow_acid"
+  ],
+  "joints": [
+   18
+  ],
+  "meshes": [
+   "void_spinefiend"
+  ],
+  "nodes": [
+   "void_spinefiend"
+  ]
+ },
+ "reimport": {
+  "actions": [
+   [
+    "attack",
+    0.6
+   ],
+   [
+    "idle_loop",
+    2.8
+   ],
+   [
+    "walk_loop",
+    1.0
+   ]
+  ],
+  "armatures": [
+   "rig"
+  ],
+  "meshes": [
+   [
+    "Icosphere",
+    80
+   ],
+   [
+    "void_spinefiend",
+    5508
+   ]
+  ],
+  "bones": 18
+ }
+}

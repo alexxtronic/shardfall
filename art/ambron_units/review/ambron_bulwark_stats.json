@@ -1,0 +1,196 @@
+{
+ "id": "ambron_bulwark",
+ "triangles": 9024,
+ "size_m": [
+  1.298,
+  1.137,
+  1.599
+ ],
+ "glb_bytes": 472960,
+ "bones": 15,
+ "bone_names": [
+  "root",
+  "pelvis",
+  "chest",
+  "head",
+  "upperarm_L",
+  "forearm_L",
+  "upperarm_R",
+  "forearm_R",
+  "barrel_R",
+  "thigh_L",
+  "shin_L",
+  "foot_L",
+  "thigh_R",
+  "shin_R",
+  "foot_R"
+ ],
+ "vertices": 4662,
+ "verts_with_one_weight": 4662,
+ "verts_without_weight": 0,
+ "materials": [
+  "ambron_body",
+  "glow_cyan",
+  "team"
+ ],
+ "tris_by_bone": {
+  "barrel_R": 268,
+  "chest": 2588,
+  "foot_L": 444,
+  "foot_R": 444,
+  "forearm_L": 1356,
+  "forearm_R": 828,
+  "head": 660,
+  "pelvis": 708,
+  "shin_L": 352,
+  "shin_R": 352,
+  "thigh_L": 236,
+  "thigh_R": 236,
+  "upperarm_L": 276,
+  "upperarm_R": 276
+ },
+ "muzzle": {
+  "bone": "barrel_R",
+  "rest_world": [
+   -0.504,
+   -0.572,
+   0.965
+  ]
+ },
+ "motion": {
+  "idle_loop": {
+   "frames": 84,
+   "seconds": 2.8,
+   "loop": true,
+   "lowest_z_min": -0.0,
+   "lowest_z_max": 0.0,
+   "end_vs_start_m": 0.0,
+   "end_vs_rest_m": 0.037205,
+   "max_travel_m": 0.08
+  },
+  "walk_loop": {
+   "frames": 28,
+   "seconds": 0.933,
+   "loop": true,
+   "lowest_z_min": -0.0,
+   "lowest_z_max": 0.0,
+   "end_vs_start_m": 0.0,
+   "end_vs_rest_m": 0.17,
+   "max_travel_m": 0.206
+  },
+  "attack": {
+   "frames": 16,
+   "seconds": 0.533,
+   "loop": false,
+   "lowest_z_min": -0.0,
+   "lowest_z_max": -0.0,
+   "end_vs_start_m": 0.0,
+   "end_vs_rest_m": 0.0,
+   "max_travel_m": 0.187
+  }
+ },
+ "glb": {
+  "triangles": 9024,
+  "animations": [
+   {
+    "name": "attack",
+    "channels": 45,
+    "seconds": 0.533
+   },
+   {
+    "name": "idle_loop",
+    "channels": 45,
+    "seconds": 2.8
+   },
+   {
+    "name": "walk_loop",
+    "channels": 45,
+    "seconds": 0.933
+   }
+  ],
+  "skins": [
+   {
+    "joints": 15
+   }
+  ],
+  "nodes": [
+   "head",
+   "forearm_L",
+   "upperarm_L",
+   "muzzle",
+   "barrel_R",
+   "forearm_R",
+   "upperarm_R",
+   "chest",
+   "foot_L",
+   "shin_L",
+   "thigh_L",
+   "foot_R",
+   "shin_R",
+   "thigh_R",
+   "pelvis",
+   "root",
+   "body",
+   "rig"
+  ],
+  "materials": [
+   "ambron_body",
+   "glow_cyan",
+   "team"
+  ],
+  "meshes": 1
+ },
+ "reimport": {
+  "actions": [
+   [
+    "attack",
+    [
+     0.0,
+     16.0
+    ],
+    0.533
+   ],
+   [
+    "idle_loop",
+    [
+     0.0,
+     84.0
+    ],
+    2.8
+   ],
+   [
+    "walk_loop",
+    [
+     0.0,
+     28.0
+    ],
+    0.933
+   ]
+  ],
+  "armatures": [
+   [
+    "rig",
+    15
+   ]
+  ],
+  "meshes": [
+   [
+    "body",
+    9024,
+    [
+     "ambron_body",
+     "glow_cyan",
+     "team"
+    ]
+   ]
+  ],
+  "empties": [
+   [
+    "muzzle",
+    "rig",
+    "barrel_R"
+   ]
+  ],
+  "lowest_z": -0.0
+ }
+}

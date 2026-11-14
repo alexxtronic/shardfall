@@ -1,0 +1,118 @@
+{
+ "id": "void_drudge",
+ "triangles": 4188,
+ "vertices": 2204,
+ "size_m": [
+  0.948,
+  1.093,
+  0.7
+ ],
+ "bones": 20,
+ "bone_names": [
+  "root",
+  "body",
+  "head",
+  "mand_L",
+  "mand_R",
+  "ant_L",
+  "ant_R",
+  "abdomen",
+  "leg_f_L_1",
+  "leg_f_L_2",
+  "leg_f_R_1",
+  "leg_f_R_2",
+  "leg_m_L_1",
+  "leg_m_L_2",
+  "leg_m_R_1",
+  "leg_m_R_2",
+  "leg_r_L_1",
+  "leg_r_L_2",
+  "leg_r_R_1",
+  "leg_r_R_2"
+ ],
+ "non_manifold_edges": 0,
+ "glb_bytes": 291940,
+ "materials": [
+  "void_unit",
+  "team",
+  "glow_acid"
+ ],
+ "clips": {
+  "idle_loop": {
+   "frames": 72,
+   "seconds": 2.4
+  },
+  "walk_loop": {
+   "frames": 21,
+   "seconds": 0.7
+  },
+  "attack": {
+   "frames": 15,
+   "seconds": 0.5
+  }
+ },
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.5,
+    "channels": 60
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.4,
+    "channels": 60
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.7,
+    "channels": 60
+   }
+  ],
+  "triangles": 4188,
+  "materials": [
+   "void_unit",
+   "team",
+   "glow_acid"
+  ],
+  "joints": [
+   20
+  ],
+  "meshes": [
+   "void_drudge"
+  ],
+  "nodes": [
+   "void_drudge"
+  ]
+ },
+ "reimport": {
+  "actions": [
+   [
+    "attack",
+    0.5
+   ],
+   [
+    "idle_loop",
+    2.4
+   ],
+   [
+    "walk_loop",
+    0.7
+   ]
+  ],
+  "armatures": [
+   "rig"
+  ],
+  "meshes": [
+   [
+    "Icosphere",
+    80
+   ],
+   [
+    "void_drudge",
+    4188
+   ]
+  ],
+  "bones": 20
+ }
+}

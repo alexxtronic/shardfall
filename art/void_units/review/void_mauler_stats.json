@@ -1,0 +1,113 @@
+{
+ "id": "void_mauler",
+ "triangles": 5516,
+ "vertices": 2904,
+ "size_m": [
+  1.316,
+  1.295,
+  1.648
+ ],
+ "bones": 15,
+ "bone_names": [
+  "root",
+  "pelvis",
+  "chest",
+  "head",
+  "jaw",
+  "arm_L_1",
+  "arm_L_2",
+  "arm_R_1",
+  "arm_R_2",
+  "thigh_L",
+  "shin_L",
+  "foot_L",
+  "thigh_R",
+  "shin_R",
+  "foot_R"
+ ],
+ "non_manifold_edges": 0,
+ "glb_bytes": 357288,
+ "materials": [
+  "void_unit",
+  "team",
+  "glow_acid"
+ ],
+ "clips": {
+  "idle_loop": {
+   "frames": 84,
+   "seconds": 2.8
+  },
+  "walk_loop": {
+   "frames": 27,
+   "seconds": 0.9
+  },
+  "attack": {
+   "frames": 18,
+   "seconds": 0.6
+  }
+ },
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.6,
+    "channels": 45
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.8,
+    "channels": 45
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.9,
+    "channels": 45
+   }
+  ],
+  "triangles": 5516,
+  "materials": [
+   "void_unit",
+   "team",
+   "glow_acid"
+  ],
+  "joints": [
+   15
+  ],
+  "meshes": [
+   "void_mauler"
+  ],
+  "nodes": [
+   "void_mauler"
+  ]
+ },
+ "reimport": {
+  "actions": [
+   [
+    "attack",
+    0.6
+   ],
+   [
+    "idle_loop",
+    2.8
+   ],
+   [
+    "walk_loop",
+    0.9
+   ]
+  ],
+  "armatures": [
+   "rig"
+  ],
+  "meshes": [
+   [
+    "Icosphere",
+    80
+   ],
+   [
+    "void_mauler",
+    5516
+   ]
+  ],
+  "bones": 15
+ }
+}
