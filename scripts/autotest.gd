@@ -63,7 +63,7 @@ func start(races: Array, ai: bool = true, map_id: String = "shatterfield") -> vo
 		await frames(2)
 	m = Match.new()
 	main.add_child(m)
-	m.start({"races": races, "ai": [false, ai], "difficulty": "normal", "human": 0, "map": map_id})
+	m.start({"races": races, "ai": [false, ai], "difficulty": "normal", "human": 0, "map": map_id, "intro": false})
 	main.match_node = m
 	await frames(5)
 
@@ -106,6 +106,7 @@ func _run() -> void:
 		await _profile()
 	if only == "previews":
 		await _previews()
+		await _brand()
 	if want("full"):
 		await _full()
 	print("AUTOTEST %d passed, %d failed in %.1f s" % [passes, fails, (Time.get_ticks_msec() - t0) / 1000.0])
@@ -198,6 +199,125 @@ func _previews() -> void:
 		crop.save_png("%s/%s.png" % [dir, id])
 		check(FileAccess.file_exists("%s/%s.png" % [dir, id]), "%s: preview baked" % id)
 		m.rig.set_process(true)
+
+
+## Bakes the app icon (icon.png, 1024 px) and boot splash (assets/ui/splash.png): a cluster
+## of the game's golden crystals lit against a violet glow, and the logo under it.
+func _brand() -> void:
+	if m:
+		m.queue_free()
+		m = null
+		await frames(2)
+	var vp := SubViewport.new()
+	vp.size = Vector2i(1024, 1024)
+	vp.own_world_3d = true
+	vp.msaa_3d = Viewport.MSAA_4X
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(vp)
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.05, 0.03, 0.09)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.45, 0.35, 0.6)
+	env.ambient_light_energy = 0.6
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_exposure = 0.95
+	env.glow_enabled = true
+	env.glow_intensity = 1.0
+	env.glow_bloom = 0.15
+	var we := WorldEnvironment.new()
+	we.environment = env
+	vp.add_child(we)
+	# violet halo behind the crystals
+	var halo := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(7.5, 7.5)
+	var hm := StandardMaterial3D.new()
+	hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hm.albedo_texture = Weather._dot()
+	hm.albedo_color = Color(0.55, 0.3, 1.0, 0.85)
+	hm.emission_enabled = true
+	hm.emission = Color(0.5, 0.25, 0.95)
+	hm.emission_energy_multiplier = 1.2
+	q.material = hm
+	halo.mesh = q
+	halo.position = Vector3(0, 1.3, -2.5)
+	vp.add_child(halo)
+	var ps := Models.scene_for("crystal_a")
+	var ps2 := Models.scene_for("crystal_c")
+	for spec in [[ps, Vector3(0, 0, 0), 0.4, 2.9, 1.9], [ps2 if ps2 else ps, Vector3(-1.2, 0, 0.6), -0.6, 1.6, 1.3],
+			[ps2 if ps2 else ps, Vector3(1.2, 0, 0.45), 2.2, 1.8, 1.3]]:
+		if spec[0] == null:
+			continue
+		var c: Node3D = (spec[0] as PackedScene).instantiate()
+		vp.add_child(c)
+		Models.fit(c, float(spec[4]), float(spec[3]))
+		c.position = spec[1]
+		c.rotation.y = float(spec[2])
+	var key := DirectionalLight3D.new()
+	key.light_color = Color(1.0, 0.86, 0.6)
+	key.light_energy = 1.5
+	key.rotation_degrees = Vector3(-35, 35, 0)
+	vp.add_child(key)
+	var rim := DirectionalLight3D.new()
+	rim.light_color = Color(0.6, 0.45, 1.0)
+	rim.light_energy = 2.0
+	rim.rotation_degrees = Vector3(-15, 200, 0)
+	vp.add_child(rim)
+	var cam := Camera3D.new()
+	cam.fov = 32.0
+	cam.position = Vector3(0, 2.3, 8.7)
+	vp.add_child(cam)
+	cam.look_at(Vector3(0, 1.1, 0), Vector3.UP)
+	await frames(8)
+	var icon := vp.get_texture().get_image()
+	icon.convert(Image.FORMAT_RGBA8)
+	icon.save_png(ProjectSettings.globalize_path("res://icon.png"))
+	check(FileAccess.file_exists("res://icon.png"), "app icon baked")
+	vp.queue_free()
+	# splash: the icon over the logo, on black
+	var sv := SubViewport.new()
+	sv.size = Vector2i(1280, 720)
+	sv.transparent_bg = false
+	sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(sv)
+	var bg := ColorRect.new()
+	bg.color = Color(0.02, 0.015, 0.035)
+	bg.size = Vector2(1280, 720)
+	sv.add_child(bg)
+	var tr := TextureRect.new()
+	var soft: Image = icon.duplicate()
+	soft.resize(512, 512, Image.INTERPOLATE_LANCZOS)
+	for y in 512:
+		for x in 512:
+			var rr := Vector2(x - 255.5, y - 255.5).length() / 512.0
+			var px: Color = soft.get_pixel(x, y)
+			px.a = clampf((0.5 - rr) / 0.14, 0.0, 1.0)
+			soft.set_pixel(x, y, px)
+	tr.texture = ImageTexture.create_from_image(soft)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.position = Vector2(640 - 170, 70)
+	tr.size = Vector2(340, 340)
+	sv.add_child(tr)
+	var lg := UiKit.head("SHARDFALL", 84, UiKit.GOLD)
+	lg.add_theme_constant_override("outline_size", 12)
+	lg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lg.position = Vector2(0, 430)
+	lg.size = Vector2(1280, 110)
+	sv.add_child(lg)
+	var tg := UiKit.label("Ambron  ·  versus  ·  the Void", 22, UiKit.DIM)
+	tg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tg.position = Vector2(0, 545)
+	tg.size = Vector2(1280, 40)
+	sv.add_child(tg)
+	await frames(6)
+	var sp := sv.get_texture().get_image()
+	sp.convert(Image.FORMAT_RGB8)
+	sp.save_png(ProjectSettings.globalize_path("res://assets/ui/splash.png"))
+	check(FileAccess.file_exists("res://assets/ui/splash.png"), "boot splash baked")
+	sv.queue_free()
 
 
 func _map_image(w: World) -> Image:
@@ -332,6 +452,12 @@ func _title() -> void:
 	await frames(2)
 	check(tt.root.get_node_or_null("Settings") != null, "settings panel opens")
 	await shot("00_title_settings")
+	tt.root.get_node("Settings").queue_free()
+	var cp := CreditsPanel.new()
+	cp.name = "Credits"
+	tt.root.add_child(cp)
+	await shot("00_title_credits")
+	cp.queue_free()
 	tt._set_map("shatterfield", false)
 	main.title.queue_free()
 	main.title = null

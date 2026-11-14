@@ -58,16 +58,23 @@ func plateau_disc(c: Vector2, r: float, lvl: int, wobble: float = 0.08) -> void:
 				_raise(x, y, lvl)
 
 
-## Raise every cell inside a polygon (map coordinates) to at least `lvl`.
-func plateau_poly(pts: PackedVector2Array, lvl: int) -> void:
+## Raise every cell inside a polygon (map coordinates) to at least `lvl`. The edge is
+## roughened by up to `wobble` metres so long sides don't read as ruled lines.
+func plateau_poly(pts: PackedVector2Array, lvl: int, wobble: float = 1.4) -> void:
 	var lo := pts[0]
 	var hi := pts[0]
 	for q in pts:
 		lo = lo.min(q)
 		hi = hi.max(q)
-	for y in range(int(lo.y) - 1, int(hi.y) + 2):
-		for x in range(int(lo.x) - 1, int(hi.x) + 2):
-			if inside(x, y) and Geometry2D.is_point_in_polygon(Vector2(x + 0.5, y + 0.5), pts):
+	var w := ceili(wobble) + 1
+	for y in range(int(lo.y) - w, int(hi.y) + w + 1):
+		for x in range(int(lo.x) - w, int(hi.x) + w + 1):
+			if not inside(x, y):
+				continue
+			var c := Vector2(x + 0.5, y + 0.5)
+			var j := Vector2(sin(c.y * 0.41 + 1.3) + 0.5 * sin(c.y * 0.97 + 0.4),
+				sin(c.x * 0.37 + 2.1) + 0.5 * sin(c.x * 1.07 + 0.9)) * (wobble / 1.5)
+			if Geometry2D.is_point_in_polygon(c + j, pts):
 				_raise(x, y, lvl)
 
 

@@ -100,6 +100,30 @@ func _ready() -> void:
 	root.add_child(chip)
 	Profile.changed.connect(_refresh_profile)
 	_refresh_profile()
+	var foot := HBoxContainer.new()
+	foot.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	foot.offset_left = 16
+	foot.offset_top = -52
+	foot.offset_bottom = -12
+	foot.offset_right = 420
+	foot.add_theme_constant_override("separation", 14)
+	root.add_child(foot)
+	var cr := Button.new()
+	cr.text = "Credits"
+	cr.flat = true
+	cr.focus_mode = Control.FOCUS_NONE
+	cr.add_theme_font_size_override("font_size", 16)
+	cr.add_theme_color_override("font_color", UiKit.DIM)
+	cr.pressed.connect(func():
+		Sfx.play("open")
+		var c := CreditsPanel.new()
+		c.name = "Credits"
+		root.add_child(c))
+	foot.add_child(cr)
+	var ver := UiKit.label("v%s" % ProjectSettings.get_setting("application/config/version", "1.0"), 14, Color(UiKit.DIM, 0.6))
+	ver.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	foot.add_child(ver)
+	_drift()
 	_help(root)
 	Sfx.music("menu")
 	Sfx.ambience("")
@@ -212,6 +236,18 @@ func _map_cards() -> HBoxContainer:
 		cards.add_child(b)
 		map_btns[id] = b
 	return cards
+
+
+## The backdrop map drifts and breathes slowly behind the menu.
+func _drift() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	backdrop.pivot_offset = vs * 0.5
+	backdrop.scale = Vector2(1.06, 1.06)
+	var tw := create_tween().set_loops()
+	tw.tween_property(backdrop, "scale", Vector2(1.16, 1.16), 26.0).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(backdrop, "position", Vector2(-30, 18), 26.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(backdrop, "scale", Vector2(1.06, 1.06), 26.0).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(backdrop, "position", Vector2(24, -12), 26.0).set_trans(Tween.TRANS_SINE)
 
 
 static func _preview(id: String) -> Texture2D:

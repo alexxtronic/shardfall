@@ -45,6 +45,18 @@ func apply() -> void:
 	Sfx.hear_radius = 22.0 + dist
 
 
+## A jolt from an explosion at `at` (map metres): stronger the closer it is to the view,
+## nothing when it's off screen or the player turned screen shake off.
+func kick(at: Vector2, amount: float) -> void:
+	if not bool(Prefs.get_v("shake")):
+		return
+	var reach := dist * 1.1
+	var d := at.distance_to(focus)
+	if d >= reach:
+		return
+	shake = maxf(shake, amount * (1.0 - d / reach))
+
+
 func _process(delta: float) -> void:
 	if vel.length() > 0.05:
 		focus += vel * delta

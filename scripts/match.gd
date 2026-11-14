@@ -54,9 +54,51 @@ func start(c: Dictionary) -> void:
 	cmd.hud = hud
 	hud.menu_action.connect(_on_menu)
 	world.game_over.connect(_on_over)
+	if bool(c.get("intro", true)):
+		_intro()
 	var race: String = world.players[0].race
 	var main_name: String = Defs.buildings[Defs.building_id(race, "main")]["name"]
 	hud.show_message("Your workers are harvesting. Tap your %s to train more." % main_name, "hint")
+
+
+## Fade in from black with the map's name, then get out of the way.
+func _intro() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 30
+	layer.name = "Intro"
+	add_child(layer)
+	var black := ColorRect.new()
+	black.color = Color.BLACK
+	black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(black)
+	var d: Dictionary = Maps.get_def(world.map_id)
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	v.offset_left = -500
+	v.offset_right = 500
+	v.offset_top = 150
+	v.offset_bottom = 300
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.modulate = Color(1, 1, 1, 0)
+	v.theme = UiKit.make_theme()
+	layer.add_child(v)
+	var nm := UiKit.head(String(d.get("name", "")).to_upper(), 46, d.get("accent", UiKit.GOLD))
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.add_theme_constant_override("outline_size", 10)
+	v.add_child(nm)
+	var bot: PlayerState = world.players[1]
+	var line := UiKit.label("%s  ·  vs %s, %s bot" % [String(d.get("tag", "")), Defs.RACE_INFO[bot.race]["name"],
+		String(cfg.get("difficulty", "normal")).capitalize()], 19, UiKit.TEXT)
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(line)
+	var tw := create_tween()
+	tw.tween_property(black, "color:a", 0.0, 1.1).set_trans(Tween.TRANS_SINE)
+	tw.parallel().tween_property(v, "modulate:a", 1.0, 0.6).set_delay(0.3)
+	tw.tween_callback(func(): Sfx.announce("go"))
+	tw.tween_interval(1.8)
+	tw.tween_property(v, "modulate:a", 0.0, 0.8)
+	tw.tween_callback(layer.queue_free)
 
 
 func _environment(th: Dictionary) -> void:

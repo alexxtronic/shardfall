@@ -548,6 +548,8 @@ func death(e) -> void:
 		_burst(at, Color(1.0, 0.7, 0.3), 18 + int(big * 10), 5.0 + big)
 		_burst(at, Color(0.3, 0.3, 0.32), 10 + int(big * 6), 3.0 + big)
 		Sfx.play_at("boom", e.p, 1.0 if big < 2.0 else 0.6)
+	if big >= 1.6 and world.cam and world.cam.has_method("kick"):
+		world.cam.kick(e.p, 0.25 + big * 0.18)
 
 
 func puff(at: Vector2, col: Color) -> void:
