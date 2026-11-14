@@ -1,0 +1,20 @@
+{
+ "id": "slime_pile",
+ "triangles": 1736,
+ "size_m": [
+  2.622,
+  2.837,
+  0.825
+ ],
+ "min_z": 0.0,
+ "glb_bytes": 101168,
+ "materials": [
+  "slime",
+  "glow_slime"
+ ],
+ "origin": [
+  0.0,
+  0.0,
+  0.0
+ ]
+}

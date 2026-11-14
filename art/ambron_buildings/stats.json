@@ -1,0 +1,279 @@
+{
+ "ambron_citadel": {
+  "parts": 80,
+  "triangles": 11092,
+  "size_m": [
+   4.7,
+   4.7,
+   4.538
+  ],
+  "min": [
+   -2.35,
+   -2.35,
+   0.0
+  ],
+  "max": [
+   2.35,
+   2.35,
+   4.538
+  ],
+  "objects": {
+   "ambron_citadel": {
+    "triangles": 11092,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow",
+     "team"
+    ]
+   }
+  },
+  "glb_bytes": 1320780,
+  "seconds": 39.6
+ },
+ "ambron_relay": {
+  "parts": 33,
+  "triangles": 2934,
+  "size_m": [
+   1.7,
+   1.7,
+   2.5
+  ],
+  "min": [
+   -0.85,
+   -0.85,
+   0.0
+  ],
+  "max": [
+   0.85,
+   0.85,
+   2.5
+  ],
+  "objects": {
+   "ambron_relay": {
+    "triangles": 2910,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow",
+     "team"
+    ]
+   },
+   "ambron_relay_crystal": {
+    "triangles": 24,
+    "origin": [
+     0.0,
+     0.0,
+     2.245
+    ],
+    "materials": [
+     "glow"
+    ]
+   }
+  },
+  "glb_bytes": 293260,
+  "seconds": 15.9
+ },
+ "ambron_void_machine": {
+  "parts": 81,
+  "triangles": 9409,
+  "size_m": [
+   2.633,
+   2.644,
+   2.52
+  ],
+  "min": [
+   -1.317,
+   -1.322,
+   0.0
+  ],
+  "max": [
+   1.317,
+   1.322,
+   2.52
+  ],
+  "objects": {
+   "ambron_void_machine": {
+    "triangles": 9409,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow_core",
+     "team",
+     "glow"
+    ]
+   }
+  },
+  "glb_bytes": 1259848,
+  "seconds": 24.0
+ },
+ "ambron_assembly": {
+  "parts": 51,
+  "triangles": 6250,
+  "size_m": [
+   2.7,
+   2.7,
+   3.188
+  ],
+  "min": [
+   -1.35,
+   -1.35,
+   0.0
+  ],
+  "max": [
+   1.35,
+   1.35,
+   3.188
+  ],
+  "objects": {
+   "ambron_assembly": {
+    "triangles": 6250,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow",
+     "team"
+    ]
+   }
+  },
+  "glb_bytes": 1064684,
+  "seconds": 40.0
+ },
+ "ambron_forge": {
+  "parts": 81,
+  "triangles": 7146,
+  "size_m": [
+   2.7,
+   2.7,
+   3.16
+  ],
+  "min": [
+   -1.35,
+   -1.35,
+   0.0
+  ],
+  "max": [
+   1.35,
+   1.35,
+   3.16
+  ],
+  "objects": {
+   "ambron_forge": {
+    "triangles": 7146,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow",
+     "team",
+     "glow_furnace"
+    ]
+   }
+  },
+  "glb_bytes": 1082728,
+  "seconds": 32.4
+ },
+ "ambron_skyport": {
+  "parts": 67,
+  "triangles": 8048,
+  "size_m": [
+   2.7,
+   2.7,
+   3.25
+  ],
+  "min": [
+   -1.35,
+   -1.35,
+   0.0
+  ],
+  "max": [
+   1.35,
+   1.35,
+   3.25
+  ],
+  "objects": {
+   "ambron_skyport": {
+    "triangles": 8048,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow",
+     "team"
+    ]
+   }
+  },
+  "glb_bytes": 1094168,
+  "seconds": 40.7
+ },
+ "ambron_spire": {
+  "parts": 69,
+  "triangles": 10830,
+  "size_m": [
+   3.7,
+   3.7,
+   5.0
+  ],
+  "min": [
+   -1.85,
+   -1.85,
+   0.0
+  ],
+  "max": [
+   1.85,
+   1.85,
+   5.0
+  ],
+  "objects": {
+   "ambron_spire": {
+    "triangles": 9694,
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "materials": [
+     "ambron_body",
+     "glow",
+     "team"
+    ]
+   },
+   "ambron_spire_halo": {
+    "triangles": 1136,
+    "origin": [
+     0.0,
+     0.0,
+     4.18
+    ],
+    "materials": [
+     "ambron_body",
+     "glow"
+    ]
+   }
+  },
+  "glb_bytes": 1327392,
+  "seconds": 33.3
+ }
+}

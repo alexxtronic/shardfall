@@ -1,0 +1,46 @@
+{
+ "id": "ambron_dart",
+ "triangles": 4404,
+ "per_object": {
+  "body": 4404
+ },
+ "size_m": [
+  1.284,
+  1.33,
+  0.525
+ ],
+ "glb_bytes": 138536,
+ "materials": [
+  "ambron_body",
+  "glow_cyan",
+  "team"
+ ],
+ "objects": {
+  "body": {
+   "world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "local": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "parent": null
+  },
+  "muzzle": {
+   "world": [
+    0.0,
+    -0.68,
+    0.09
+   ],
+   "local": [
+    0.0,
+    -0.68,
+    0.09
+   ],
+   "parent": null
+  }
+ }
+}

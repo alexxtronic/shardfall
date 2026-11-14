@@ -1,0 +1,20 @@
+{
+ "id": "crystal_d",
+ "triangles": 903,
+ "size_m": [
+  2.1,
+  1.15,
+  1.493
+ ],
+ "min_z": -0.0,
+ "glb_bytes": 75900,
+ "materials": [
+  "glow_crystal",
+  "rock"
+ ],
+ "origin": [
+  0.0,
+  0.0,
+  0.0
+ ]
+}

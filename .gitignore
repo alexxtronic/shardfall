@@ -1,0 +1,35 @@
+# Godot
+.godot/
+*.translation
+export_presets.cfg.bak
+/build/
+/export/
+
+# Python / tools
+__pycache__/
+*.pyc
+.venv/
+
+# Blender backups and render scratch
+*.blend1
+*.blend2
+art/**/review/tmp/
+art/**/cache/
+
+# Big source exports stay out (Tripo GLBs live in Downloads)
+art/**/source/*.glb
+art/**/source/*.zip
+
+# OS / editor
+.DS_Store
+*.swp
+*~
+
+# Review renders: only each art group's final round is kept in git
+art/ambron_buildings/review/round[1-3]/
+art/ambron_vehicles/review/round[1-3]/
+art/neutral/review/round[1-6]/
+art/void_buildings/review/
+
+# Scratch debugging probes
+tools/probe.*

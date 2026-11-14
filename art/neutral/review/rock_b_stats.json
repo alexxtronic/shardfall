@@ -1,0 +1,19 @@
+{
+ "id": "rock_b",
+ "triangles": 238,
+ "size_m": [
+  3.85,
+  1.9,
+  1.7
+ ],
+ "min_z": 0.0,
+ "glb_bytes": 22792,
+ "materials": [
+  "rock"
+ ],
+ "origin": [
+  0.0,
+  0.0,
+  0.0
+ ]
+}

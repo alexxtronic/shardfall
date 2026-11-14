@@ -1,0 +1,46 @@
+{
+ "id": "ambron_monolith",
+ "triangles": 7668,
+ "per_object": {
+  "body": 7668
+ },
+ "size_m": [
+  2.436,
+  2.56,
+  1.098
+ ],
+ "glb_bytes": 270964,
+ "materials": [
+  "ambron_body",
+  "glow_cyan",
+  "team"
+ ],
+ "objects": {
+  "body": {
+   "world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "local": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "parent": null
+  },
+  "muzzle": {
+   "world": [
+    0.0,
+    -1.305,
+    0.167
+   ],
+   "local": [
+    0.0,
+    -1.305,
+    0.167
+   ],
+   "parent": null
+  }
+ }
+}

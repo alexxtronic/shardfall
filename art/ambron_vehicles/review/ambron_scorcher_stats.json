@@ -1,0 +1,61 @@
+{
+ "id": "ambron_scorcher",
+ "triangles": 7544,
+ "per_object": {
+  "hull": 5044,
+  "turret": 2500
+ },
+ "size_m": [
+  1.666,
+  2.096,
+  1.281
+ ],
+ "glb_bytes": 240300,
+ "materials": [
+  "ambron_body",
+  "glow_cyan",
+  "glow_fire",
+  "team"
+ ],
+ "objects": {
+  "hull": {
+   "world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "local": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "parent": null
+  },
+  "turret": {
+   "world": [
+    0.0,
+    -0.007,
+    0.62
+   ],
+   "local": [
+    0.0,
+    -0.007,
+    0.62
+   ],
+   "parent": null
+  },
+  "muzzle": {
+   "world": [
+    0.0,
+    -1.007,
+    0.78
+   ],
+   "local": [
+    0.0,
+    -1.0,
+    0.16
+   ],
+   "parent": "turret"
+  }
+ }
+}
