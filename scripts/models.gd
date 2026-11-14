@@ -133,7 +133,8 @@ static func tint_team(root: Node, col: Color) -> void:
 					nm.albedo_color = col
 					nm.emission_enabled = true
 					nm.emission = col
-					nm.emission_energy_multiplier = 0.6
+					# flat team lights glow; textured team areas (Void bone) are tinted, with a faint glow
+					nm.emission_energy_multiplier = 0.15 if nm.albedo_texture else 0.6
 					team_mats[key] = nm
 				m3.set_surface_override_material(i, team_mats[key])
 

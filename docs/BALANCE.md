@@ -47,13 +47,13 @@ Margin is Ambron's value left minus Void's, as a share of the starting value: 0%
 
 | Game | P1 | P2 | Winner | Time |
 |---|---|---|---|---|
-| 1 | ambron | void | void | 31:51 |
-| 2 | void | ambron | ambron | 25:56 |
-| 3 | ambron | void | none | 40:00 |
-| 4 | void | ambron | ambron | 33:43 |
-| 5 | ambron | void | ambron | 23:03 |
-| 6 | void | ambron | ambron | 31:22 |
+| 1 | ambron | void | void | 30:53 |
+| 2 | void | ambron | void | 30:38 |
+| 3 | ambron | void | ambron | 31:11 |
+| 4 | void | ambron | void | 32:58 |
+| 5 | ambron | void | ambron | 29:49 |
+| 6 | void | ambron | void | 34:05 |
 
-Ambron 4, Void 1, unfinished 1.
+Ambron 2, Void 4, unfinished 0.
 
-Run time: 235.5 s
+Run time: 269.0 s

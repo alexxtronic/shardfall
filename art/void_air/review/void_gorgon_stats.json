@@ -1,0 +1,77 @@
+{
+ "id": "void_gorgon",
+ "triangles": 11666,
+ "parts": 102,
+ "inward_parts": [],
+ "size_m": [
+  2.694,
+  2.053,
+  1.409
+ ],
+ "bones": 21,
+ "bone_names": [
+  "root",
+  "body",
+  "belly",
+  "tnd1a_L",
+  "tnd1b_L",
+  "tnd1a_R",
+  "tnd1b_R",
+  "tnd2a_L",
+  "tnd2b_L",
+  "tnd2a_R",
+  "tnd2b_R",
+  "tnd3a_L",
+  "tnd3b_L",
+  "tnd3a_R",
+  "tnd3b_R",
+  "head",
+  "jaw",
+  "fin1_L",
+  "fin2_L",
+  "fin1_R",
+  "fin2_R"
+ ],
+ "glb_bytes": 934400,
+ "materials": [
+  "void_skin",
+  "glow_acid",
+  "team"
+ ],
+ "actions": {
+  "idle_loop": 3.0,
+  "fly_loop": 0.8,
+  "attack": 0.6
+ },
+ "muzzle": {
+  "bone": "belly",
+  "rest": [
+   0.0,
+   0.114,
+   0.336
+  ]
+ },
+ "reimport": {
+  "animations_seconds": {
+   "attack": 0.6,
+   "fly_loop": 0.8,
+   "idle_loop": 3.0
+  },
+  "armatures": [
+   "rig"
+  ],
+  "bones": 21,
+  "skinned_meshes": [
+   "void_gorgon"
+  ],
+  "triangles": 11666,
+  "materials": [
+   "glow_acid",
+   "team",
+   "void_skin"
+  ],
+  "empties": [
+   "muzzle"
+  ]
+ }
+}

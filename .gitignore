@@ -35,3 +35,10 @@ art/void_buildings/review/fast/
 
 # Scratch debugging probes
 tools/probe.*
+
+# Tripo pipeline: raw Tripo exports are big source files (the harvester alone is 62 MB),
+# and only the final review round is kept
+art/tripo/raw/
+art/tripo/review/inspect/
+art/tripo/review/round1/
+art/tripo/review/round2/

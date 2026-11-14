@@ -1,0 +1,78 @@
+{
+ "id": "ambron_bulwark",
+ "raw_tris": 9740,
+ "decimated": [
+  9740,
+  5000
+ ],
+ "size_m": [
+  1.556,
+  0.814,
+  1.598
+ ],
+ "faces_by_material": {
+  "body": 4873,
+  "team": 127
+ },
+ "images": [
+  [
+   "ambron_bulwark_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_bulwark_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_bulwark_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "hips",
+  "torso",
+  "thigh_L",
+  "shin_L",
+  "thigh_R",
+  "shin_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 21
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 21
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.917,
+    "channels": 21
+   }
+  ],
+  "triangles": 5000,
+  "materials": [
+   "ambron_ambron_bulwark_body",
+   "team"
+  ],
+  "images": 3,
+  "joints": [
+   7
+  ],
+  "bytes": 687408
+ }
+}

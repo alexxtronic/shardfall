@@ -1,0 +1,77 @@
+{
+ "id": "void_skitter",
+ "raw_tris": 9796,
+ "decimated": [
+  9796,
+  6000
+ ],
+ "size_m": [
+  1.259,
+  0.659,
+  0.799
+ ],
+ "faces_by_material": {
+  "body": 4883,
+  "team": 1020,
+  "glow": 97
+ },
+ "images": [
+  [
+   "void_skitter_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_skitter_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_skitter_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body",
+  "wing_L",
+  "wing_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 12
+   },
+   {
+    "name": "fly_loop",
+    "seconds": 0.5,
+    "channels": 12
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 0.792,
+    "channels": 12
+   }
+  ],
+  "triangles": 6000,
+  "materials": [
+   "void_void_skitter_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   4
+  ],
+  "bytes": 782224
+ }
+}

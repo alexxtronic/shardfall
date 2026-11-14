@@ -1,0 +1,81 @@
+{
+ "id": "void_drudge",
+ "raw_tris": 9452,
+ "decimated": [
+  9452,
+  4000
+ ],
+ "size_m": [
+  1.036,
+  1.07,
+  0.702
+ ],
+ "faces_by_material": {
+  "body": 3435,
+  "team": 308,
+  "glow": 257
+ },
+ "images": [
+  [
+   "void_drudge_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_drudge_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_drudge_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body",
+  "leg_L0",
+  "leg_L1",
+  "leg_L2",
+  "leg_R0",
+  "leg_R1",
+  "leg_R2"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 24
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 24
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 24
+   }
+  ],
+  "triangles": 4000,
+  "materials": [
+   "void_void_drudge_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   8
+  ],
+  "bytes": 594244
+ }
+}

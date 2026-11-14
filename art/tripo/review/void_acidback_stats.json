@@ -1,0 +1,81 @@
+{
+ "id": "void_acidback",
+ "raw_tris": 9828,
+ "decimated": [
+  9828,
+  7998
+ ],
+ "size_m": [
+  2.299,
+  2.459,
+  1.35
+ ],
+ "faces_by_material": {
+  "body": 7212,
+  "team": 296,
+  "glow": 490
+ },
+ "images": [
+  [
+   "void_acidback_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_acidback_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_acidback_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body",
+  "leg_L0",
+  "leg_L1",
+  "leg_L2",
+  "leg_R0",
+  "leg_R1",
+  "leg_R2"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 24
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 24
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 24
+   }
+  ],
+  "triangles": 7998,
+  "materials": [
+   "void_void_acidback_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   8
+  ],
+  "bytes": 962208
+ }
+}

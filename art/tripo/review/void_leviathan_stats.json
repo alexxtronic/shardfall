@@ -1,0 +1,81 @@
+{
+ "id": "void_leviathan",
+ "raw_tris": 9480,
+ "decimated": [
+  9480,
+  9480
+ ],
+ "size_m": [
+  4.728,
+  6.763,
+  2.6
+ ],
+ "faces_by_material": {
+  "body": 7639,
+  "team": 1632,
+  "glow": 209
+ },
+ "images": [
+  [
+   "void_leviathan_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_leviathan_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_leviathan_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body",
+  "leg_L0",
+  "leg_L1",
+  "leg_L2",
+  "leg_R0",
+  "leg_R1",
+  "leg_R2"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 24
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 24
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 24
+   }
+  ],
+  "triangles": 9480,
+  "materials": [
+   "void_void_leviathan_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   8
+  ],
+  "bytes": 1072428
+ }
+}

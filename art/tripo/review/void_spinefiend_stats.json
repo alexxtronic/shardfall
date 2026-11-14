@@ -1,0 +1,79 @@
+{
+ "id": "void_spinefiend",
+ "raw_tris": 9486,
+ "decimated": [
+  9486,
+  8000
+ ],
+ "size_m": [
+  1.598,
+  1.688,
+  1.499
+ ],
+ "faces_by_material": {
+  "body": 6462,
+  "team": 1534,
+  "glow": 4
+ },
+ "images": [
+  [
+   "void_spinefiend_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_spinefiend_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_spinefiend_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body",
+  "leg_L0",
+  "leg_L1",
+  "leg_R0",
+  "leg_R1"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 18
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 18
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 18
+   }
+  ],
+  "triangles": 8000,
+  "materials": [
+   "void_void_spinefiend_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   6
+  ],
+  "bytes": 1000324
+ }
+}

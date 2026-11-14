@@ -1,0 +1,80 @@
+{
+ "id": "ambron_worker",
+ "raw_tris": 1955884,
+ "decimated": [
+  238892,
+  3998
+ ],
+ "size_m": [
+  0.952,
+  0.936,
+  0.951
+ ],
+ "faces_by_material": {
+  "body": 3791,
+  "team": 207
+ },
+ "images": [
+  [
+   "ambron_worker_col",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "robotic_crystal_harvester_3d_model_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "robotic_crystal_harvester_3d_model_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "robotic_crystal_harvester_3d_model_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 6
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 6
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 6
+   }
+  ],
+  "triangles": 3998,
+  "materials": [
+   "ambron_ambron_worker_body",
+   "team"
+  ],
+  "images": 1,
+  "joints": [
+   2
+  ],
+  "bytes": 512760
+ }
+}

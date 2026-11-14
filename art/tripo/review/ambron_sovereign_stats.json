@@ -1,0 +1,77 @@
+{
+ "id": "ambron_sovereign",
+ "raw_tris": 9524,
+ "decimated": [
+  9524,
+  9524
+ ],
+ "size_m": [
+  4.594,
+  4.273,
+  4.6
+ ],
+ "faces_by_material": {
+  "body": 9287,
+  "team": 237
+ },
+ "images": [
+  [
+   "ambron_sovereign_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_sovereign_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_sovereign_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body",
+  "leg_L0",
+  "leg_L1",
+  "leg_R0",
+  "leg_R1"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 18
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 18
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 1,
+    "channels": 18
+   }
+  ],
+  "triangles": 9524,
+  "materials": [
+   "ambron_ambron_sovereign_body",
+   "team"
+  ],
+  "images": 3,
+  "joints": [
+   6
+  ],
+  "bytes": 986192
+ }
+}

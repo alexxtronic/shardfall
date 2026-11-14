@@ -1,0 +1,75 @@
+{
+ "id": "void_gorgon",
+ "raw_tris": 9682,
+ "decimated": [
+  9682,
+  8000
+ ],
+ "size_m": [
+  2.214,
+  1.711,
+  1.4
+ ],
+ "faces_by_material": {
+  "body": 7189,
+  "team": 626,
+  "glow": 185
+ },
+ "images": [
+  [
+   "void_gorgon_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_gorgon_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_gorgon_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "body"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.708,
+    "channels": 6
+   },
+   {
+    "name": "fly_loop",
+    "seconds": 1.583,
+    "channels": 6
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2.417,
+    "channels": 6
+   }
+  ],
+  "triangles": 8000,
+  "materials": [
+   "void_void_gorgon_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   2
+  ],
+  "bytes": 937732
+ }
+}

@@ -1,0 +1,80 @@
+{
+ "id": "void_spitter",
+ "raw_tris": 9852,
+ "decimated": [
+  9852,
+  4998
+ ],
+ "size_m": [
+  0.603,
+  1.149,
+  1.147
+ ],
+ "faces_by_material": {
+  "body": 4142,
+  "team": 758,
+  "glow": 98
+ },
+ "images": [
+  [
+   "void_spitter_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_spitter_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_spitter_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "hips",
+  "torso",
+  "thigh_L",
+  "shin_L",
+  "thigh_R",
+  "shin_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 21
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 21
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.917,
+    "channels": 21
+   }
+  ],
+  "triangles": 4998,
+  "materials": [
+   "void_void_spitter_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   7
+  ],
+  "bytes": 774032
+ }
+}

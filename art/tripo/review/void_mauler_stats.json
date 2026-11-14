@@ -1,0 +1,80 @@
+{
+ "id": "void_mauler",
+ "raw_tris": 9938,
+ "decimated": [
+  9938,
+  5000
+ ],
+ "size_m": [
+  1.867,
+  1.171,
+  1.593
+ ],
+ "faces_by_material": {
+  "body": 4226,
+  "team": 608,
+  "glow": 166
+ },
+ "images": [
+  [
+   "void_mauler_basecolor.jpg",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_mauler_normal.png",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_mauler_rm.jpg",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "hips",
+  "torso",
+  "thigh_L",
+  "shin_L",
+  "thigh_R",
+  "shin_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 21
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 21
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.917,
+    "channels": 21
+   }
+  ],
+  "triangles": 5000,
+  "materials": [
+   "void_void_mauler_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   7
+  ],
+  "bytes": 765140
+ }
+}

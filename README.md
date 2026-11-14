@@ -107,6 +107,6 @@ The MVP is playable end to end:
 - every building and unit of both races;
 - expansions, fog of war and a victory screen.
 
-The art is built in Blender. Alex's Tripo "robot crystal harvester" is the reference for the Ambron Harvester. The Tripo model and up to 12 Tripo generations for the hero units are still to come, once Tripo and ChatGPT are signed in.
+The core units come from Tripo: ChatGPT concept art goes to a Tripo model, then `art/tripo/build.py` decimates it, splits the team and glow materials, rigs it and animates it in Blender (see [art/tripo/README.md](art/tripo/README.md)). The Ambron Harvester is Alex's own Tripo "robot crystal harvester". The buildings, resources and the rest of the art are built procedurally in Blender.
 
 iOS export needs Godot's export templates installed. Until then the game runs on the Mac in a landscape window.

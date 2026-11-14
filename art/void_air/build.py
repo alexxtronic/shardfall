@@ -1139,7 +1139,164 @@ def skitter():
     return S, R, ("head", Vector((0, -0.56, Z - 0.03))), anims, {}
 
 
-BUILDERS = {"void_skitter": skitter}
+def gorgon():
+    S, R = Skin(), RigDef()
+    Z = 0.86
+    # --- the bladder: a bloated veined gas sac, the lower part on the belly bone so it can squeeze ----------
+    body = Body([(0, 0.86, Z + 0.06), (0, 0.55, Z + 0.02), (0, 0.1, Z), (0, -0.35, Z - 0.02), (0, -0.70, Z - 0.08)],
+                [(0, 0.0), (0.06, 0.3), (0.2, 0.52), (0.45, 0.63), (0.7, 0.58), (0.9, 0.44), (1.0, 0.30)],
+                [(0, 0.0), (0.06, 0.2), (0.2, 0.34), (0.45, 0.42), (0.7, 0.39), (0.9, 0.3), (1.0, 0.21)],
+                per=4, n=18, belly=1.0, wobble=lambda t: 1 + 0.03 * math.cos(2 * math.pi * t * 4))
+
+    def bellyw(p):
+        wb = 0.85 * sstep(Z - 0.08, Z - 0.38, p.z)
+        return {"belly": wb, "body": 1 - wb}
+    S.add(body.geo(), "bladder", bellyw)
+
+    def tpos(y):                       # body parameter at a given y
+        return clamp((0.86 - y) / 1.56)
+
+    def under(x, y, sink=0.05):
+        t = tpos(y)
+        rx, ry = body.r(t)
+        c = body.frame(t)[0]
+        return Vector((x, y, c.z - ry * math.sqrt(max(0.0, 1 - (x / rx) ** 2)) + sink))
+
+    # --- carapace: five overlapping shells over the top with a team stripe, flank plates, bone spikes -----
+    top = ((0.995, 0.74), (0.82, 0.55), (0.64, 0.37), (0.46, 0.18), (0.28, 0.03))
+    for i, (t0, t1) in enumerate(top):
+        for a0, a1, kind in ((30, 83, "plate"), (83, 97, "team"), (97, 150, "plate")):
+            S.add(shell(body, t0, t1, a0, a1, 0.01, 0.042, 5 if kind == "plate" else 2, 7, 0.055), kind, "body")
+        for ang in (74, 106):
+            tt = lerp(t0, t1, 0.55)
+            base = body.point(tt, ang, 0.05)
+            out = body.normal(tt, ang)
+            ln = (0.2, 0.22, 0.19, 0.15, 0.11)[i]
+            S.add(spike(base, out + Vector((0, 0.9, 0)), ln, 0.035, bend=0.55, bend_to=(0, 1, 0), n=7, rings=5),
+                  "bone", "body")
+    for side in (0, 1):
+        for t0, t1 in ((0.9, 0.62), (0.6, 0.33), (0.33, 0.1)):
+            a0, a1 = (-12, 26) if side == 0 else (154, 192)
+            S.add(shell(body, t0, t1, a0, a1, 0.008, 0.034, 4, 6, 0.05, mid=(a0 + a1) / 2), "plate", "body")
+            tt = lerp(t0, t1, 0.75)
+            ang = (a0 + a1) / 2
+            base = body.point(tt, ang, 0.04)
+            S.add(spike(base, body.normal(tt, ang) + Vector((0, 0.6, -0.3)), 0.12, 0.025, bend=0.5,
+                        bend_to=(0, 1, 0), n=6, rings=4), "bone", "body")
+    # brow horns over the head, a spiked rump
+    for ang in (58, 122):
+        base = body.point(0.93, ang, 0.04)
+        S.add(spike(base, body.normal(0.93, ang) + Vector((0, -0.5, 0.6)), 0.24, 0.04, bend=0.9, bend_to=(0, 1, 0.3),
+                    n=7, rings=6), "bone", "body")
+    for dx, dz in ((0.0, 0.08), (0.12, -0.02), (-0.12, -0.02)):
+        S.add(spike((dx, 0.80, Z + 0.06 + dz), (dx, 1.0, 0.25 + dz), 0.18, 0.035, bend=0.4, bend_to=(0, 0, 1),
+                    n=7, rings=5), "bone", "body")
+    # --- acid sacs: two bulging out of each flank seam, pustules on the back, the bomb cluster underneath --
+    for tt, r, sd in ((0.70, 0.19, 1), (0.42, 0.21, 2)):
+        for ang in (24, 156):
+            c = body.point(tt, ang, -0.02)
+            S.add(blob(c, (r, r * 0.95, r * 1.1), n=12, rings=8, axis=body.normal(tt, ang), lump=0.14,
+                       seed=sd + ang), "glow", "body")
+    for tt, ang, r in ((0.13, 72, 0.1), (0.13, 108, 0.1), (0.22, 90, 0.08)):
+        c = body.point(tt, ang, 0.02)
+        S.add(blob(c, (r, r, r * 0.8), n=10, rings=6, axis=body.normal(tt, ang), lump=0.15, seed=ang), "glow", "body")
+    for x, y, r in ((0.0, 0.05, 0.17), (0.2, -0.12, 0.13), (-0.2, -0.12, 0.13), (0.0, 0.3, 0.12)):
+        c = under(x, y, 0.07)
+        S.add(blob(c, (r, r, r * 0.9), n=12, rings=7, lump=0.15, seed=x + y), "glow", "belly")
+    # --- head: an armoured beak hung under the front of the carapace, six eyes, a hinged jaw with tusks ----
+    hd = Body([(0, -0.58, Z - 0.08), (0, -0.78, Z - 0.12), (0, -0.96, Z - 0.18), (0, -1.08, Z - 0.25)],
+              [(0, 0.26), (0.4, 0.24), (0.8, 0.15), (1.0, 0.0)], [(0, 0.2), (0.4, 0.17), (0.8, 0.1), (1.0, 0.0)],
+              per=3, n=14, belly=0.7)
+    S.add(hd.geo(), "chitin", "head")
+    S.add(shell(hd, 0.25, 0.95, 20, 160, 0.006, 0.03, 5, 6, 0.0, narrow=(0.6, 1.0)), "plate", "head")
+    for x, y, z, r in ((0.15, -0.80, Z - 0.05, 0.04), (0.12, -0.88, Z - 0.09, 0.034), (0.17, -0.74, Z - 0.1, 0.03)):
+        S.add(blob((x, y, z), (r, r, r * 1.1), n=10, rings=6, axis=(0.7, -0.3, 0.6)), "eye", "head", mirror=True)
+    S.add(blob((0, -0.93, Z - 0.27), (0.11, 0.1, 0.07), n=10, rings=6), "gullet", "head")
+    jw = Body([(0, -0.70, Z - 0.26), (0, -0.88, Z - 0.31), (0, -1.02, Z - 0.33)],
+              [(0, 0.15), (0.6, 0.12), (1.0, 0.0)], [(0, 0.06), (0.6, 0.05), (1.0, 0.0)], per=3, n=12, belly=1.0)
+    S.add(jw.geo(), "chitin_dk", "jaw")
+    S.add(spike((0.1, -0.92, Z - 0.3), (-0.15, -1.0, -0.2), 0.22, 0.035, bend=1.1, bend_to=(-1, 0, 0.6),
+                n=7, rings=6), "bone", "jaw", mirror=True)
+    # --- fins: two small bat wings on the flanks ---------------------------------------------------------
+    W = bat_wing(S, SH=(0.50, -0.30), WR=(0.92, -0.30), tips=((1.29, 0.06), (1.12, 0.36), (0.84, 0.47)),
+                 HP=(0.50, 0.40), z0=Z + 0.1, dih=12, names=("fin1_L", "fin2_L", "body"), depths=(0.09, 0.09, 0.1),
+                 k=1.8, plates=((0.4, 0.13), (0.72, 0.11)), thumb=0.08)
+    # --- tendrils: six ribbed flesh feelers with bone barbs ----------------------------------------------
+    R.add("root", (0, 0, 0), (0, 0.3, 0))
+    R.add("body", (0, 0.3, Z), (0, -0.3, Z), "root")
+    R.add("belly", (0, 0.05, Z - 0.12), (0, 0.05, Z - 0.46), "body")
+    R.add("head", (0, -0.6, Z - 0.1), (0, -1.0, Z - 0.2), "body")
+    R.add("jaw", (0, -0.70, Z - 0.26), (0, -1.0, Z - 0.33), "head")
+    R.add("fin1_L", W["sh"], W["wr"], "body", mirror=True)
+    R.add("fin2_L", W["wr"], W["tip"], "fin1_L", mirror=True)
+    tnd = []
+    for i, (x, y, ln) in enumerate(((0.24, -0.30, 0.46), (0.38, 0.06, 0.52), (0.22, 0.40, 0.44))):
+        p0 = under(x, y, 0.06)
+        ctrl = [p0, p0 + Vector((0.03, 0.01, -0.12)), p0 + Vector((0.07, 0.06, -0.26)) * (ln / 0.5),
+                p0 + Vector((0.05, 0.13, -0.40)) * (ln / 0.5), p0 + Vector((-0.01, 0.16, -0.48)) * (ln / 0.5)]
+        a, b = "tnd%da_L" % (i + 1), "tnd%db_L" % (i + 1)
+        R.add(a, ctrl[0], ctrl[2], "belly", mirror=True)
+        R.add(b, ctrl[2], ctrl[4], a, mirror=True)
+        ch = Chain(R, [a, b], 0.8)
+        S.add(tube(ctrl, [(0, 0.06), (0.4, 0.04), (0.8, 0.024), (1, 0.014)], n=9, per=3,
+                   wobble=lambda t: 1 + 0.16 * math.cos(2 * math.pi * t * 7)), "flesh", ch, mirror=True)
+        d = (ctrl[4] - ctrl[3]).normalized()
+        S.add(spike(ctrl[4], d, 0.1, 0.02, bend=1.0, bend_to=(0, -1, 0), n=6, rings=4, sink=0.2), "bone", b,
+              mirror=True)
+        tnd.append((i + 1, 0.23 * i))
+
+    # --- animations ------------------------------------------------------------------------------------------
+    def fins(P, flap, lag, sweep=0.0):
+        for side, sg in (("L", 1), ("R", -1)):
+            P.rot("fin1_" + side, y=-sg * flap, z=sg * sweep)
+            P.rot("fin2_" + side, y=-sg * lag)
+
+    def tendrils(P, fn):
+        for i, ph in tnd:
+            for side, sg in (("L", 1), ("R", -1)):
+                (ax, ay), (bx, by) = fn(ph + (0.11 if sg < 0 else 0.0))
+                P.rot("tnd%da_%s" % (i, side), x=ax, y=-sg * ay)
+                P.rot("tnd%db_%s" % (i, side), x=bx, y=-sg * by)
+
+    def idle(P, t):
+        P.move("root", (0, 0, 0.045 * wave(t, 1)))
+        P.rot("body", x=2.5 * wave(t, 1, 0.25), y=2.5 * wave(t, 1, 0.1))
+        P.scale("body", 1 + 0.018 * wave(t, 2))
+        w2 = wave(t, 2, 0.25)
+        P.scale("belly", (1 + 0.04 * w2, 1 - 0.05 * w2, 1 + 0.04 * w2))
+        fins(P, 4 + 13 * wave(t, 2), 16 * wave(t, 2, -0.2))
+        tendrils(P, lambda ph: ((7 * wave(t, 1, ph), 6 * wave(t, 1, ph + 0.25)),
+                                (13 * wave(t, 1, ph - 0.2), 9 * wave(t, 1, ph + 0.05))))
+        P.rot("head", x=3 * wave(t, 2, 0.1), z=6 * wave(t, 1, 0.3))
+        P.rot("jaw", x=7 * max(0.0, wave(t, 2, 0.1)))
+
+    def fly(P, t):
+        P.move("root", (0, 0, -0.04 * wave(t, 1)))
+        P.rot("body", x=7)
+        fins(P, 6 + 30 * wave(t), 22 * wave(t, 1, -0.2), sweep=5 * wave(t, 1, 0.25))
+        tendrils(P, lambda ph: ((26 + 5 * wave(t, 1, ph), 3 * wave(t, 1, ph + 0.25)),
+                                (16 + 12 * wave(t, 1, ph - 0.25), 5 * wave(t, 1, ph))))
+        P.rot("head", x=-6)
+        P.rot("jaw", x=4)
+        P.scale("belly", (1 + 0.03 * wave(t, 1), 1 - 0.04 * wave(t, 1), 1 + 0.03 * wave(t, 1)))
+
+    def attack(P, t):
+        sq = pulse(t, 0.0, 0.3, 0.42)              # squeeze the bomb sacs
+        rel = pulse(t, 0.3, 0.42, 0.95)            # and let go: the belly kicks down, the body bounces up
+        P.scale("belly", ((1 + 0.16 * sq) * (1 - 0.08 * rel), (1 - 0.28 * sq) * (1 + 0.32 * rel), (1 + 0.16 * sq) * (1 - 0.08 * rel)))
+        P.scale("body", 1 - 0.04 * sq + 0.03 * rel)
+        P.move("root", (0, 0, -0.05 * sq + 0.12 * rel))
+        P.rot("body", x=-6 * sq + 4 * rel)
+        fins(P, 26 * sq - 28 * rel, 14 * sq - 20 * rel)
+        tendrils(P, lambda ph: ((-8 * sq + 14 * rel, 28 * sq - 10 * rel), (-6 * sq + 18 * rel, 20 * sq - 6 * rel)))
+        P.rot("head", x=-10 * sq)
+        P.rot("jaw", x=26 * pulse(t, 0.05, 0.28, 0.6))
+
+    anims = [("idle_loop", 3.0, idle), ("fly_loop", 0.8, fly), ("attack", 0.6, attack)]
+    return S, R, ("belly", Vector((0, 0.05, Z - 0.52))), anims, {}
+
+
+BUILDERS = {"void_skitter": skitter, "void_gorgon": gorgon}
 
 
 # --- checks, export, re-import ------------------------------------------------------------------------------
