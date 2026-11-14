@@ -389,6 +389,8 @@ func _process(delta: float) -> void:
 		refresh_t = 0.0
 		_refresh_card(false)
 		_refresh_selection(false)
+	# an empty command card (nothing of yours selected) is hidden so it doesn't cover the map
+	card_panel.visible = card.get_child_count() > 0
 	place_bar.visible = cmd.mode == Commander.M.PLACE
 
 

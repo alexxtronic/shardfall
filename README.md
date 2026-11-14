@@ -112,6 +112,6 @@ The MVP is playable end to end:
 - a rocky alien ground with cracked plates, craters and mounds under the rock walls;
 - expansions, fog of war and a victory screen.
 
-The core units come from Tripo: ChatGPT concept art goes to a Tripo model, then `art/tripo/build.py` decimates it, splits the team and glow materials, rigs it and animates it in Blender (see [art/tripo/README.md](art/tripo/README.md)). The Ambron Harvester is Alex's own Tripo "robot crystal harvester". The buildings, resources and the rest of the art are built procedurally in Blender.
+The core units come from Tripo: ChatGPT concept art goes to a Tripo model, then `art/tripo/build.py` decimates it, splits the team and glow materials, rigs it and animates it in Blender (see [art/tripo/README.md](art/tripo/README.md)). The Ambron Harvester is Alex's own Tripo "robot crystal harvester". All 16 buildings (8 per race, towers included) are Kiln models: each starts from a ChatGPT concept in `art/<race>_buildings/concepts/`, is built in Kiln JavaScript to match it (`art/kiln/<id>.kiln.js`, review sheet in `art/kiln/review/`), then `art/kiln/finish.py` merges it in Blender into one `body` mesh plus any `float_*` or `turret` node, and `art/kiln/icons.py` renders its build-menu icon. Resources and the rest of the art are built procedurally in Blender.
 
 iOS export needs Godot's export templates installed. Until then the game runs on the Mac in a landscape window.

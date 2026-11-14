@@ -648,9 +648,12 @@ func _models() -> void:
 	m.rig.look_at_ground(Vector2(52, 64))
 	m.rig.dist = 30.0
 	await shot("31_buildings")
-	m.rig.look_at_ground(Vector2(44, 62))
-	m.rig.dist = 16.0
+	m.rig.look_at_ground(Vector2(40, 60))
+	m.rig.dist = 18.0
 	await shot("32_buildings_close")
+	m.rig.look_at_ground(Vector2(44, 72))
+	m.rig.dist = 18.0
+	await shot("33_buildings_close_void")
 
 
 ## Towers and Void weapons in action, close up, in real time.
