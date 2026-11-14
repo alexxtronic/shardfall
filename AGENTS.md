@@ -45,6 +45,34 @@ Both races must have identical power per resource spent. Never give one race a u
 - **Towers:** both races get a defence tower in the shared `tower` slot: the Ambron Arc Tower (lightning) and the Void Slime Spire (slime). Their numbers are identical apart from the usual Void HP and cooldown multipliers.
 - **Rocks:** the map generator places every rock model first and marks the cells under it solid, so what you see is what blocks. Ground units also keep their body clear of rock cells.
 
+## Maps and elevation (Alex, 2026-11-14)
+
+- **Maps are data.** Each map is one entry in `Maps.DEFS` with a theme in `Maps.THEMES`. Author player 1's half only:
+  - plateaus and hazards are painted for player 1, then copied cell for cell onto the other half (`Terrain.symmetrize()`);
+  - ramps and rocks are added together with their mirror;
+  - bases are listed in pairs, and sites 0 and 1 are the two mains.
+
+  Never paint both halves by hand, because lumpy edges won't match.
+- **Elevation.** There are three levels (0, 1, 2), `Terrain.LEVEL_H` apart.
+  - Cliff bands are two cells wide and block movement.
+  - Ramps are the only way up.
+  - Ground units can't see up a cliff, and ground shots fired uphill miss `Terrain.UPHILL_MISS` of the time.
+  - Anything that draws at a ground position must add `world.height_at(p)`.
+- **After a map change:**
+  - run `--only=maps,terrain`, which checks mirror symmetry, 8 crystals and 2 slime piles per base, and that every base is reachable;
+  - re-bake the previews with `--only=previews`;
+  - run the balance harness's full games, so the bot can still play the map.
+
+## Audio (Alex, 2026-11-14)
+
+- **Licences.** Only CC0 audio, or CC-BY with the credit added. Every new file goes in `assets/CREDITS.md` and in `scripts/credits_panel.gd`.
+- **Conversion.** Source packs are downloaded into their own folders outside the repo and converted with ffmpeg:
+  - effects: mono 44.1 kHz Ogg, trimmed, loudness-matched, `<name>_N.ogg` for variants;
+  - music: loudness-normalised stereo Ogg;
+  - ambience: crossfaded loops.
+- **Buses.** Effects play on the `Effects` bus and music on the `Music` bus. `Prefs` drives both from the Settings sliders.
+- **Test runs are silent.** `--autotest` and `--balance` mute the master bus, and `Prefs` and `Profile` never write to `user://` during them.
+
 ## Art contract
 
 `docs/ART_SPEC.md` is the contract for every model:
