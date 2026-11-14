@@ -521,7 +521,7 @@ func _touch() -> void:
 		check(false, "a worker is on screen")
 		return
 	cmd.set_selection([])
-	var sp := rig.to_screen(Vector3(u.p.x, u.height * 0.45, u.p.y))
+	var sp := rig.to_screen(Vector3(u.p.x, u.height * 0.45 + u.ground_h(), u.p.y))
 	await _tap(sp)
 	check(cmd.selection.size() == 1 and cmd.selection[0] is Unit and cmd.selection[0].owner_id == 0, "tap selects a unit")
 	# tap ground moves it
@@ -529,16 +529,16 @@ func _touch() -> void:
 	var g := u.p
 	for i in 80:
 		var q := u.p + Vector2(cos(i * 0.9), sin(i * 0.9)) * (4.0 + i * 0.15)
-		var qs := rig.to_screen(Vector3(q.x, 0, q.y))
+		var qs := rig.to_screen(Vector3(q.x, w.height_at(q), q.y))
 		if w.grid.kind_at(Vector2i(q)) == 0 and w.units_near(q, 3.0).is_empty() and not w._near_resources(Vector2i(q), 1, 2.5) and not m.hud.blocks(qs) and Rect2(80, 80, 1120, 400).has_point(qs):
 			g = q
 			break
-	await _tap(rig.to_screen(Vector3(g.x, 0, g.y)))
+	await _tap(rig.to_screen(Vector3(g.x, w.height_at(g), g.y)))
 	var sel_u: Unit = u
 	check(sel_u.order == Unit.O.MOVE and sel_u.goal.distance_to(g) < 2.5, "tap on ground moves the selected worker")
 	# send it back to work by tapping a crystal
 	var cr = w.nearest_resource(0, sel_u.p, "mineral")
-	await _tap(rig.to_screen(Vector3(cr.p.x, 0.8, cr.p.y)))
+	await _tap(rig.to_screen(Vector3(cr.p.x, 0.8 + w.height_at(cr.p), cr.p.y)))
 	check(sel_u.order == Unit.O.GATHER, "tap on crystals sends the worker harvesting")
 	# drag pans the camera
 	var f0 := rig.focus
@@ -549,18 +549,24 @@ func _touch() -> void:
 	await _pinch(Vector2(640, 360), 200.0, 80.0)
 	check(rig.dist > d0 * 1.2, "pinch zooms out (%.1f -> %.1f)" % [d0, rig.dist])
 	rig.dist = d0
-	rig.look_at_ground(f0)
+	# long-press + drag box select, with the camera centred on the workers
+	var mid := Vector2.ZERO
+	var nw := 0
+	for x in w.units:
+		if x.owner_id == 0 and x.is_worker and not x.hidden_inside:
+			mid += x.p
+			nw += 1
+	rig.look_at_ground(mid / maxi(1, nw))
 	await frames(2)
-	# long-press + drag box select
-	await _box(Vector2(300, 200), Vector2(1000, 560))
+	await _box(Vector2(260, 150), Vector2(1020, 520))
 	check(cmd.selection.size() >= 3, "hold and drag box-selects (%d)" % cmd.selection.size())
 	await shot("04_box_selected")
 	# double tap selects all of a type
 	cmd.set_selection([])
 	var u2: Unit = _clear_worker()
-	var sp2 := rig.to_screen(Vector3(u2.p.x, u2.height * 0.45, u2.p.y))
+	var sp2 := rig.to_screen(Vector3(u2.p.x, u2.height * 0.45 + u2.ground_h(), u2.p.y))
 	await _tap(sp2)
-	await _tap(rig.to_screen(Vector3(u2.p.x, u2.height * 0.45, u2.p.y)))
+	await _tap(rig.to_screen(Vector3(u2.p.x, u2.height * 0.45 + u2.ground_h(), u2.p.y)))
 	check(cmd.selection.size() >= 5, "double-tap selects all of that type on screen (%d)" % cmd.selection.size())
 	cmd.action("gather")
 	cmd.set_selection([])
@@ -570,7 +576,7 @@ func _touch() -> void:
 func _clear_worker() -> Unit:
 	for x in m.world.units:
 		if x.owner_id == 0 and x.is_worker and not x.hidden_inside and m.rig.sees(x.p):
-			var sp: Vector2 = m.rig.to_screen(Vector3(x.p.x, x.height * 0.45, x.p.y))
+			var sp: Vector2 = m.rig.to_screen(Vector3(x.p.x, x.height * 0.45 + x.ground_h(), x.p.y))
 			if not m.hud.blocks(sp) and Rect2(80, 80, 1120, 400).has_point(sp):
 				return x
 	return null
@@ -857,7 +863,7 @@ func _combat() -> void:
 	w.fog.enabled = false
 	m.cmd.set_selection(mine)
 	await frames(2)
-	await _tap(m.rig.to_screen(Vector3(spot.x + 3, 0, spot.y - 7)))
+	await _tap(m.rig.to_screen(Vector3(spot.x + 3, w.height_at(spot + Vector2(3, -7)), spot.y - 7)))
 	check(mine[0].order == Unit.O.AMOVE, "tap on ground with army attack-moves")
 	for i in 40:
 		w.step(0.05)

@@ -5,7 +5,7 @@ extends Node
 ##  2. Mixed armies: the same random composition for both races.
 ##  3. Random armies: different random compositions of equal value, many times.
 ##  4. Counter table: how each slot fares against each other slot (one race).
-##  5. Full games: Ambron bot against Void bot on the real map.
+##  5. Full games: Ambron bot against Void bot, rotating through every map.
 ## Writes docs/BALANCE.md and prints a summary.
 
 const BUDGET := 1500.0
@@ -33,10 +33,13 @@ func _one_game() -> void:
 			races = Array(a.substr(8).split(","))
 	verbose = true
 	var sd := 1
+	var map_id: String = Maps.LIST[0]
 	for a in args:
 		if a.begins_with("--seed="):
 			sd = int(a.substr(7))
-	_full_game(races, sd)
+		if a.begins_with("--map="):
+			map_id = Maps.resolve(a.substr(6))
+	_full_game(races, sd, map_id)
 	get_tree().quit()
 
 
@@ -128,18 +131,21 @@ func _run() -> void:
 		_log(row)
 	_log("")
 	# 5. full games
-	var games := 0 if args.has("--nogames") else (2 if quick else 6)
+	var games := 0 if args.has("--nogames") else (Maps.LIST.size() * 2 if quick else Maps.LIST.size() * 4)
 	_log("## 5. Full games, bot against bot (normal)")
 	_log("")
-	_log("| Game | P1 | P2 | Winner | Time |")
-	_log("|---|---|---|---|---|")
+	_log("Each map is played from both seats with both races.")
+	_log("")
+	_log("| Game | Map | P1 | P2 | Winner | Time |")
+	_log("|---|---|---|---|---|---|")
 	var wins := {"ambron": 0, "void": 0, "none": 0}
 	for g in games:
-		var races := ["ambron", "void"] if g % 2 == 0 else ["void", "ambron"]
-		var res := _full_game(races, g)
+		var races := ["ambron", "void"] if (g / Maps.LIST.size()) % 2 == 0 else ["void", "ambron"]
+		var map_id: String = Maps.LIST[g % Maps.LIST.size()]
+		var res := _full_game(races, g, map_id)
 		var wr: String = "none" if res[0] < 0 else races[res[0]]
 		wins[wr] += 1
-		_log("| %d | %s | %s | %s | %s |" % [g + 1, races[0], races[1], wr, UiKit.fmt_time(res[1])])
+		_log("| %d | %s | %s | %s | %s | %s |" % [g + 1, Maps.DEFS[map_id]["name"], races[0], races[1], wr, UiKit.fmt_time(res[1])])
 	_log("")
 	_log("Ambron %d, Void %d, unfinished %d." % [wins["ambron"], wins["void"], wins["none"]])
 	_log("")
@@ -277,11 +283,11 @@ func _spawn_army(w: World, pid: int, mix: Array, x: float, race: String) -> void
 
 
 ## A full bot-vs-bot game on the real map. Returns [winner or -1, game time].
-func _full_game(races: Array, s: int) -> Array:
+func _full_game(races: Array, s: int, map_id: String = "shatterfield") -> Array:
 	seed(s * 31 + 5)
 	var w := World.new()
 	add_child(w)
-	w.setup({"map": "standard", "visuals": false, "human": -1, "races": races, "ai": [true, true], "difficulty": "normal"})
+	w.setup({"map": map_id, "visuals": false, "human": -1, "races": races, "ai": [true, true], "difficulty": "normal"})
 	var t := 0.0
 	var limit := 40.0 * 60.0
 	var next_log := 0.0
@@ -295,7 +301,7 @@ func _full_game(races: Array, s: int) -> Array:
 	var tt := w.time
 	if verbose and not w.over:
 		_stall_report(w)
-	print("full game %d: %s vs %s -> %s at %s (P1 made %d, P2 made %d; gathered %d / %d)" % [s, races[0], races[1], str(winner), UiKit.fmt_time(tt), w.players[0].units_made, w.players[1].units_made, w.players[0].gathered_m, w.players[1].gathered_m])
+	print("full game %d on %s: %s vs %s -> %s at %s (P1 made %d, P2 made %d; gathered %d / %d)" % [s, map_id, races[0], races[1], str(winner), UiKit.fmt_time(tt), w.players[0].units_made, w.players[1].units_made, w.players[0].gathered_m, w.players[1].gathered_m])
 	w.queue_free()
 	return [winner, tt]
 
