@@ -1,62 +1,113 @@
 class_name Title
 extends CanvasLayer
-## Title screen: pick your race, the bot's race and difficulty, then play.
+## Title screen: pick your race, the map, the bot's race and difficulty, then play. The
+## chosen map's overhead view fills the background. Choices are remembered (Prefs).
 
 signal play(cfg: Dictionary)
 
 var race: String = "ambron"
 var enemy: String = "random"
 var difficulty: String = "normal"
+var map_id: String = "shatterfield"
 var race_btns: Dictionary = {}
 var enemy_btns: Dictionary = {}
 var diff_btns: Dictionary = {}
+var map_btns: Dictionary = {}
 var help: Control
+var root: Control
+var backdrop: TextureRect
+var extra_buttons: HBoxContainer
 
 
 func _ready() -> void:
-	var root := Control.new()
+	root = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.theme = UiKit.make_theme()
 	add_child(root)
+	var base := ColorRect.new()
+	base.color = Color(0.03, 0.03, 0.06)
+	base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_child(base)
+	backdrop = TextureRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	backdrop.modulate = Color(0.42, 0.42, 0.48)
+	root.add_child(backdrop)
 	var bg := TextureRect.new()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var grad := Gradient.new()
-	grad.set_color(0, Color(0.13, 0.08, 0.2))
-	grad.set_color(1, Color(0.03, 0.03, 0.06))
+	grad.set_color(0, Color(0.1, 0.06, 0.16, 0.35))
+	grad.set_color(1, Color(0.02, 0.02, 0.04, 0.97))
 	var gt := GradientTexture2D.new()
 	gt.gradient = grad
 	gt.fill = GradientTexture2D.FILL_RADIAL
-	gt.fill_from = Vector2(0.5, 0.35)
-	gt.fill_to = Vector2(1.1, 1.1)
+	gt.fill_from = Vector2(0.5, 0.42)
+	gt.fill_to = Vector2(1.15, 1.15)
 	bg.texture = gt
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	root.add_child(bg)
 	var v := VBoxContainer.new()
 	v.set_anchors_preset(Control.PRESET_CENTER)
-	v.offset_left = -520
-	v.offset_right = 520
-	v.offset_top = -330
-	v.offset_bottom = 330
-	v.add_theme_constant_override("separation", 14)
+	v.offset_left = -600
+	v.offset_right = 600
+	v.offset_top = -340
+	v.offset_bottom = 340
+	v.add_theme_constant_override("separation", 12)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(v)
-	var t := UiKit.head("SHARDFALL", 66, UiKit.GOLD)
+	var t := UiKit.head("SHARDFALL", 60, UiKit.GOLD)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_constant_override("outline_size", 10)
 	v.add_child(t)
-	var sub := UiKit.label("Gather golden crystals and Void Slime. Build an army. Break the enemy.", 18, UiKit.DIM)
+	var sub := UiKit.label("Gather golden crystals and Void Slime. Take the high ground. Break the enemy.", 17, UiKit.DIM)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
-	# race cards
+	v.add_child(_race_cards())
+	v.add_child(_map_cards())
+	var opts := HBoxContainer.new()
+	opts.alignment = BoxContainer.ALIGNMENT_CENTER
+	opts.add_theme_constant_override("separation", 36)
+	opts.add_child(_row("Opponent", ["random", "ambron", "void"], enemy_btns, func(x): _set_enemy(x)))
+	opts.add_child(_row("Bot", ["easy", "normal", "hard"], diff_btns, func(x): _set_diff(x)))
+	v.add_child(opts)
+	var h := HBoxContainer.new()
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_theme_constant_override("separation", 18)
+	v.add_child(h)
+	h.add_child(_button("How to play", Vector2(190, 64), func(): help.visible = true; Sfx.play("click")))
+	h.add_child(_button("Settings", Vector2(170, 64), _open_settings))
+	var pb := _button("PLAY", Vector2(280, 64), _go)
+	pb.name = "PlayButton"
+	pb.add_theme_font_size_override("font_size", 30)
+	pb.add_theme_color_override("font_color", UiKit.GOLD)
+	h.add_child(pb)
+	extra_buttons = h
+	_help(root)
+	_set_race(String(Prefs.get_v("race")), false)
+	_set_enemy(String(Prefs.get_v("enemy")), false)
+	_set_diff(String(Prefs.get_v("difficulty")), false)
+	_set_map(Maps.resolve(String(Prefs.get_v("map"))), false)
+
+
+func _button(text: String, sz: Vector2, cb: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = sz
+	b.focus_mode = Control.FOCUS_NONE
+	b.pressed.connect(cb)
+	return b
+
+
+func _race_cards() -> HBoxContainer:
 	var cards := HBoxContainer.new()
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	cards.add_theme_constant_override("separation", 24)
-	v.add_child(cards)
+	cards.add_theme_constant_override("separation", 22)
 	for r in ["ambron", "void"]:
 		var info: Dictionary = Defs.RACE_INFO[r]
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(420, 230)
+		b.custom_minimum_size = Vector2(440, 176)
 		b.focus_mode = Control.FOCUS_NONE
 		b.toggle_mode = true
 		var inner := VBoxContainer.new()
@@ -64,34 +115,29 @@ func _ready() -> void:
 		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		inner.offset_left = 12
 		inner.offset_right = -12
-		inner.offset_top = 10
-		inner.offset_bottom = -10
+		inner.offset_top = 8
+		inner.offset_bottom = -8
+		inner.add_theme_constant_override("separation", 2)
 		b.add_child(inner)
 		var icons := HBoxContainer.new()
 		icons.alignment = BoxContainer.ALIGNMENT_CENTER
 		icons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.add_child(icons)
-		for slot in ["worker", "infantry", "vehicle_flame", "special"]:
+		for slot in ["worker", "infantry", "vehicle_flame", "air_light", "special"]:
 			var tex := UiKit.icon(Defs.unit_id(r, slot))
+			if tex == null:
+				continue
 			var tr := TextureRect.new()
-			tr.custom_minimum_size = Vector2(88, 88)
+			tr.custom_minimum_size = Vector2(72, 72)
 			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			if tex:
-				tr.texture = tex
-			else:
-				var cr := ColorRect.new()
-				cr.color = info["color"]
-				cr.custom_minimum_size = Vector2(60, 60)
-				cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				icons.add_child(cr)
-				continue
+			tr.texture = tex
 			icons.add_child(tr)
-		var nm := UiKit.head(String(info["name"]).to_upper(), 32, info["accent"])
+		var nm := UiKit.head(String(info["name"]).to_upper(), 28, info["accent"])
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		inner.add_child(nm)
-		var bl := UiKit.label(info["blurb"], 15, UiKit.TEXT)
+		var bl := UiKit.label(info["blurb"], 14, UiKit.TEXT)
 		bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		inner.add_child(bl)
@@ -99,44 +145,73 @@ func _ready() -> void:
 		b.pressed.connect(func(): _set_race(rr))
 		cards.add_child(b)
 		race_btns[r] = b
-	v.add_child(_row("Opponent", ["random", "ambron", "void"], enemy_btns, func(x): _set_enemy(x)))
-	v.add_child(_row("Bot", ["easy", "normal", "hard"], diff_btns, func(x): _set_diff(x)))
-	var h := HBoxContainer.new()
-	h.alignment = BoxContainer.ALIGNMENT_CENTER
-	h.add_theme_constant_override("separation", 20)
-	v.add_child(h)
-	var hb := Button.new()
-	hb.text = "How to play"
-	hb.custom_minimum_size = Vector2(200, 66)
-	hb.focus_mode = Control.FOCUS_NONE
-	hb.pressed.connect(func(): help.visible = true)
-	h.add_child(hb)
-	var pb := Button.new()
-	pb.text = "PLAY"
-	pb.name = "PlayButton"
-	pb.custom_minimum_size = Vector2(280, 66)
-	pb.focus_mode = Control.FOCUS_NONE
-	pb.add_theme_font_size_override("font_size", 30)
-	pb.add_theme_color_override("font_color", UiKit.GOLD)
-	pb.pressed.connect(_go)
-	h.add_child(pb)
-	_help(root)
-	_set_race("ambron")
-	_set_enemy("random")
-	_set_diff("normal")
+	return cards
+
+
+func _map_cards() -> HBoxContainer:
+	var cards := HBoxContainer.new()
+	cards.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards.add_theme_constant_override("separation", 16)
+	for id in Maps.LIST:
+		var d: Dictionary = Maps.DEFS[id]
+		var b := Button.new()
+		b.name = "map_" + id
+		b.custom_minimum_size = Vector2(350, 112)
+		b.focus_mode = Control.FOCUS_NONE
+		b.toggle_mode = true
+		var row := HBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		row.offset_left = 8
+		row.offset_right = -8
+		row.offset_top = 8
+		row.offset_bottom = -8
+		row.add_theme_constant_override("separation", 12)
+		b.add_child(row)
+		var pv := TextureRect.new()
+		pv.custom_minimum_size = Vector2(96, 96)
+		pv.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pv.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pv.texture = _preview(id)
+		row.add_child(pv)
+		var col := VBoxContainer.new()
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.alignment = BoxContainer.ALIGNMENT_CENTER
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_theme_constant_override("separation", 4)
+		row.add_child(col)
+		var nm := UiKit.head(String(d["name"]).to_upper(), 18, d.get("accent", UiKit.TEXT))
+		col.add_child(nm)
+		var tg := UiKit.label(String(d.get("tag", "")), 15, UiKit.TEXT)
+		tg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(tg)
+		var best := UiKit.label("", 13, UiKit.DIM)
+		best.name = "best"
+		col.add_child(best)
+		var mid: String = id
+		b.pressed.connect(func(): _set_map(mid))
+		cards.add_child(b)
+		map_btns[id] = b
+	return cards
+
+
+static func _preview(id: String) -> Texture2D:
+	var path := "res://assets/ui/maps/%s.png" % id
+	return load(path) if ResourceLoader.exists(path) else null
 
 
 func _row(label_text: String, opts: Array, store: Dictionary, cb: Callable) -> HBoxContainer:
 	var h := HBoxContainer.new()
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
-	h.add_theme_constant_override("separation", 10)
-	var l := UiKit.label(label_text, 20, UiKit.DIM)
-	l.custom_minimum_size = Vector2(110, 0)
+	h.add_theme_constant_override("separation", 8)
+	var l := UiKit.label(label_text, 19, UiKit.DIM)
+	l.custom_minimum_size = Vector2(0, 0)
 	h.add_child(l)
 	for o in opts:
 		var b := Button.new()
 		b.text = String(o).capitalize()
-		b.custom_minimum_size = Vector2(150, 52)
+		b.custom_minimum_size = Vector2(122, 52)
 		b.focus_mode = Control.FOCUS_NONE
 		b.toggle_mode = true
 		var oo: String = o
@@ -151,22 +226,44 @@ func _mark(store: Dictionary, key: String) -> void:
 		(store[k] as Button).button_pressed = k == key
 
 
-func _set_race(r: String) -> void:
-	race = r
-	_mark(race_btns, r)
+func _set_race(r: String, sound: bool = true) -> void:
+	race = r if race_btns.has(r) else "ambron"
+	_mark(race_btns, race)
+	Prefs.set_v("race", race)
+	if sound:
+		Sfx.play("click")
+
+
+func _set_enemy(r: String, sound: bool = true) -> void:
+	enemy = r if enemy_btns.has(r) else "random"
+	_mark(enemy_btns, enemy)
+	Prefs.set_v("enemy", enemy)
+	if sound:
+		Sfx.play("click")
+
+
+func _set_diff(d: String, sound: bool = true) -> void:
+	difficulty = d if diff_btns.has(d) else "normal"
+	_mark(diff_btns, difficulty)
+	Prefs.set_v("difficulty", difficulty)
+	if sound:
+		Sfx.play("click")
+
+
+func _set_map(id: String, sound: bool = true) -> void:
+	map_id = id if map_btns.has(id) else Maps.LIST[0]
+	_mark(map_btns, map_id)
+	backdrop.texture = _preview(map_id)
+	Prefs.set_v("map", map_id)
+	if sound:
+		Sfx.play("click")
+
+
+func _open_settings() -> void:
 	Sfx.play("click")
-
-
-func _set_enemy(r: String) -> void:
-	enemy = r
-	_mark(enemy_btns, r)
-	Sfx.play("click")
-
-
-func _set_diff(d: String) -> void:
-	difficulty = d
-	_mark(diff_btns, d)
-	Sfx.play("click")
+	var s := SettingsPanel.new()
+	s.name = "Settings"
+	root.add_child(s)
 
 
 func _go() -> void:
@@ -174,49 +271,47 @@ func _go() -> void:
 	if e == "random":
 		e = ["ambron", "void"][randi() % 2]
 	Sfx.play("complete")
-	play.emit({"races": [race, e], "ai": [false, true], "difficulty": difficulty, "human": 0})
+	play.emit({"races": [race, e], "ai": [false, true], "difficulty": difficulty, "human": 0, "map": map_id})
 
 
-func _help(root: Control) -> void:
+func _help(parent: Control) -> void:
 	help = ColorRect.new()
-	(help as ColorRect).color = Color(0, 0, 0, 0.75)
+	(help as ColorRect).color = Color(0, 0, 0, 0.78)
 	help.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	help.visible = false
-	root.add_child(help)
+	parent.add_child(help)
 	var p := PanelContainer.new()
 	p.set_anchors_preset(Control.PRESET_CENTER)
-	p.offset_left = -470
-	p.offset_right = 470
-	p.offset_top = -300
-	p.offset_bottom = 300
+	p.offset_left = -480
+	p.offset_right = 480
+	p.offset_top = -330
+	p.offset_bottom = 330
 	help.add_child(p)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 6)
 	p.add_child(v)
 	var lines := [
 		["How to play", 30, UiKit.GOLD],
 		["Win by destroying every enemy building.", 18, UiKit.TEXT],
-		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 17, UiKit.TEXT],
-		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen.", 17, UiKit.TEXT],
-		["• Hold, then drag, to draw a selection box. ARMY selects every fighter.", 17, UiKit.TEXT],
-		["• With units selected, tap the ground to attack-move, tap an enemy to attack. Use Move to retreat.", 17, UiKit.TEXT],
-		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 17, UiKit.TEXT],
-		["• BUILD (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm.", 17, UiKit.TEXT],
-		["• Void Slime needs an extractor built on a black slime pile first.", 17, UiKit.TEXT],
-		["• Supply limits your army: build Power Relays (Ambron) or Brood Pods (Void).", 17, UiKit.TEXT],
-		["• Ambron structures must stand inside a Power Relay's field (the blue circle shown while placing).", 17, UiKit.TEXT],
-		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 17, UiKit.TEXT],
-		["• Expand: build a new main base at another crystal field to grow your economy.", 17, UiKit.TEXT],
-		["Tech: main base → infantry → vehicles/beasts → air → special.", 17, UiKit.DIM],
+		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 16, UiKit.TEXT],
+		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen.", 16, UiKit.TEXT],
+		["• Hold, then drag, to draw a selection box. ARMY selects every fighter.", 16, UiKit.TEXT],
+		["• With units selected, tap the ground to attack-move, tap an enemy to attack. Use Move to retreat.", 16, UiKit.TEXT],
+		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 16, UiKit.TEXT],
+		["• BUILD (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm.", 16, UiKit.TEXT],
+		["• Void Slime needs an extractor built on a black slime pile first.", 16, UiKit.TEXT],
+		["• Supply limits your army: build Power Relays (Ambron) or Brood Pods (Void).", 16, UiKit.TEXT],
+		["• Ambron structures must stand inside a Power Relay's field (the blue circle shown while placing).", 16, UiKit.TEXT],
+		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 16, UiKit.TEXT],
+		["• High ground: units can't see up a cliff until they climb a ramp, and shots fired uphill miss 30% of the time.", 16, UiKit.TEXT],
+		["• Expand: build a new main base at another crystal field to grow your economy.", 16, UiKit.TEXT],
+		["Tech: main base → infantry → vehicles/beasts → air → special.", 16, UiKit.DIM],
 	]
 	for l in lines:
 		var lab := UiKit.label(l[0], l[1], l[2])
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lab.custom_minimum_size = Vector2(880, 0)
+		lab.custom_minimum_size = Vector2(900, 0)
 		v.add_child(lab)
-	var b := Button.new()
-	b.text = "Got it"
-	b.custom_minimum_size = Vector2(200, 56)
-	b.focus_mode = Control.FOCUS_NONE
-	b.pressed.connect(func(): help.visible = false)
+	var b := _button("Got it", Vector2(200, 56), func(): help.visible = false; Sfx.play("click"))
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(b)

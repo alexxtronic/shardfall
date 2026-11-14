@@ -102,6 +102,8 @@ func _run() -> void:
 		await _maps()
 	if want("terrain"):
 		await _terrain()
+	if only == "previews":
+		await _previews()
 	if want("full"):
 		await _full()
 	print("AUTOTEST %d passed, %d failed in %.1f s" % [passes, fails, (Time.get_ticks_msec() - t0) / 1000.0])
@@ -160,6 +162,40 @@ func _maps() -> void:
 		m.rig.dist = 58.0
 		m.rig.apply()
 		await shot("maps_%s_centre" % id)
+
+
+## Bakes the title screen's map previews (assets/ui/maps/<id>.png): each map seen straight
+## down, no fog, no HUD. Only runs when asked for by name (--only=previews).
+func _previews() -> void:
+	var dir := ProjectSettings.globalize_path("res://assets/ui/maps")
+	DirAccess.make_dir_recursive_absolute(dir)
+	for id in Maps.LIST:
+		await start(["ambron", "void"], false, id)
+		var mw: World = m.world
+		mw.fog.enabled = false
+		mw.fog.update()
+		m.hud.visible = false
+		var wn := m.get_node_or_null("Weather")
+		if wn:
+			wn.visible = false
+		m.sun.directional_shadow_max_distance = 400.0
+		m.rig.set_process(false)
+		var cam: Camera3D = m.rig.cam
+		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		cam.size = 146.0
+		var n := float(mw.grid.size)
+		cam.position = Vector3(n * 0.5, 120.0, n * 0.5)
+		cam.look_at(Vector3(n * 0.5, 0.0, n * 0.5), Vector3(0, 0, -1))
+		cam.far = 400.0
+		mw._sync_visuals(0.016)
+		await frames(6)
+		var img := get_viewport().get_texture().get_image()
+		var hgt := img.get_height()
+		var crop := img.get_region(Rect2i((img.get_width() - hgt) / 2, 0, hgt, hgt))
+		crop.resize(384, 384, Image.INTERPOLATE_LANCZOS)
+		crop.save_png("%s/%s.png" % [dir, id])
+		check(FileAccess.file_exists("%s/%s.png" % [dir, id]), "%s: preview baked" % id)
+		m.rig.set_process(true)
 
 
 func _map_image(w: World) -> Image:
@@ -240,6 +276,21 @@ func _title() -> void:
 	main.title.help.visible = true
 	await shot("00_title_help")
 	main.title.help.visible = false
+	var tt: Title = main.title
+	check(tt.map_btns.size() == Maps.LIST.size(), "title shows a card per map")
+	tt._set_map("ember_rift")
+	check(tt.backdrop.texture != null and tt.map_id == "ember_rift", "picking a map swaps the backdrop")
+	var got := {}
+	tt.play.disconnect(main.start_match)
+	tt.play.connect(func(c): got["cfg"] = c)
+	tt._go()
+	check(String(got.get("cfg", {}).get("map", "")) == "ember_rift", "PLAY passes the chosen map")
+	await shot("00_title_ember")
+	tt._open_settings()
+	await frames(2)
+	check(tt.root.get_node_or_null("Settings") != null, "settings panel opens")
+	await shot("00_title_settings")
+	tt._set_map("shatterfield", false)
 	main.title.queue_free()
 	main.title = null
 	await frames(2)

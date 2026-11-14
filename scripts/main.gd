@@ -2,7 +2,7 @@ extends Node
 ## Entry point: the title screen, matches, and the test modes.
 ##   -- --autotest=DIR       plays scripted checks, saves screenshots to DIR
 ##   -- --balance            headless battles between equal-value armies
-##   -- --play=ambron,void   skip the title (your race, the bot's race)
+##   -- --play=ambron,void[,map]   skip the title (your race, the bot's race, the map)
 
 var title: Title
 var match_node: Match
@@ -26,7 +26,8 @@ func _ready() -> void:
 			return
 		if a.begins_with("--play="):
 			var parts := a.substr(7).split(",")
-			start_match({"races": [parts[0], parts[1] if parts.size() > 1 else "void"], "ai": [false, true], "difficulty": "normal", "human": 0})
+			start_match({"races": [parts[0], parts[1] if parts.size() > 1 else "void"], "ai": [false, true], "difficulty": "normal", "human": 0,
+				"map": parts[2] if parts.size() > 2 else Maps.LIST[0]})
 			return
 	show_title()
 

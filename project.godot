@@ -12,6 +12,7 @@ config/features=PackedStringArray("4.7", "Mobile")
 [autoload]
 
 Defs="*res://scripts/defs.gd"
+Prefs="*res://scripts/prefs.gd"
 Sfx="*res://scripts/sfx.gd"
 
 [display]

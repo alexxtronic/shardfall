@@ -18,6 +18,8 @@ const LIST := ["shatterfield", "frostspire", "ember_rift"]
 const DEFS := {
 	"shatterfield": {
 		"name": "Shatterfield",
+		"tag": "High-ground mains · central ridge",
+		"accent": Color(0.78, 0.55, 1.0),
 		"blurb": "Basalt flats under a violet sky. Mains sit on high ground with one ramp; a central ridge overlooks the middle bases.",
 		"theme": "alien",
 		"seed": 7,
@@ -50,6 +52,8 @@ const DEFS := {
 	},
 	"frostspire": {
 		"name": "Frostspire Pass",
+		"tag": "Three tiers · frozen lakes",
+		"accent": Color(0.55, 0.85, 1.0),
 		"blurb": "A frozen glacier in three tiers. Mains on the high shelf, naturals one step down, frozen lakes in the low passes.",
 		"theme": "frost",
 		"seed": 19,
@@ -87,6 +91,8 @@ const DEFS := {
 	},
 	"ember_rift": {
 		"name": "Ember Rift",
+		"tag": "Lava river · three crossings",
+		"accent": Color(1.0, 0.58, 0.22),
 		"blurb": "A lava river splits the map. Three crossings: a wide middle bridge and two side fords watched from basalt mesas.",
 		"theme": "ember",
 		"seed": 31,

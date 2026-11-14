@@ -314,8 +314,8 @@ func _menu() -> void:
 	p.custom_minimum_size = Vector2(340, 0)
 	p.offset_left = -170
 	p.offset_right = 170
-	p.offset_top = -170
-	p.offset_bottom = 170
+	p.offset_top = -205
+	p.offset_bottom = 205
 	menu.add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
@@ -323,7 +323,7 @@ func _menu() -> void:
 	var t := UiKit.head("PAUSED", 28, UiKit.accent)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
-	for spec in [["Resume", "resume"], ["Speed: Normal", "speed"], ["Restart", "restart"], ["Surrender", "surrender"], ["Quit to title", "quit"]]:
+	for spec in [["Resume", "resume"], ["Speed: Normal", "speed"], ["Settings", "settings"], ["Restart", "restart"], ["Surrender", "surrender"], ["Quit to title", "quit"]]:
 		var b := Button.new()
 		b.text = spec[0]
 		b.custom_minimum_size = Vector2(300, 56)
@@ -354,6 +354,13 @@ func _menu_pick(a: String) -> void:
 		else:
 			world.speed_mult = 1.0
 			b.text = "Speed: Normal"
+		return
+	if a == "settings":
+		var sp := SettingsPanel.new()
+		sp.name = "Settings"
+		root.add_child(sp)
+		blockers.append(sp)
+		sp.closed.connect(func(): blockers.erase(sp))
 		return
 	menu.visible = false
 	world.running = true

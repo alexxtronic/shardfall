@@ -109,7 +109,30 @@ static func make_theme() -> Theme:
 	theme.set_constant("outline_size", "Label", 4)
 	theme.set_color("font_outline_color", "Button", Color(0, 0, 0, 0.7))
 	theme.set_constant("outline_size", "Button", 3)
+	# sliders: a thick dark track, filled in the accent colour, with a big round grabber
+	var track := box(Color(0.02, 0.03, 0.05, 0.95), Color(0.5, 0.58, 0.72, 0.4), 6, 1)
+	track.content_margin_top = 5
+	track.content_margin_bottom = 5
+	var fill := box(Color(accent.r * 0.7, accent.g * 0.7, accent.b * 0.75, 1.0), lit, 6, 1)
+	fill.content_margin_top = 5
+	fill.content_margin_bottom = 5
+	theme.set_stylebox("slider", "HSlider", track)
+	theme.set_stylebox("grabber_area", "HSlider", fill)
+	theme.set_stylebox("grabber_area_highlight", "HSlider", fill)
+	theme.set_icon("grabber", "HSlider", _knob(Color(0.95, 0.97, 1.0)))
+	theme.set_icon("grabber_highlight", "HSlider", _knob(Color.WHITE))
 	return theme
+
+
+static func _knob(col: Color) -> Texture2D:
+	var img := Image.create(30, 30, false, Image.FORMAT_RGBA8)
+	for y in 30:
+		for x in 30:
+			var d := Vector2(x - 14.5, y - 14.5).length()
+			var a := clampf(13.5 - d, 0.0, 1.0)
+			var c := col if d < 10.5 else Color(accent.r, accent.g, accent.b)
+			img.set_pixel(x, y, Color(c.r, c.g, c.b, a))
+	return ImageTexture.create_from_image(img)
 
 
 ## An icon by id: unit and building portraits from assets/icons, interface
