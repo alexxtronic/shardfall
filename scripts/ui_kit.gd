@@ -72,6 +72,17 @@ static func box(col: Color, edge: Color = EDGE, r: int = 10, bw: int = 2, top: C
 	return s
 
 
+## A panel for overlays drawn over other panels: nearly opaque so nothing shows through.
+static func solid_panel(r: int = 12) -> StyleBoxFlat:
+	var s := panel_box(r)
+	s.bg_color = Color(0.045, 0.055, 0.08, 0.985)
+	s.content_margin_left = 16
+	s.content_margin_right = 16
+	s.content_margin_top = 12
+	s.content_margin_bottom = 12
+	return s
+
+
 ## A panel with the accent edge along its top.
 static func panel_box(r: int = 12) -> StyleBoxFlat:
 	var s := box(BG, EDGE, r, 1)
@@ -116,6 +127,12 @@ static func make_theme() -> Theme:
 	var fill := box(Color(accent.r * 0.7, accent.g * 0.7, accent.b * 0.75, 1.0), lit, 6, 1)
 	fill.content_margin_top = 5
 	fill.content_margin_bottom = 5
+	var field := box(Color(0.02, 0.03, 0.05, 0.95), Color(accent.r, accent.g, accent.b, 0.55), 8, 2)
+	field.content_margin_left = 12
+	theme.set_stylebox("normal", "LineEdit", field)
+	theme.set_stylebox("focus", "LineEdit", box(Color(0.03, 0.05, 0.08, 0.98), lit, 8, 2))
+	theme.set_color("font_color", "LineEdit", TEXT)
+	theme.set_color("caret_color", "LineEdit", lit)
 	theme.set_stylebox("slider", "HSlider", track)
 	theme.set_stylebox("grabber_area", "HSlider", fill)
 	theme.set_stylebox("grabber_area_highlight", "HSlider", fill)
@@ -232,6 +249,16 @@ static func card_button(title: String, icon_id: String, cost: Array, hotkey: Str
 	if hotkey != "":
 		b.tooltip_text = hotkey
 	return b
+
+
+## 12345 -> "12,345".
+static func fmt_int(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.right(3) + out
+		s = s.left(s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
 
 
 static func fmt_time(t: float) -> String:

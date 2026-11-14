@@ -10,12 +10,14 @@ func _ready() -> void:
 	color = Color(0, 0, 0, 0.72)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	theme = UiKit.make_theme()
 	var p := PanelContainer.new()
 	p.set_anchors_preset(Control.PRESET_CENTER)
 	p.offset_left = -300
 	p.offset_right = 300
 	p.offset_top = -210
 	p.offset_bottom = 210
+	p.add_theme_stylebox_override("panel", UiKit.solid_panel())
 	add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)

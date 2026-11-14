@@ -12,6 +12,7 @@ var cmd: Commander
 var hud: Hud
 var end_layer: CanvasLayer
 var sun: DirectionalLight3D
+var result: Dictionary = {}     # the leaderboard result of this game, once it's over
 
 
 func start(c: Dictionary) -> void:
@@ -115,34 +116,51 @@ func _on_menu(a: String) -> void:
 func _on_over(winner: int) -> void:
 	var won := winner == 0
 	Sfx.sting("win" if won else "lose")
-	get_tree().create_timer(1.4).timeout.connect(func(): Sfx.announce("mission_completed" if won else "mission_failed"))
 	cmd.set_selection([])
+	var me: PlayerState = world.players[0]
+	var bot: PlayerState = world.players[1]
+	# a game against the bot counts for the leaderboard
+	var res: Dictionary = {}
+	var ai: Array = cfg.get("ai", [false, true])
+	if int(cfg.get("human", 0)) == 0 and ai.size() > 1 and bool(ai[1]) and not bool(ai[0]):
+		res = Profile.submit(world.map_id, me.race, bot.race, String(cfg.get("difficulty", "normal")), won, me, world.time)
+	result = res
+	get_tree().create_timer(1.4).timeout.connect(func():
+		Sfx.announce("mission_completed" if won else "mission_failed"))
+	if res.get("new_best", false) and int(res.get("best_before", 0)) > 0:
+		get_tree().create_timer(3.4).timeout.connect(func(): Sfx.announce("new_highscore"))
 	end_layer = CanvasLayer.new()
 	end_layer.layer = 20
 	add_child(end_layer)
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.6)
+	dim.color = Color(0, 0, 0, 0.62)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.theme = UiKit.make_theme()
 	end_layer.add_child(dim)
 	var p := PanelContainer.new()
 	p.set_anchors_preset(Control.PRESET_CENTER)
-	p.offset_left = -300
-	p.offset_right = 300
-	p.offset_top = -230
-	p.offset_bottom = 230
+	p.offset_left = -330
+	p.offset_right = 330
+	p.offset_top = -300 if not res.is_empty() else -230
+	p.offset_bottom = 300 if not res.is_empty() else 230
 	dim.add_child(p)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", 8)
 	p.add_child(v)
 	var t := UiKit.head("VICTORY" if won else "DEFEAT", 54, UiKit.GOLD if won else UiKit.BAD)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
-	var me: PlayerState = world.players[0]
-	var bot: PlayerState = world.players[1]
+	var sub := UiKit.label("%s  ·  %s bot  ·  %s" % [String(Maps.get_def(world.map_id).get("name", "")),
+		String(cfg.get("difficulty", "normal")).capitalize(), UiKit.fmt_time(world.time)], 16, UiKit.DIM)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(sub)
+	if not res.is_empty():
+		v.add_child(_results(res))
 	var g := GridContainer.new()
 	g.columns = 3
 	g.add_theme_constant_override("h_separation", 40)
+	g.add_theme_constant_override("v_separation", 2)
+	g.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(g)
 	var rows := [
 		["", "You (%s)" % Defs.RACE_INFO[me.race]["name"], "Bot (%s)" % Defs.RACE_INFO[bot.race]["name"]],
@@ -155,20 +173,52 @@ func _on_over(winner: int) -> void:
 	]
 	for r in rows:
 		for i in 3:
-			var l := UiKit.label(r[i], 18, UiKit.DIM if i == 0 else UiKit.TEXT)
+			var l := UiKit.label(r[i], 17, UiKit.DIM if i == 0 else UiKit.TEXT)
 			g.add_child(l)
-	var tl := UiKit.label("Game time %s" % UiKit.fmt_time(world.time), 16, UiKit.DIM)
-	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(tl)
 	var h := HBoxContainer.new()
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
-	h.add_theme_constant_override("separation", 20)
+	h.add_theme_constant_override("separation", 16)
 	v.add_child(h)
-	for spec in [["Play again", "restart"], ["Title", "quit"]]:
+	for spec in [["Play again", "restart"], ["Leaderboard", "board"], ["Title", "quit"]]:
 		var b := Button.new()
 		b.text = spec[0]
-		b.custom_minimum_size = Vector2(200, 60)
+		b.custom_minimum_size = Vector2(190, 60)
 		b.focus_mode = Control.FOCUS_NONE
 		var a: String = spec[1]
-		b.pressed.connect(func(): finished.emit(a))
+		if a == "board":
+			b.pressed.connect(func(): Sfx.play("open"); dim.add_child(LeaderboardPanel.new()))
+		else:
+			b.pressed.connect(func(): finished.emit(a))
 		h.add_child(b)
+
+
+## The leaderboard part of the end screen: score (and a new best), rating change, rank.
+func _results(res: Dictionary) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	var s := HBoxContainer.new()
+	s.alignment = BoxContainer.ALIGNMENT_CENTER
+	s.add_theme_constant_override("separation", 14)
+	box.add_child(s)
+	s.add_child(UiKit.label("Score", 20, UiKit.DIM))
+	s.add_child(UiKit.head(UiKit.fmt_int(int(res["score"])), 32, UiKit.GOLD))
+	if res["new_best"]:
+		s.add_child(UiKit.head("NEW BEST", 18, UiKit.GOOD))
+	var d := int(res["delta"])
+	var tr: Array = res["tier"]
+	var r := HBoxContainer.new()
+	r.alignment = BoxContainer.ALIGNMENT_CENTER
+	r.add_theme_constant_override("separation", 12)
+	box.add_child(r)
+	r.add_child(UiKit.label("Rating %d" % int(res["rating"]), 19, UiKit.TEXT))
+	r.add_child(UiKit.head("%+d" % d, 19, UiKit.GOOD if d >= 0 else UiKit.BAD))
+	r.add_child(UiKit.label("·", 19, UiKit.DIM))
+	r.add_child(UiKit.label(String(tr[0]), 19, tr[1]))
+	if String(tr[0]) != String((res["tier_before"] as Array)[0]):
+		r.add_child(UiKit.head("PROMOTED" if d > 0 else "DEMOTED", 16, UiKit.GOOD if d > 0 else UiKit.BAD))
+	r.add_child(UiKit.label("·", 19, UiKit.DIM))
+	var rk := "Rank #%d" % int(res["rank"])
+	if int(res["rank"]) != int(res["rank_before"]):
+		rk += "  (was #%d)" % int(res["rank_before"])
+	r.add_child(UiKit.label(rk, 19, UiKit.TEXT))
+	return box

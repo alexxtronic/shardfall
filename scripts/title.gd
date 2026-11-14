@@ -17,6 +17,7 @@ var help: Control
 var root: Control
 var backdrop: TextureRect
 var extra_buttons: HBoxContainer
+var chip: Button
 
 
 func _ready() -> void:
@@ -83,7 +84,22 @@ func _ready() -> void:
 	pb.add_theme_font_size_override("font_size", 30)
 	pb.add_theme_color_override("font_color", UiKit.GOLD)
 	h.add_child(pb)
+	h.add_child(_button("Leaderboard", Vector2(200, 64), _open_leaderboard))
 	extra_buttons = h
+	chip = Button.new()
+	chip.name = "ProfileChip"
+	chip.focus_mode = Control.FOCUS_NONE
+	chip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	chip.offset_left = -360
+	chip.offset_right = -16
+	chip.offset_top = 14
+	chip.offset_bottom = 62
+	chip.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	chip.add_theme_font_size_override("font_size", 17)
+	chip.pressed.connect(_open_leaderboard)
+	root.add_child(chip)
+	Profile.changed.connect(_refresh_profile)
+	_refresh_profile()
 	_help(root)
 	Sfx.music("menu")
 	Sfx.ambience("")
@@ -259,6 +275,26 @@ func _set_map(id: String, sound: bool = true) -> void:
 	Prefs.set_v("map", map_id)
 	if sound:
 		Sfx.play("click")
+
+
+func _refresh_profile() -> void:
+	if not is_instance_valid(chip):
+		return
+	var r := Profile.rating()
+	var tr: Array = Profile.tier(r)
+	chip.text = "%s   %d · %s · #%d" % [Profile.player_name(), r, tr[0], Profile.rank()]
+	chip.add_theme_color_override("font_color", tr[1])
+	for id in map_btns:
+		var best: Label = (map_btns[id] as Button).find_child("best", true, false)
+		var b := Profile.best(id)
+		best.text = "Best %s" % UiKit.fmt_int(b) if b > 0 else "No score yet"
+
+
+func _open_leaderboard() -> void:
+	Sfx.play("open")
+	var lb := LeaderboardPanel.new()
+	lb.name = "Leaderboard"
+	root.add_child(lb)
 
 
 func _open_settings() -> void:

@@ -13,6 +13,7 @@ config/features=PackedStringArray("4.7", "Mobile")
 
 Defs="*res://scripts/defs.gd"
 Prefs="*res://scripts/prefs.gd"
+Profile="*res://scripts/profile.gd"
 Sfx="*res://scripts/sfx.gd"
 
 [display]

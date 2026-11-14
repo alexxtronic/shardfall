@@ -102,6 +102,8 @@ func _run() -> void:
 		await _maps()
 	if want("terrain"):
 		await _terrain()
+	if want("profile"):
+		await _profile()
 	if only == "previews":
 		await _previews()
 	if want("full"):
@@ -267,6 +269,46 @@ func _terrain() -> void:
 	var sp := m.rig.to_screen(Vector3(main_c.x + 4, Terrain.LEVEL_H, main_c.y - 8))
 	var g := m.rig.screen_to_ground(sp)
 	check(g.distance_to(main_c + Vector2(4, -8)) < 0.5, "tapping the plateau picks the plateau (%.2f m off)" % g.distance_to(main_c + Vector2(4, -8)))
+
+## The leaderboard: a game against the bot moves the rating, sets a best score and lands in
+## the history; the results screen and the leaderboard panel show it.
+func _profile() -> void:
+	Profile.reset()
+	check(Profile.rating() == 1000 and Profile.rank() > 1, "a new profile starts at 1000 (rank #%d)" % Profile.rank())
+	check(Profile.elo_delta(1200.0, "normal", true, 0) == 20 and Profile.elo_delta(1200.0, "normal", false, 20) == -12,
+		"Elo: an even game is worth +20 / -12 (K 40 new, 24 settled)")
+	await start(["ambron", "void"], true, "frostspire")
+	var w: World = m.world
+	var me: PlayerState = w.players[0]
+	me.value_killed = 2400.0
+	me.gathered_m = 3100
+	me.gathered_s = 650
+	me.kills = 31
+	w.time = 640.0
+	w.surrender(1)
+	await frames(5)
+	var res: Dictionary = m.result
+	check(int(res.get("delta", 0)) > 0 and Profile.rating() > 1000, "beating the normal bot raises the rating (%+d)" % int(res.get("delta", 0)))
+	check(Profile.best("frostspire") == int(res.get("score", -1)) and res.get("new_best", false), "the score is the map's best (%d)" % Profile.best("frostspire"))
+	check(Profile.history().size() == 1 and Profile.history()[0]["won"], "the game is in the history")
+	check(m.end_layer != null, "the results screen shows")
+	await shot("80_results")
+	var lb := LeaderboardPanel.new()
+	m.end_layer.add_child(lb)
+	await frames(2)
+	await shot("81_leaderboard")
+	lb._show("history", false)
+	await shot("82_history")
+	lb._show("best", false)
+	await shot("83_best")
+	lb.queue_free()
+	var r1 := Profile.rating()
+	Profile.submit("shatterfield", "ambron", "void", "hard", false, me, 300.0)
+	check(Profile.rating() < r1 and Profile.best("shatterfield") > 0, "a loss lowers the rating but still scores")
+	Profile.set_player_name("   A really very long commander name   ")
+	check(Profile.player_name().length() <= Profile.NAME_MAX and not Profile.player_name().begins_with(" "), "names are trimmed (%s)" % Profile.player_name())
+	Profile.reset()
+
 
 func _title() -> void:
 	main.show_title()
