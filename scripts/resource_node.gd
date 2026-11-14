@@ -28,7 +28,7 @@ func setup(w, k: String, c: Vector2i, sz: Vector2i, amt: int) -> void:
 	height = 1.6 if k == "mineral" else 0.7
 	max_hp = 1.0
 	hp = 1.0
-	position = Vector3(p.x, 0, p.y)
+	position = Vector3(p.x, ground_h(), p.y)
 
 
 ## Closest point on the node's rectangle to q (where a worker stands to mine).

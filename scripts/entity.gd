@@ -55,7 +55,12 @@ func is_enemy_of(pid: int) -> bool:
 
 
 func pos3() -> Vector3:
-	return Vector3(p.x, 0.0, p.y)
+	return Vector3(p.x, ground_h(), p.y)
+
+
+## Ground height under the entity.
+func ground_h() -> float:
+	return world.height_at(p) if world and world.terrain else 0.0
 
 
 func apply_damage(amount: float, src: Entity) -> void:

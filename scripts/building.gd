@@ -39,7 +39,7 @@ func setup(w, id: String, owner: int, c: Vector2i) -> void:
 	radius = size * 0.5
 	height = float(def.get("model_h", 3.0))
 	p = Vector2(c.x + size * 0.5, c.y + size * 0.5)
-	position = Vector3(p.x, 0, p.y)
+	position = Vector3(p.x, ground_h(), p.y)
 	needs_power = Defs.needs_power(id)
 	weapon = def.get("weapon", {})
 	if not weapon.is_empty():

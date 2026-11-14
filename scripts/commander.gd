@@ -350,7 +350,7 @@ func pick(sp: Vector2):
 			if e is Unit and e.hidden_inside:
 				continue
 			var fly: float = e.fly if e is Unit else 0.0
-			var c3 := Vector3(e.p.x, fly + e.height * 0.45, e.p.y)
+			var c3 := Vector3(e.p.x, fly + e.height * 0.45 + e.ground_h(), e.p.y)
 			if not rig.in_front(c3):
 				continue
 			var sc := rig.to_screen(c3)
@@ -401,7 +401,7 @@ func _finish_box() -> void:
 	for u in world.units:
 		if u.owner_id != pid or u.dead or u.hidden_inside:
 			continue
-		var c3 := Vector3(u.p.x, u.fly + u.height * 0.4, u.p.y)
+		var c3 := Vector3(u.p.x, u.fly + u.height * 0.4 + u.ground_h(), u.p.y)
 		if not rig.in_front(c3):
 			continue
 		if r.grow(10).has_point(rig.to_screen(c3)):
@@ -679,7 +679,7 @@ func _show_fields() -> void:
 	fields_rev = world.power_rev
 	for r in world.relays(pid):
 		var f := Models.power_field(Defs.POWER_RADIUS)
-		f.position = Vector3(r.p.x, 0, r.p.y)
+		f.position = Vector3(r.p.x, r.ground_h(), r.p.y)
 		fields.add_child(f)
 
 
@@ -688,7 +688,8 @@ func _update_ghost() -> void:
 		return
 	var bd: Dictionary = Defs.buildings[place_id]
 	var sz: int = int(bd["size"])
-	ghost.position = Vector3(place_cell.x + sz * 0.5, 0.05, place_cell.y + sz * 0.5)
+	var gc := Vector2(place_cell.x + sz * 0.5, place_cell.y + sz * 0.5)
+	ghost.position = Vector3(gc.x, 0.05 + world.height_at(gc), gc.y)
 	if fields and fields_rev != world.power_rev:
 		_show_fields()
 	place_ok = world.can_place(pid, place_id, place_cell)

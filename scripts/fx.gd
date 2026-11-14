@@ -138,7 +138,7 @@ func _glow_node(mesh_kind: String, col: Color, size: float) -> MeshInstance3D:
 
 
 func _muzzle(u) -> Vector3:
-	var y: float = u.fly + float(u.def.get("model_h", 1.0)) * 0.6
+	var y: float = u.fly + float(u.def.get("model_h", 1.0)) * 0.6 + u.ground_h()
 	var fwd := Vector3(sin(u.facing), 0, cos(u.facing))
 	return Vector3(u.p.x, y, u.p.y) + fwd * (u.radius * 0.9)
 
@@ -149,22 +149,27 @@ func _aim(t) -> Vector3:
 		y = t.fly + float(t.def.get("model_h", 1.0)) * 0.45
 	elif t is Building:
 		y = float(t.def.get("model_h", 2.0)) * 0.4
-	return Vector3(t.p.x, y, t.p.y)
+	return Vector3(t.p.x, y + t.ground_h(), t.p.y)
 
 
 # ---------------------------------------------------------------- projectiles
 
-func projectile(u, t, speed: float) -> void:
+func projectile(u, t, speed: float, miss: bool = false) -> void:
 	var kind: String = u.def.get("fx", "bolt")
 	var look: Array = LOOK.get(kind, LOOK["bolt"])
 	var start := _muzzle(u)
 	if kind == "bomb":
-		start = Vector3(u.p.x, u.fly - 0.2, u.p.y)
+		start = Vector3(u.p.x, u.fly - 0.2 + u.ground_h(), u.p.y)
 	var end := _aim(t)
+	var mp = world.miss_point(t) if miss else null
+	if mp != null:
+		# a miss flies at the ground beside the target and doesn't follow it
+		end = Vector3(mp.x, world.height_at(mp) + 0.2, mp.y)
 	var s := {
 		"owner": u.owner_id, "src": u, "t": t, "w": u.weapon, "kind": kind,
 		"pos": start, "end": end, "speed": speed, "arc": float(look[3]),
 		"start": start, "flown": 0.0, "total": maxf(0.1, start.distance_to(end)), "node": null,
+		"miss": mp,
 	}
 	if world.visuals and u.shown:
 		var n := _glow_node(String(look[1]), look[0], float(look[2]))
@@ -180,7 +185,7 @@ func step(dt: float) -> void:
 	while i >= 0:
 		var s: Dictionary = shots[i]
 		var t = s["t"]
-		if t and is_instance_valid(t) and not t.dead:
+		if s["miss"] == null and t and is_instance_valid(t) and not t.dead:
 			s["end"] = _aim(t)
 		var end: Vector3 = s["end"]
 		var pos: Vector3 = s["pos"]
@@ -190,7 +195,10 @@ func step(dt: float) -> void:
 		if d <= mv or d < 0.05:
 			var live = t if (t and is_instance_valid(t) and not t.dead) else null
 			var src = s["src"] if is_instance_valid(s["src"]) else null
-			world.hit(s["owner"], src, live, Vector2(end.x, end.z), s["w"], s["kind"])
+			if s["miss"] != null:
+				world.hit(s["owner"], src, null, s["miss"], s["w"], s["kind"])
+			else:
+				world.hit(s["owner"], src, live, Vector2(end.x, end.z), s["w"], s["kind"])
 			if s["node"]:
 				(s["node"] as Node3D).queue_free()
 			shots.remove_at(i)
@@ -319,13 +327,14 @@ func _flash(at: Vector3, col: Color, size: float, life: float, grow: float = 1.8
 
 func impact(at: Vector2, t, kind: String, splash: float) -> void:
 	var look: Array = LOOK.get(kind, LOOK["zap"])
-	var y := 0.4
+	var gh: float = world.height_at(at)
+	var y := 0.4 + gh
 	if t and is_instance_valid(t):
 		y = _aim(t).y
 		if not t.shown:
 			return
 	var p3 := Vector3(at.x, y, at.y)
-	var ground := Vector3(at.x, 0.0, at.y)
+	var ground := Vector3(at.x, gh, at.y)
 	var on_ground: bool = not (t and is_instance_valid(t) and t is Unit and t.is_air)
 	if SLIMY.has(kind):
 		# goo splashes off the target and pools on the ground
@@ -431,7 +440,7 @@ func tower_shot(b, t) -> void:
 		return
 	var kind: String = b.def.get("fx", "lightning")
 	var look: Array = LOOK.get(kind, LOOK["lightning"])
-	var top := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) * 1.2, b.p.y)
+	var top := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) * 1.2 + b.ground_h(), b.p.y)
 	var end := _aim(t)
 	if kind == "lightning":
 		_lightning(top, end, look[0])
@@ -525,7 +534,7 @@ func death(e) -> void:
 		return
 	var void_race: bool = e.def.get("race", "") == "void"
 	var big: float = minf(e.radius * (2.0 if e is Building else 1.0), 3.2)
-	var at := Vector3(e.p.x, (e.fly if e is Unit else 0.0) + 0.5, e.p.y)
+	var at := Vector3(e.p.x, (e.fly if e is Unit else 0.0) + 0.5 + e.ground_h(), e.p.y)
 	if void_race:
 		_flash(at, Color(0.5, 1.0, 0.25), 0.4 + big * 0.5, 0.45, 2.2)
 		_burst(at, Color(0.45, 0.25, 0.6), 18 + int(big * 10), 4.0 + big)
@@ -540,7 +549,7 @@ func death(e) -> void:
 
 
 func puff(at: Vector2, col: Color) -> void:
-	_burst(Vector3(at.x, 0.6, at.y), col, 16, 3.0)
+	_burst(Vector3(at.x, 0.6 + world.height_at(at), at.y), col, 16, 3.0)
 
 
 ## A ring that marks where the player sent units.
@@ -548,7 +557,7 @@ func marker(at: Vector2, col: Color) -> void:
 	if not world.visuals:
 		return
 	var n := _glow_node("ball", col, 0.35)
-	n.position = Vector3(at.x, 0.08, at.y)
+	n.position = Vector3(at.x, 0.08 + world.height_at(at), at.y)
 	n.scale = Vector3(0.6, 0.05, 0.6)
 	var tw := create_tween()
 	tw.set_parallel(true)

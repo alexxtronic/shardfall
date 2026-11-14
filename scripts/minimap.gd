@@ -38,12 +38,25 @@ func _bake() -> void:
 	var n: int = world.grid.size
 	if terrain == null:
 		terrain = Image.create(n, n, false, Image.FORMAT_RGBA8)
+		var low: Color = world.theme.get("minimap_low", Color(0.22, 0.21, 0.26))
+		var step: Color = world.theme.get("minimap_step", Color(0.07, 0.065, 0.08))
 		for y in n:
 			for x in n:
-				var k: int = world.grid.kind_at(Vector2i(x, y))
-				var c := Color(0.22, 0.21, 0.26)
-				if k == 1:
+				var cc := Vector2i(x, y)
+				var k: int = world.grid.kind_at(cc)
+				# higher ground is lighter; cliffs, walls and lava stand out
+				var c := low + step * float(world.terrain.level[y * n + x])
+				var hz: int = world.hazard[y * n + x] if world.hazard.size() == n * n else 0
+				if world.terrain.is_ramp(cc):
+					c = low + step * 0.5
+				elif world.terrain.is_cliff(cc):
+					c = low.darkened(0.55)
+				elif hz == 1:
+					c = Color(0.95, 0.42, 0.1)
+				elif k == 1:
 					c = Color(0.08, 0.08, 0.11)
+				elif hz == 2:
+					c = Color(0.55, 0.78, 0.95)
 				terrain.set_pixel(x, y, c)
 	var img: Image = terrain.duplicate()
 	for r in world.resources:

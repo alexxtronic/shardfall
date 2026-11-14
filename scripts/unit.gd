@@ -62,7 +62,7 @@ func setup(w, id: String, owner: int, at: Vector2) -> void:
 	anchor = at
 	goal = at
 	acq_t = randf() * ACQUIRE_EVERY
-	position = Vector3(p.x, fly, p.y)
+	position = Vector3(p.x, fly + ground_h(), p.y)
 
 
 # ---------------------------------------------------------------- orders

@@ -35,6 +35,10 @@ var speed_mult: float = 1.0
 var cfg: Dictionary = {}
 var check_victory: bool = true
 var power_rev: int = 0           # bumps whenever a Power Relay finishes or dies
+var terrain: Terrain             # elevation (flat on the balance arena)
+var hazard := PackedByteArray()  # per cell: 1 lava, 2 ice (see MapGen)
+var map_id: String = ""
+var theme: Dictionary = {}
 
 
 func setup(c: Dictionary) -> void:
@@ -43,6 +47,9 @@ func setup(c: Dictionary) -> void:
 	human = int(c.get("human", 0))
 	var size: int = int(c.get("map_size", Defs.MAP_SIZE))
 	grid = PathGrid.new(size)
+	terrain = Terrain.new(size)
+	hazard.resize(size * size)
+	hazard.fill(0)
 	entity_root = Node3D.new()
 	entity_root.name = "Entities"
 	add_child(entity_root)
@@ -62,8 +69,12 @@ func setup(c: Dictionary) -> void:
 		pl.name = ("You" if i == human else "Bot") if human >= 0 else "P%d" % (i + 1)
 		pl.minerals = int(c.get("start_minerals", Defs.START_MINERALS))
 		players.append(pl)
-	if String(c.get("map", "standard")) == "standard":
-		MapGen.build_standard(self)
+	var map_name := String(c.get("map", "standard"))
+	if map_name == "arena":
+		terrain.finish(null)
+		theme = Maps.THEMES["alien"]
+	else:
+		MapGen.build(self, map_name)
 		for i in players.size():
 			start_player(i, i)
 	if visuals and human >= 0:
@@ -100,6 +111,11 @@ func start_player(pid: int, site_index: int) -> void:
 		var u := spawn_unit(wid, pid, at)
 		if minerals.size() > 0:
 			u.cmd_gather(minerals[i % minerals.size()])
+
+
+## Ground height under a map point (see Terrain).
+func height_at(q: Vector2) -> float:
+	return terrain.height_at(q)
 
 
 # ---------------------------------------------------------------- spawning
@@ -353,7 +369,23 @@ func tower_target(b: Building, r: float):
 func tower_fire(b: Building, t: Entity) -> void:
 	if visuals:
 		fx.tower_shot(b, t)
-	hit(b.owner_id, b, t, t.p, b.weapon, String(b.def.get("fx", "")))
+	if misses(b, t):
+		hit(b.owner_id, b, null, miss_point(t), b.weapon, String(b.def.get("fx", "")))
+	else:
+		hit(b.owner_id, b, t, t.p, b.weapon, String(b.def.get("fx", "")))
+
+
+## A ground shot up a cliff at a ground target misses Terrain.UPHILL_MISS of the time.
+func misses(src: Entity, t: Entity) -> bool:
+	if (src is Unit and src.is_air) or (t is Unit and t.is_air):
+		return false
+	return terrain.uphill(src.p, t.p) and randf() < Terrain.UPHILL_MISS
+
+
+## Where a missed shot lands: the ground just beside the target.
+func miss_point(t: Entity) -> Vector2:
+	var a := randf() * TAU
+	return t.p + Vector2(cos(a), sin(a)) * (t.radius + randf_range(0.6, 1.2))
 
 
 func damage_vs(w: Dictionary, t: Entity) -> float:
@@ -368,11 +400,15 @@ func damage_vs(w: Dictionary, t: Entity) -> float:
 func fire(u: Unit, t: Entity) -> void:
 	var w: Dictionary = u.weapon
 	var sp: float = float(w.get("proj", 0.0))
+	var miss := misses(u, t)
 	if sp <= 0.0:
 		fx.instant(u, t)
-		hit(u.owner_id, u, t, t.p, w, String(u.def.get("fx", "")))
+		if miss:
+			hit(u.owner_id, u, null, miss_point(t), w, String(u.def.get("fx", "")))
+		else:
+			hit(u.owner_id, u, t, t.p, w, String(u.def.get("fx", "")))
 	else:
-		fx.projectile(u, t, sp)
+		fx.projectile(u, t, sp, miss)
 
 
 ## Resolve a hit at `at`. Splash hurts other enemies in the same layer.

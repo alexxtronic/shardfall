@@ -3,7 +3,7 @@ extends Node
 ## Plays the game by itself in a real window and checks it works.
 ##   Godot --path . --resolution 1280x720 -- --autotest=/tmp/sf_shots [--only=NAME]
 ## Prints PASS/FAIL lines, saves screenshots, ends with AUTOTEST DONE.
-## --only=title|economy|build|army|touch|combat|expand|void|full|models|fx
+## --only=title|economy|build|army|touch|combat|expand|void|full|models|fx|maps|terrain
 
 var out_dir: String = "/tmp/sf_shots"
 var args: PackedStringArray
@@ -57,13 +57,13 @@ func ff(seconds: float) -> void:
 	w._sync_visuals(0.016)
 
 
-func start(races: Array, ai: bool = true) -> void:
+func start(races: Array, ai: bool = true, map_id: String = "shatterfield") -> void:
 	if m:
 		m.queue_free()
 		await frames(2)
 	m = Match.new()
 	main.add_child(m)
-	m.start({"races": races, "ai": [false, ai], "difficulty": "normal", "human": 0})
+	m.start({"races": races, "ai": [false, ai], "difficulty": "normal", "human": 0, "map": map_id})
 	main.match_node = m
 	await frames(5)
 
@@ -98,6 +98,10 @@ func _run() -> void:
 		await _models()
 	if want("fx"):
 		await _fx()
+	if want("maps"):
+		await _maps()
+	if want("terrain"):
+		await _terrain()
 	if want("full"):
 		await _full()
 	print("AUTOTEST %d passed, %d failed in %.1f s" % [passes, fails, (Time.get_ticks_msec() - t0) / 1000.0])
@@ -106,6 +110,122 @@ func _run() -> void:
 
 
 # ---------------------------------------------------------------- checks
+
+## Every map: built headless, checked for fairness and connectivity, drawn as a debug
+## image (maps_<id>.png), then shown in 3D from the player's main and the centre.
+func _maps() -> void:
+	for id in Maps.LIST:
+		var w := World.new()
+		add_child(w)
+		w.setup({"map": id, "visuals": false, "human": -1, "races": ["ambron", "void"], "ai": [false, false]})
+		var n: int = w.grid.size
+		var asym := 0
+		var hasym := 0
+		for y in n:
+			for x in n:
+				var a: bool = w.grid.kind_at(Vector2i(x, y)) == 1
+				var b: bool = w.grid.kind_at(Vector2i(n - 1 - x, n - 1 - y)) == 1
+				if a != b:
+					asym += 1
+				if absf(w.terrain.corner[y * (n + 1) + x] - w.terrain.corner[(n - y) * (n + 1) + (n - x)]) > 0.01:
+					hasym += 1
+		check(asym == 0, "%s: walls are mirror images (%d cells differ)" % [id, asym])
+		check(hasym == 0, "%s: heights are mirror images (%d corners differ)" % [id, hasym])
+		var short := 0
+		for s in w.sites:
+			if (s["minerals"] as Array).size() != 8 or (s["slimes"] as Array).size() != 2:
+				short += 1
+		check(short == 0, "%s: every base has 8 crystals and 2 slime piles (%d short)" % [id, short])
+		var cut := 0
+		var from: Vector2 = w.grid.nearest_walkable(w.sites[0]["center"] + Vector2(0, -4))
+		for s in w.sites:
+			var to: Vector2 = w.grid.nearest_walkable(s["center"] - (s["dir"] as Vector2) * 5.0)
+			if w.grid.astar.get_id_path(w.grid.cell_of(from), w.grid.cell_of(to)).is_empty():
+				cut += 1
+		check(cut == 0, "%s: every base can be walked to from the main (%d cut off)" % [id, cut])
+		var lv0: int = w.terrain.level_at(w.sites[0]["center"])
+		check(lv0 == w.terrain.level_at(w.sites[1]["center"]), "%s: both mains on the same level (%d)" % [id, lv0])
+		_map_image(w).save_png("%s/maps_%s.png" % [out_dir, id])
+		w.queue_free()
+		await frames(2)
+		await start(["ambron", "void"], false, id)
+		var mw: World = m.world
+		mw.fog.enabled = false
+		mw.fog.update()
+		m.rig.look_at_ground(mw.sites[0]["center"] + Vector2(6, -14))
+		m.rig.dist = 40.0
+		m.rig.apply()
+		await shot("maps_%s_main" % id)
+		m.rig.look_at_ground(Vector2(72, 76))
+		m.rig.dist = 58.0
+		m.rig.apply()
+		await shot("maps_%s_centre" % id)
+
+
+func _map_image(w: World) -> Image:
+	var n: int = w.grid.size
+	var k := 4
+	var img := Image.create(n * k, n * k, false, Image.FORMAT_RGB8)
+	for y in n:
+		for x in n:
+			var c := Vector2i(x, y)
+			var lv := float(w.terrain.level[y * n + x])
+			var col := Color(0.25, 0.25, 0.28).lightened(lv * 0.28)
+			if w.terrain.is_ramp(c):
+				col = Color(0.3, 0.75, 0.35)
+			elif w.terrain.is_cliff(c):
+				col = Color(0.05, 0.05, 0.06)
+			elif w.hazard[y * n + x] == 1:
+				col = Color(1.0, 0.45, 0.1)
+			elif w.grid.kind_at(c) == 1:
+				col = Color(0.35, 0.4, 0.55)
+			elif w.hazard[y * n + x] == 2:
+				col = Color(0.55, 0.85, 1.0)
+			var who = w.grid.who_at(c)
+			if who is ResourceNode:
+				col = Color(1, 0.8, 0.2) if who.kind == "mineral" else Color(0.6, 0.3, 0.85)
+			elif who is Building:
+				col = Color(0.9, 0.2, 0.2)
+			img.fill_rect(Rect2i(x * k, y * k, k, k), col)
+	return img
+
+
+## Elevation in play: a worker walks up a ramp onto high ground, and shots fired uphill miss.
+func _terrain() -> void:
+	await start(["ambron", "void"], false, "shatterfield")
+	var w: World = m.world
+	var t: Terrain = w.terrain
+	var main_c: Vector2 = w.sites[0]["center"]
+	check(t.level_at(main_c) == 1, "the main base stands on high ground")
+	var below := w.grid.nearest_walkable(Vector2(26, 88))
+	check(t.level_at(below) == 0, "the ground below the ramp is low ground")
+	var u := w.spawn_unit("ambron_lancer", 0, below)
+	u.cmd_move(main_c + Vector2(6, -6))
+	var peak := 0.0
+	for i in 400:
+		w.step(0.05)
+		peak = maxf(peak, u.ground_h())
+	check(u.p.distance_to(main_c + Vector2(6, -6)) < 2.0, "a unit walks up the ramp to the main (%.1f m off)" % u.p.distance_to(main_c + Vector2(6, -6)))
+	check(absf(u.ground_h() - Terrain.LEVEL_H) < 0.05, "it ends up standing on the plateau (h %.2f)" % u.ground_h())
+	# a straight line from below the cliff to the plateau is blocked by the cliff
+	check(not w.grid.line_clear(Vector2(10, 96), Vector2(10, 106)), "the cliff blocks a straight walk")
+	var lo := w.spawn_unit("ambron_lancer", 0, Vector2(12, 97))
+	var hi := w.spawn_unit("void_spitter", 1, Vector2(12, 106))
+	check(w.terrain.uphill(lo.p, hi.p) and not w.terrain.uphill(hi.p, lo.p), "shots up the cliff count as uphill, down doesn't")
+	var misses := 0
+	for i in 400:
+		if w.misses(lo, hi):
+			misses += 1
+	check(misses > 80 and misses < 160, "about 30%% of uphill shots miss (%d of 400)" % misses)
+	m.rig.look_at_ground(Vector2(26, 98))
+	m.rig.dist = 26.0
+	m.rig.apply()
+	w._sync_visuals(0.016)
+	await shot("70_ramp")
+	# the camera picks the plateau top, not the ground plane under it
+	var sp := m.rig.to_screen(Vector3(main_c.x + 4, Terrain.LEVEL_H, main_c.y - 8))
+	var g := m.rig.screen_to_ground(sp)
+	check(g.distance_to(main_c + Vector2(4, -8)) < 0.5, "tapping the plateau picks the plateau (%.2f m off)" % g.distance_to(main_c + Vector2(4, -8)))
 
 func _title() -> void:
 	main.show_title()

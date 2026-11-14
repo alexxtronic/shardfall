@@ -339,7 +339,7 @@ static func animate_unit(u, delta: float) -> void:
 	if u.dead:
 		return
 	var t: float = u.world.time
-	var y: float = u.fly
+	var y: float = u.fly + u.ground_h()
 	if u.is_air:
 		y += sin(t * 2.0 + float(u.eid)) * 0.12
 	u.position = Vector3(u.p.x, y, u.p.y)
@@ -637,6 +637,18 @@ static func attach_resource(w, r, variant: int) -> void:
 		if r.cells.y > r.cells.x:
 			holder.rotation.y = PI / 2
 	r.make_ring(r.radius * 0.9, Color(1.0, 0.85, 0.3, 0.9))
+
+
+## A copy of a mesh with every surface's colour multiplied by tint (rocks per map theme).
+static func tinted_mesh(mesh: Mesh, tint: Color) -> Mesh:
+	var m: Mesh = mesh.duplicate()
+	for i in m.get_surface_count():
+		var mat = m.surface_get_material(i)
+		if mat is BaseMaterial3D:
+			var d: BaseMaterial3D = mat.duplicate()
+			d.albedo_color = d.albedo_color * tint
+			m.surface_set_material(i, d)
+	return m
 
 
 static func rock_mesh(variant: int) -> Mesh:

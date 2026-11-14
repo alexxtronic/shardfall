@@ -17,7 +17,7 @@ var sun: DirectionalLight3D
 func start(c: Dictionary) -> void:
 	cfg = c
 	name = "Match"
-	_environment()
+	_environment(Maps.theme_of(String(c.get("map", "standard"))))
 	world = World.new()
 	world.name = "World"
 	add_child(world)
@@ -25,12 +25,18 @@ func start(c: Dictionary) -> void:
 	rig = CameraRig.new()
 	rig.name = "Camera"
 	rig.map_size = world.grid.size
+	rig.ground = world.height_at
+	rig.max_h = float(world.terrain.max_level) * Terrain.LEVEL_H
 	add_child(rig)
 	var s: Dictionary = world.sites[world.players[0].start_site]
 	var center: Vector2 = s["center"]
 	rig.focus = center - (s["dir"] as Vector2).normalized() * 3.0
 	rig.dist = 30.0
+	rig.focus_h = world.height_at(rig.focus)
 	world.cam = rig
+	var weather := Weather.new()
+	add_child(weather)
+	weather.setup(rig, String(world.theme.get("weather", "")))
 	cmd = Commander.new()
 	cmd.name = "Commander"
 	cmd.world = world
@@ -49,23 +55,23 @@ func start(c: Dictionary) -> void:
 	hud.show_message("Your workers are harvesting. Tap your %s to train more." % main_name, "hint")
 
 
-func _environment() -> void:
+func _environment(th: Dictionary) -> void:
 	var env := Environment.new()
 	var sky := Sky.new()
 	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color(0.09, 0.07, 0.16)
-	sm.sky_horizon_color = Color(0.36, 0.3, 0.42)
-	sm.ground_bottom_color = Color(0.05, 0.04, 0.07)
-	sm.ground_horizon_color = Color(0.3, 0.26, 0.34)
+	sm.sky_top_color = th["sky_top"]
+	sm.sky_horizon_color = th["sky_horizon"]
+	sm.ground_bottom_color = th["ground_bottom"]
+	sm.ground_horizon_color = th["ground_horizon"]
 	sm.sun_angle_max = 20.0
 	sky.sky_material = sm
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.9
+	env.ambient_light_energy = float(th["ambient"])
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 1.05
+	env.tonemap_exposure = float(th["exposure"])
 	env.glow_enabled = true
 	env.glow_intensity = 0.7
 	env.glow_bloom = 0.08
@@ -78,17 +84,17 @@ func _environment() -> void:
 	add_child(we)
 	sun = DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.light_color = Color(1.0, 0.92, 0.82)
-	sun.light_energy = 1.5
-	sun.rotation_degrees = Vector3(-52, -38, 0)
+	sun.light_color = th["sun"]
+	sun.light_energy = float(th["sun_energy"])
+	sun.rotation_degrees = th["sun_rot"]
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 90.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.shadow_blur = 1.2
 	add_child(sun)
 	var fill := DirectionalLight3D.new()
-	fill.light_color = Color(0.55, 0.6, 1.0)
-	fill.light_energy = 0.35
+	fill.light_color = th["fill"]
+	fill.light_energy = float(th["fill_energy"])
 	fill.rotation_degrees = Vector3(-35, 140, 0)
 	add_child(fill)
 

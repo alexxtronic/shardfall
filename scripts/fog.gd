@@ -1,7 +1,8 @@
 class_name Fog
 extends Node3D
 ## Fog of war for the human player, on a 2 m grid. Each fog cell is unexplored,
-## explored or in sight. Enemy units show only while in sight; enemy buildings
+## explored or in sight. Ground units and buildings can't see up a cliff: a cell on a
+## higher level than the looker stays dark unless something up there (or a flyer) sees it. Enemy units show only while in sight; enemy buildings
 ## stay on the map once seen. The textures are filled straight from the byte
 ## arrays, so there's no per-pixel script work.
 
@@ -20,6 +21,7 @@ var tex: ImageTexture             # alias used by the minimap check
 var t: float = 0.0
 var plane: MeshInstance3D
 var stamps: Dictionary = {}
+var lvl := PackedByteArray()      # terrain level of each fog cell
 var enabled: bool = true
 
 
@@ -29,6 +31,10 @@ func setup() -> void:
 	seen.resize(n * n)
 	vis.fill(0)
 	seen.fill(0)
+	lvl.resize(n * n)
+	for y in n:
+		for x in n:
+			lvl[y * n + x] = world.terrain.level_at(Vector2((x + 0.5) * RES, (y + 0.5) * RES))
 	vis_img = Image.create_from_data(n, n, false, Image.FORMAT_L8, vis)
 	seen_img = Image.create_from_data(n, n, false, Image.FORMAT_L8, seen)
 	vis_tex = ImageTexture.create_from_image(vis_img)
@@ -38,13 +44,19 @@ func setup() -> void:
 	var pm := PlaneMesh.new()
 	var size: float = world.grid.size
 	pm.size = Vector2(size + 120, size + 120)
+	# one vertex per metre so the fog can lie on the raised ground
+	pm.subdivide_width = int(size + 120) - 1
+	pm.subdivide_depth = int(size + 120) - 1
 	plane.mesh = pm
+	plane.extra_cull_margin = 8.0
 	plane.position = Vector3(size * 0.5, 0.12, size * 0.5)
 	var sm := ShaderMaterial.new()
 	sm.shader = load("res://shaders/fog.gdshader")
 	sm.set_shader_parameter("vis", vis_tex)
 	sm.set_shader_parameter("seen", seen_tex)
 	sm.set_shader_parameter("map_size", float(n) * RES)
+	sm.set_shader_parameter("hmap", world.get_meta("height_tex", null))
+	sm.set_shader_parameter("terrain_size", float(world.grid.size))
 	plane.material_override = sm
 	plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(plane)
@@ -84,7 +96,8 @@ func update() -> void:
 					continue
 				var c := Vector2i(int(e.p.x / RES), int(e.p.y / RES))
 				var r := int(round(e.sight / RES))
-				var key := c * 64 + Vector2i(r, 0)
+				var up: int = 9 if (e is Unit and e.is_air) else world.terrain.level_at(e.p)
+				var key := Vector3i(c.x, c.y, r * 16 + up)
 				if done.has(key):
 					continue
 				done[key] = true
@@ -92,6 +105,8 @@ func update() -> void:
 					var q: Vector2i = c + o
 					if q.x >= 0 and q.y >= 0 and q.x < n and q.y < n:
 						var i := q.y * n + q.x
+						if lvl[i] > up:
+							continue
 						vis[i] = 255
 						seen[i] = 255
 	for u in world.units:

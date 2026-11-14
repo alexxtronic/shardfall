@@ -5,9 +5,16 @@ render_mode unshaded, blend_mix, depth_draw_never, depth_test_disabled, cull_dis
 uniform sampler2D vis : filter_linear, repeat_disable;
 uniform sampler2D seen : filter_linear, repeat_disable;
 uniform float map_size = 144.0;
+uniform sampler2D hmap : filter_linear, repeat_disable;   // ground heights at cell corners
+uniform float terrain_size = 144.0;
 varying vec3 wpos;
 
-void vertex() { wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+void vertex() {
+	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float h = textureLod(hmap, (w.xz + 0.5) / (terrain_size + 1.0), 0.0).r;
+	VERTEX.y += h;
+	wpos = w + vec3(0.0, h, 0.0);
+}
 
 void fragment() {
 	vec2 uv = wpos.xz / map_size;

@@ -52,7 +52,7 @@ func _draw() -> void:
 			continue
 		if not u.selected and u.hp >= u.max_hp:
 			continue
-		var top := Vector3(u.p.x, u.fly + float(u.def.get("model_h", 1.0)) + 0.3, u.p.y)
+		var top := Vector3(u.p.x, u.fly + float(u.def.get("model_h", 1.0)) + 0.3 + u.ground_h(), u.p.y)
 		if not rig.in_front(top):
 			continue
 		var sp := rig.to_screen(top)
@@ -69,7 +69,7 @@ func _draw() -> void:
 		var unpowered: bool = b.built and b.needs_power and b.owner_id == cmd.pid and not world.is_powered(b)
 		if not show_hp and not show_prog and not unpowered:
 			continue
-		var top := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) + 0.6, b.p.y)
+		var top := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) + 0.6 + b.ground_h(), b.p.y)
 		if not rig.in_front(top):
 			continue
 		var sp := rig.to_screen(top)
@@ -88,8 +88,8 @@ func _draw() -> void:
 	# rally lines of the selected building
 	for e in cmd.selection:
 		if e is Building and e.rally_set and not e.dead and e.owner_id == cmd.pid:
-			var a := rig.to_screen(Vector3(e.p.x, 0.2, e.p.y))
-			var b2 := rig.to_screen(Vector3(e.rally.x, 0.2, e.rally.y))
+			var a := rig.to_screen(Vector3(e.p.x, 0.2 + e.ground_h(), e.p.y))
+			var b2 := rig.to_screen(Vector3(e.rally.x, 0.2 + e.world.height_at(e.rally), e.rally.y))
 			draw_dashed_line(a, b2, Color(0.4, 0.85, 1.0, 0.8), 2.0, 8.0)
 			draw_circle(b2, 6.0, Color(0.4, 0.85, 1.0, 0.8))
 	if cmd.box_active:
