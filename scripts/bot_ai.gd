@@ -30,6 +30,7 @@ var mix_flip: int = 0
 var stats := {}
 var reserve: Array = [0, 0]
 var _want_q: Vector2 = Vector2.ZERO   # where the last building was wanted
+var paused: bool = false              # the tutorial holds the bot until its last lesson
 
 
 func _ready() -> void:
@@ -57,7 +58,7 @@ func _ready() -> void:
 
 
 func step(dt: float) -> void:
-	if not world.players[pid].alive or world.over:
+	if paused or not world.players[pid].alive or world.over:
 		return
 	think_t -= dt
 	if think_t > 0.0:

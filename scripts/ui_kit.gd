@@ -238,11 +238,11 @@ static func card_button(title: String, icon_id: String, cost: Array, hotkey: Str
 		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		h.add_theme_constant_override("separation", 6)
 		h.name = "Cost"
-		var m := amount("crystal_a", str(cost[0]), GOLD, 11, 13.0)
+		var m := amount("ui:crystal", str(cost[0]), GOLD, 11, 12.0)
 		m.name = "M"
 		h.add_child(m)
 		if int(cost[1]) > 0:
-			var s := amount("slime_pile", str(cost[1]), SLIME, 11, 13.0)
+			var s := amount("ui:slime", str(cost[1]), SLIME, 11, 12.0)
 			s.name = "S"
 			h.add_child(s)
 		v.add_child(h)

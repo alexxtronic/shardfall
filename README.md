@@ -32,6 +32,8 @@ The mouse stands in for a finger (one press is one touch). You can also use thes
 
 ## How to play
 
+New players can press **Tutorial** on the title screen. It plays a guided first match on Shatterfield against an easy bot, one lesson at a time: look around, train a worker, build supply, build a barracks, train infantry, move out, and destroy the enemy. The bot waits until the last lesson, and tutorial games stay off the leaderboard.
+
 - **Start.** Each side begins with a main base and 6 workers.
 - **Economy.** Workers harvest golden crystals on their own (5 per trip). A worker carries a crystal only while it is bringing one back. Void Slime, the second resource, needs an extractor built on a black slime pile first: the Void Machine for Ambron, the Void Maw for Void. Three workers per extractor saturate it.
 - **Base and production.** Every main base trains workers and is a drop-off. Supply structures raise the supply cap, which tops out at 200. The tech tree runs:
@@ -100,6 +102,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - **Interface:**
     - `commander.gd` (touch input and orders), `hud.gd`, `minimap.gd`, `overlay.gd`, `camera_rig.gd`;
     - `title.gd` and the overlays `settings_panel.gd`, `leaderboard_panel.gd` and `credits_panel.gd`;
+    - `tutorial.gd`, the guided first match;
     - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads.
   - **Opponent:** `bot_ai.gd`, the bot, which plays by the same rules (easy, normal, hard).
   - **Look and sound:**
@@ -123,7 +126,8 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `maps`: each map is an exact mirror, every base is reachable and fully stocked;
   - `terrain`: ramps, cliffs, uphill misses, picking on plateaus;
   - `profile`: rating, scores and the results screen;
-  - `seats`: neither seat starts ahead (mirrored grid, equal harvest, equal march to the enemy).
+  - `seats`: neither seat starts ahead (mirrored grid, equal harvest, equal march to the enemy);
+  - `tutorial`: every lesson passes on the player's action, the bot waits, Skip works, and the leaderboard is untouched.
 
   `--only=previews` is not a test. It re-bakes the map previews (`assets/ui/maps/`), the app icon and the boot splash after a map or art change.
 - **Balance.** It runs headless and rewrites `docs/BALANCE.md`:
@@ -143,6 +147,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
 
 The game is playable end to end:
 - race, map and bot selection, then a full 1v1 against a bot;
+- a guided tutorial match for new players;
 - three themed maps with elevation, plus music, ambience and an announcer;
 - a rated leaderboard, settings, credits, an app icon and a boot splash;
 - both resources, with workers that harvest and build;

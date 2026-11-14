@@ -5,31 +5,28 @@ Ordered by the value each step adds for the effort it takes. The mobile launch a
 
 ## Next five
 
-1. **A guided first match.**
-   - A short tutorial on Shatterfield that teaches one thing at a time: select, harvest, build a supply structure, train infantry, attack-move, take the high ground.
-   - New players of a touch RTS drop out in the first five minutes, so nothing else pays back more.
-   - Reuse the existing hint banner and `world.message`, and gate each step on a world event.
-2. **One active ability per unit.** Shared slots keep the races balanced, so each race needs a mirrored ability in each slot. Some ideas:
+1. **One active ability per unit.** Shared slots keep the races balanced, so each race needs a mirrored ability in each slot. Some ideas:
    - Lancer overcharge or Spitter frenzy (attack speed for health);
    - Bulwark siege mode or Mauler burrow;
    - Scorcher napalm patch or Acidback acid pool;
    - Sovereign or Leviathan ultimate.
 
    Abilities give fights decisions and highlight moments. Add a round ability button to the selection panel. The balance harness can test each pair.
-3. **Upgrades.**
+2. **Upgrades.**
    - Weapons, armour and air research levels 1 to 3 at the infantry, vehicle and air buildings.
    - Upgrades give mid-game goals and a reason to keep a bank, and they slot into the shared `Defs` costs.
-4. **A smarter, livelier bot.**
+3. **A smarter, livelier bot.**
    - **Personalities:** turtle, rush, air, expand.
    - **Scouting:** the bot reacts to what it sees.
    - **Harassment:** it raids workers with light air.
    - **A Brutal difficulty:** better micro and target fire on the same economy (no cheating).
 
    Replays from the command layer (MOBILE_MULTIPLAYER Phase 1) make tuning the bot much easier.
-5. **Mobile build on real phones.**
+4. **Mobile build on real phones.**
    - Get Android and iOS builds running, then profile a 150-supply battle on a mid-range phone.
    - Pool effects, add an auto low-detail mode and respect the notch safe areas.
    - Start Google Play's 14-day closed test early.
+5. **Tutorial, part two.** The guided first match exists (`scripts/tutorial.gd`). Measure where players stop in it once analytics exist, and add lessons for expanding, Void Slime and towers.
 
 ## Gameplay
 

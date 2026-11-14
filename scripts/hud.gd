@@ -97,9 +97,9 @@ func _top_bar() -> void:
 	h.add_theme_constant_override("separation", 14)
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	bar.add_child(h)
-	lbl_min = _res_chip(h, "crystal_a", UiKit.GOLD, Color.WHITE)
+	lbl_min = _res_chip(h, "ui:crystal", UiKit.GOLD, Color.WHITE, 26.0)
 	_divider(h)
-	lbl_slime = _res_chip(h, "slime_pile", UiKit.SLIME, Color.WHITE)
+	lbl_slime = _res_chip(h, "ui:slime", UiKit.SLIME, Color.WHITE, 26.0)
 	_divider(h)
 	lbl_supply = _res_chip(h, "ui:supply", UiKit.TEXT, UiKit.accent)
 	_divider(h)
@@ -136,14 +136,14 @@ func _divider(parent: Control) -> void:
 	parent.add_child(c)
 
 
-func _res_chip(parent: Control, icon_id: String, col: Color, tint: Color) -> Label:
+func _res_chip(parent: Control, icon_id: String, col: Color, tint: Color, icon_size: float = 0.0) -> Label:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 6)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(h)
 	var tex := UiKit.icon(icon_id)
 	if tex:
-		var sz := 28.0 if not icon_id.begins_with("ui:") else 22.0
+		var sz := icon_size if icon_size > 0.0 else (28.0 if not icon_id.begins_with("ui:") else 22.0)
 		var tr := UiKit.tex_rect(tex, Vector2(sz, sz), tint)
 		var cc := CenterContainer.new()
 		cc.mouse_filter = Control.MOUSE_FILTER_IGNORE

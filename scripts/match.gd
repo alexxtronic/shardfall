@@ -13,6 +13,7 @@ var hud: Hud
 var end_layer: CanvasLayer
 var sun: DirectionalLight3D
 var result: Dictionary = {}     # the leaderboard result of this game, once it's over
+var tutorial: Tutorial
 
 
 func start(c: Dictionary) -> void:
@@ -56,9 +57,15 @@ func start(c: Dictionary) -> void:
 	world.game_over.connect(_on_over)
 	if bool(c.get("intro", true)):
 		_intro()
-	var race: String = world.players[0].race
-	var main_name: String = Defs.buildings[Defs.building_id(race, "main")]["name"]
-	hud.show_message("Your workers are harvesting. Tap your %s to train more." % main_name, "hint")
+	if bool(c.get("tutorial", false)):
+		tutorial = Tutorial.new()
+		tutorial.name = "Tutorial"
+		add_child(tutorial)
+		tutorial.setup(world, hud, rig, cmd)
+	else:
+		var race: String = world.players[0].race
+		var main_name: String = Defs.buildings[Defs.building_id(race, "main")]["name"]
+		hud.show_message("Your workers are harvesting. Tap your %s to train more." % main_name, "hint")
 
 
 ## Fade in from black with the map's name, then get out of the way.
@@ -164,38 +171,57 @@ func _on_over(winner: int) -> void:
 	# a game against the bot counts for the leaderboard
 	var res: Dictionary = {}
 	var ai: Array = cfg.get("ai", [false, true])
-	if int(cfg.get("human", 0)) == 0 and ai.size() > 1 and bool(ai[1]) and not bool(ai[0]):
+	var tut := bool(cfg.get("tutorial", false))
+	if tut and won:
+		Prefs.set_v("tutorial_done", true)
+	if tutorial:
+		tutorial.done = true
+	if not tut and int(cfg.get("human", 0)) == 0 and ai.size() > 1 and bool(ai[1]) and not bool(ai[0]):
 		res = Profile.submit(world.map_id, me.race, bot.race, String(cfg.get("difficulty", "normal")), won, me, world.time)
 	result = res
 	get_tree().create_timer(1.4).timeout.connect(func():
 		Sfx.announce("mission_completed" if won else "mission_failed"))
 	if res.get("new_best", false) and int(res.get("best_before", 0)) > 0:
 		get_tree().create_timer(3.4).timeout.connect(func(): Sfx.announce("new_highscore"))
+	# the battlefield stays in view behind the results, but the HUD's hints and panels go
+	hud.visible = false
 	end_layer = CanvasLayer.new()
 	end_layer.layer = 20
 	add_child(end_layer)
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.62)
+	dim.color = Color(0, 0, 0, 0.0)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.theme = UiKit.make_theme()
 	end_layer.add_child(dim)
+	create_tween().tween_property(dim, "color:a", 0.6, 0.6)
+	var cc := CenterContainer.new()
+	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(cc)
 	var p := PanelContainer.new()
-	p.set_anchors_preset(Control.PRESET_CENTER)
-	p.offset_left = -330
-	p.offset_right = 330
-	p.offset_top = -300 if not res.is_empty() else -230
-	p.offset_bottom = 300 if not res.is_empty() else 230
-	dim.add_child(p)
+	p.custom_minimum_size = Vector2(660, 0)
+	p.add_theme_stylebox_override("panel", UiKit.solid_panel())
+	cc.add_child(p)
+	p.modulate.a = 0.0
+	p.scale = Vector2(0.92, 0.92)
+	p.resized.connect(func(): p.pivot_offset = p.size * 0.5)
+	var pop := create_tween().set_parallel()
+	pop.tween_property(p, "modulate:a", 1.0, 0.45).set_delay(0.25)
+	pop.tween_property(p, "scale", Vector2.ONE, 0.45).set_delay(0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	p.add_child(v)
-	var t := UiKit.head("VICTORY" if won else "DEFEAT", 54, UiKit.GOLD if won else UiKit.BAD)
+	var head := ("TUTORIAL COMPLETE" if won else "TRY AGAIN") if tut else ("VICTORY" if won else "DEFEAT")
+	var t := UiKit.head(head, 46 if tut else 54, UiKit.GOLD if won else UiKit.BAD)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
 	var sub := UiKit.label("%s  ·  %s bot  ·  %s" % [String(Maps.get_def(world.map_id).get("name", "")),
 		String(cfg.get("difficulty", "normal")).capitalize(), UiKit.fmt_time(world.time)], 16, UiKit.DIM)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
+	if tut and won:
+		var nx := UiKit.label("You're ready. Rated games against the bot start from the title screen.", 17, UiKit.TEXT)
+		nx.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(nx)
 	if not res.is_empty():
 		v.add_child(_results(res))
 	var g := GridContainer.new()
@@ -217,6 +243,9 @@ func _on_over(winner: int) -> void:
 		for i in 3:
 			var l := UiKit.label(r[i], 17, UiKit.DIM if i == 0 else UiKit.TEXT)
 			g.add_child(l)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 10)
+	v.add_child(gap)
 	var h := HBoxContainer.new()
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_theme_constant_override("separation", 16)

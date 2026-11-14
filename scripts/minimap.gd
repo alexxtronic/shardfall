@@ -16,6 +16,7 @@ func setup(w: World, r: CameraRig, c: Commander) -> void:
 	world = w
 	rig = r
 	cmd = c
+	clip_contents = true   # the camera frame leaves the map at the edges
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_bake()
 	if world.fog:

@@ -15,6 +15,7 @@ const DEFAULTS := {
 	"enemy": "random",
 	"difficulty": "normal",
 	"map": "shatterfield",
+	"tutorial_done": false,
 }
 
 var data: Dictionary = DEFAULTS.duplicate()

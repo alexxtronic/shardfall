@@ -106,6 +106,8 @@ func _run() -> void:
 		await _profile()
 	if want("seats"):
 		await _seats()
+	if want("tutorial"):
+		await _tutorial()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -427,6 +429,101 @@ func _seats() -> void:
 			await frames(1)
 
 
+## The guided first match: each lesson waits for the player to do its thing, the bot waits
+## until the last one, Skip hands over a normal game, and a tutorial never touches the
+## leaderboard.
+func _tutorial() -> void:
+	m = null
+	for c in main.get_children():
+		if c is Match:
+			c.queue_free()
+	await frames(2)
+	m = Match.new()
+	main.add_child(m)
+	m.start({"races": ["ambron", "void"], "ai": [false, true], "difficulty": "easy", "human": 0, "map": "shatterfield", "intro": false, "tutorial": true})
+	main.match_node = m
+	await frames(5)
+	var w: World = m.world
+	var tut: Tutorial = m.tutorial
+	check(tut != null and tut.card != null and tut.step == 0, "the tutorial opens on its first lesson")
+	check(w.ais.size() == 1 and w.ais[0].paused, "the bot waits during the lessons")
+	await get_tree().create_timer(0.4).timeout   # the card fades in
+	await shot("90_tutorial_look")
+	var games0 := Profile.games()
+	# 1. look around
+	m.rig.focus += Vector2(14, 0)
+	await _tut_wait(tut, 1)
+	# 2. train a worker
+	var main_b: Building = null
+	for b in w.buildings:
+		if b.owner_id == 0 and b.slot == "main":
+			main_b = b
+	w.queue_unit(main_b, Defs.unit_id("ambron", "worker"))
+	await _tut_wait(tut, 2)
+	# 3. supply, 4. barracks (inside the finished relay's field)
+	var worker: Unit = null
+	for u in w.units:
+		if u.owner_id == 0 and u.is_worker:
+			worker = u
+			break
+	w.players[0].minerals += 600
+	var rid := Defs.building_id("ambron", "supply")
+	var rc = w.suggest_spot(0, rid, main_b.p + Vector2(0, -8))
+	w.command_build(worker, rid, rc)
+	await _tut_wait(tut, 3)
+	await get_tree().create_timer(0.4).timeout
+	await shot("91_tutorial_production")
+	for i in 600:
+		w.step(0.1)
+		if w.has_built(0, rid):
+			break
+	var bid := Defs.building_id("ambron", "barracks")
+	var bc = w.suggest_spot(0, bid, Vector2(rc) + Vector2(1, 1))
+	check(bc != null, "a barracks spot is found in the relay's field")
+	if bc != null:
+		w.command_build(worker, bid, bc)
+	await _tut_wait(tut, 4)
+	# 5. an army, 6. move out
+	var army: Array = []
+	for i in 4:
+		army.append(w.spawn_unit(Defs.unit_id("ambron", "infantry"), 0, main_b.p + Vector2(4 + i, 6)))
+	await _tut_wait(tut, 5)
+	w.command_move(army, main_b.p + Vector2(20, -20), true)
+	await _tut_wait(tut, 6)
+	check(not w.ais[0].paused and w.players[1].minerals <= 300, "the last lesson wakes the bot without a hoard (%d crystals)" % w.players[1].minerals)
+	await get_tree().create_timer(0.4).timeout
+	await shot("92_tutorial_final")
+	# a tutorial result stays off the leaderboard, and a win marks it done
+	w.surrender(1)
+	await get_tree().create_timer(0.9).timeout
+	await shot("93_tutorial_complete")
+	check(Profile.games() == games0, "a tutorial game stays off the leaderboard")
+	check(bool(Prefs.get_v("tutorial_done")), "winning the tutorial marks it done")
+	Prefs.data["tutorial_done"] = false
+	# Skip: the card goes and the bot plays at once
+	m.queue_free()
+	await frames(2)
+	m = Match.new()
+	main.add_child(m)
+	m.start({"races": ["void", "ambron"], "ai": [false, true], "difficulty": "easy", "human": 0, "map": "shatterfield", "intro": false, "tutorial": true})
+	main.match_node = m
+	await frames(5)
+	check(String(m.tutorial.steps[1][1]).contains("Hive Heart"), "the lessons name the player's race's buildings")
+	m.tutorial.skip()
+	await frames(2)
+	check(not is_instance_valid(m.tutorial.card) and not m.world.ais[0].paused, "Skip hands over a normal game")
+	m.queue_free()
+	m = null
+	await frames(2)
+
+
+func _tut_wait(tut: Tutorial, want_step: int) -> void:
+	var t0 := Time.get_ticks_msec()
+	while tut.step < want_step and Time.get_ticks_msec() - t0 < 4000:
+		await frames(2)
+	check(tut.step == want_step, "tutorial lesson %d is passed (now on %d: %s)" % [want_step, tut.step + 1, tut.steps[tut.step][0]])
+
+
 func _path_len(path: PackedVector2Array) -> float:
 	var l := 0.0
 	for i in range(1, path.size()):
@@ -456,6 +553,8 @@ func _profile() -> void:
 	check(Profile.best("frostspire") == int(res.get("score", -1)) and res.get("new_best", false), "the score is the map's best (%d)" % Profile.best("frostspire"))
 	check(Profile.history().size() == 1 and Profile.history()[0]["won"], "the game is in the history")
 	check(m.end_layer != null, "the results screen shows")
+	check(not m.hud.visible, "the HUD steps aside for the results")
+	await get_tree().create_timer(0.9).timeout   # the panel fades in
 	await shot("80_results")
 	var lb := LeaderboardPanel.new()
 	m.end_layer.add_child(lb)
@@ -1154,5 +1253,5 @@ func _full() -> void:
 			await shot("40_full_%02d" % shots_taken)
 		await frames(1)
 	check(w.over, "a full game ends with a winner (P%d at %s, %.0f s real)" % [w.winner + 1, UiKit.fmt_time(w.time), (Time.get_ticks_msec() - t0) / 1000.0])
-	await frames(10)
+	await get_tree().create_timer(0.9).timeout
 	await shot("41_end_screen")

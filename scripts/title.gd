@@ -77,8 +77,13 @@ func _ready() -> void:
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_theme_constant_override("separation", 18)
 	v.add_child(h)
-	h.add_child(_button("How to play", Vector2(190, 64), func(): help.visible = true; Sfx.play("click")))
-	h.add_child(_button("Settings", Vector2(170, 64), _open_settings))
+	var tb := _button("Tutorial", Vector2(160, 64), _tutorial)
+	tb.name = "TutorialButton"
+	if not bool(Prefs.get_v("tutorial_done")):
+		tb.add_theme_color_override("font_color", UiKit.GOOD)
+	h.add_child(tb)
+	h.add_child(_button("How to play", Vector2(180, 64), func(): help.visible = true; Sfx.play("click")))
+	h.add_child(_button("Settings", Vector2(160, 64), _open_settings))
 	var pb := _button("PLAY", Vector2(280, 64), _go)
 	pb.name = "PlayButton"
 	pb.add_theme_font_size_override("font_size", 30)
@@ -346,6 +351,13 @@ func _go() -> void:
 		e = ["ambron", "void"][randi() % 2]
 	Sfx.play("complete")
 	play.emit({"races": [race, e], "ai": [false, true], "difficulty": difficulty, "human": 0, "map": map_id})
+
+
+## A guided first match: your race against an easy bot of the other race on Shatterfield.
+func _tutorial() -> void:
+	Sfx.play("complete")
+	var e := "void" if race == "ambron" else "ambron"
+	play.emit({"races": [race, e], "ai": [false, true], "difficulty": "easy", "human": 0, "map": "shatterfield", "tutorial": true})
 
 
 func _help(parent: Control) -> void:
