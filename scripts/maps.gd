@@ -123,7 +123,7 @@ const THEMES := {
 	"alien": {
 		"dust": Color(0.33, 0.29, 0.33), "rust": Color(0.47, 0.35, 0.29), "basalt": Color(0.13, 0.12, 0.16),
 		"vein": Color(0.45, 0.22, 0.6), "plate": Color(0.40, 0.40, 0.45),
-		"cliff_a": Color(0.2, 0.18, 0.24), "cliff_b": Color(0.36, 0.3, 0.38), "snow": 0.0,
+		"cliff_a": Color(0.11, 0.09, 0.15), "cliff_b": Color(0.32, 0.25, 0.37), "snow": 0.0,
 		"hazard": Color(0.4, 1.0, 0.25), "hazard_glow": 0.0, "vein_glow": 0.0,
 		"sky_top": Color(0.09, 0.07, 0.16), "sky_horizon": Color(0.36, 0.3, 0.42),
 		"ground_bottom": Color(0.05, 0.04, 0.07), "ground_horizon": Color(0.3, 0.26, 0.34),
@@ -148,7 +148,7 @@ const THEMES := {
 		"dust": Color(0.2, 0.16, 0.15), "rust": Color(0.34, 0.2, 0.14), "basalt": Color(0.07, 0.06, 0.06),
 		"vein": Color(0.85, 0.24, 0.05), "plate": Color(0.3, 0.27, 0.26),
 		"cliff_a": Color(0.08, 0.07, 0.07), "cliff_b": Color(0.26, 0.18, 0.15), "snow": 0.0,
-		"hazard": Color(1.0, 0.42, 0.08), "hazard_glow": 3.0, "vein_glow": 0.55,
+		"hazard": Color(1.0, 0.42, 0.08), "hazard_glow": 3.0, "vein_glow": 0.8, "vein_w": 0.005, "vein_mix": 0.25,
 		"sky_top": Color(0.12, 0.05, 0.04), "sky_horizon": Color(0.5, 0.2, 0.1),
 		"ground_bottom": Color(0.05, 0.02, 0.02), "ground_horizon": Color(0.36, 0.14, 0.07),
 		"sun": Color(1.0, 0.72, 0.5), "sun_energy": 1.35, "sun_rot": Vector3(-58, -44, 0),

@@ -241,6 +241,8 @@ static func _terrain(w) -> void:
 		sm.set_shader_parameter(key, th[key])
 	for key in ["snow", "hazard_glow", "vein_glow"]:
 		sm.set_shader_parameter(key, float(th[key]))
+	sm.set_shader_parameter("vein_w", float(th.get("vein_w", 0.014)))
+	sm.set_shader_parameter("vein_mix", float(th.get("vein_mix", 0.35)))
 	mi.material_override = sm
 	# cliffs throw shadows onto the ground below them
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if t.max_level > 0 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

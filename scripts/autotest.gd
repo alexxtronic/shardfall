@@ -222,6 +222,11 @@ func _terrain() -> void:
 	m.rig.apply()
 	w._sync_visuals(0.016)
 	await shot("70_ramp")
+	m.rig.set_process(false)
+	m.rig.cam.position = Vector3(40, 9, 84)
+	m.rig.cam.look_at(Vector3(26, 1.5, 104), Vector3.UP)
+	await shot("71_ramp_side")
+	m.rig.set_process(true)
 	# the camera picks the plateau top, not the ground plane under it
 	var sp := m.rig.to_screen(Vector3(main_c.x + 4, Terrain.LEVEL_H, main_c.y - 8))
 	var g := m.rig.screen_to_ground(sp)

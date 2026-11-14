@@ -21,6 +21,8 @@ uniform vec3 hazard : source_color = vec3(1.0, 0.42, 0.08);
 uniform float snow = 0.0;
 uniform float hazard_glow = 0.0;
 uniform float vein_glow = 0.0;
+uniform float vein_w = 0.014;     // vein width (thin on Ember Rift so veins never read as lava)
+uniform float vein_mix = 0.35;
 uniform float bump = 1.0;
 
 varying vec3 wpos;
@@ -29,6 +31,9 @@ varying float rockv;
 varying float sitev;
 varying float lavav;
 varying float icev;
+varying float rimv;     // 1 along the top lip of a cliff
+varying float footv;    // 1 at the foot of a cliff
+varying float levelv;   // terrain height here
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 vec2 hash2(vec2 p) {
@@ -125,6 +130,16 @@ void vertex() {
 	sitev = m.g;
 	lavav = smoothstep(0.7, 0.95, m.b);
 	icev = smoothstep(0.25, 0.45, m.b) * (1.0 - lavav);
+	// how far the ground drops away (lip) or rises (foot) within a couple of metres
+	float th = terrain_h(w.xz);
+	float s = 1.6;
+	float a1 = terrain_h(w.xz + vec2(s, 0.0));
+	float a2 = terrain_h(w.xz - vec2(s, 0.0));
+	float a3 = terrain_h(w.xz + vec2(0.0, s));
+	float a4 = terrain_h(w.xz - vec2(0.0, s));
+	rimv = smoothstep(0.5, 1.8, th - min(min(a1, a2), min(a3, a4)));
+	footv = smoothstep(0.5, 1.8, max(max(a1, a2), max(a3, a4)) - th);
+	levelv = th;
 }
 
 void fragment() {
@@ -136,11 +151,11 @@ void fragment() {
 	float hx = detail_h(p + vec2(e, 0.0), sitev, c2, p2);
 	float hz = detail_h(p + vec2(0.0, e), sitev, c2, p2);
 	float flat_site = 1.0 - sitev * 0.75;
-	float steep = 1.0 - smoothstep(0.5, 0.82, wnorm.y);
+	float steep = 1.0 - smoothstep(0.72, 0.92, wnorm.y);
 	// snow settles on flat and gently sloped ground and fills the cracks, thinning in patches
 	float drift = smoothstep(0.42, 0.66, fbm3(p * 0.11 + 3.0) + fbm3(p * 0.6) * 0.25);
 	float snowk = snow * drift * smoothstep(0.8, 0.95, wnorm.y) * (1.0 - sitev * 0.7);
-	vec3 n = normalize(wnorm + vec3(-(hx - h) / e, 0.0, -(hz - h) / e) * 0.85 * bump * flat_site * (1.0 - icev * 0.8) * (1.0 - snowk * 0.85));
+	vec3 n = normalize(wnorm + vec3(-(hx - h) / e, 0.0, -(hz - h) / e) * 0.85 * bump * flat_site * (1.0 - icev * 0.8) * (1.0 - snowk * 0.85) * (1.0 - steep * 0.85));
 
 	float big = fbm5(p * 0.03);
 	float mid = fbm3(p * 0.16 + 7.0);
@@ -149,8 +164,8 @@ void fragment() {
 	col = mix(col, basalt * 1.4, smoothstep(0.58, 0.85, mid) * 0.4);
 	// mineral veins
 	float v = abs(fbm3(p * 0.08 + 31.0) - 0.5);
-	float vein_k = (1.0 - smoothstep(0.0, 0.014, v)) * (1.0 - steep);
-	col = mix(col, vein, vein_k * 0.35);
+	float vein_k = (1.0 - smoothstep(0.0, vein_w, v)) * (1.0 - steep);
+	col = mix(col, vein, vein_k * vein_mix);
 	// cracks and crater bowls are dark, rims and pebbles catch light
 	col = mix(col, basalt, crack * 0.55 * (1.0 - sitev * 0.6));
 	float cr = crater(p);
@@ -169,10 +184,16 @@ void fragment() {
 	vec3 rockcol = mix(basalt, basalt * 2.2 + vec3(0.03, 0.02, 0.04), clamp(n.y * 1.6 - 0.7, 0.0, 1.0)) * (0.85 + fine * 0.3);
 	col = mix(col, rockcol, rk * 0.85);
 
-	// cliff faces: layered rock in bands that follow the height
+	// cliff faces: layered rock in bands that follow the height, with no ground cracks
 	float strata = fbm3(vec2(wpos.y * 2.6 + fbm3(p * 0.6) * 1.5, (p.x + p.y) * 0.35));
-	vec3 cliffcol = mix(cliff_a, cliff_b, smoothstep(0.3, 0.75, strata)) * (0.8 + fine * 0.35);
+	float ledges = smoothstep(0.55, 0.6, fract(wpos.y * 1.3 + fbm3(p * 0.4) * 0.6));
+	vec3 cliffcol = mix(cliff_a, cliff_b, smoothstep(0.3, 0.75, strata)) * (0.75 + fine * 0.3 + ledges * 0.25);
 	col = mix(col, cliffcol, steep);
+	// a sunlit lip along the top of each cliff and shade at its foot, so levels read from above
+	float flatk = 1.0 - steep;
+	col = mix(col, col * 1.45 + vec3(0.06), rimv * flatk * 0.7);
+	col *= 1.0 - footv * flatk * 0.38;
+	col *= 1.0 + levelv * 0.035;
 
 	// snow, plus a dusting on cliff ledges
 	col = mix(col, vec3(0.9, 0.94, 1.0) * (0.94 + fine * 0.08), snowk);
