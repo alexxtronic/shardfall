@@ -39,7 +39,7 @@ FPS = 24
 # h: model height in metres (ART_SPEC sizes). tris: triangle budget.
 # rig: hover | biped | legs | wings. Rig parameters are fractions of the model's height (H) or half-width.
 UNITS = {
-    "ambron_worker": dict(race="ambron", rig="hover", h=0.95, tris=4000, yaw=90.0, bake=True,
+    "ambron_worker": dict(race="ambron", rig="hover", h=0.95, tris=4000, yaw=90.0, bake=True, cargo=True,
                           crop=dict(x=(-0.49, -0.163), z=(0.0, 0.31))),
     "ambron_lancer": dict(race="ambron", rig="biped", h=1.15, tris=5000, yaw=0.0, hip=0.47),
     "ambron_bulwark": dict(race="ambron", rig="biped", h=1.6, tris=5000, yaw=0.0, hip=0.36),
@@ -356,6 +356,44 @@ def classify(ob, img, race, bone_sat=0.42):
         slot[bone] = 1
         slot[green] = 2
     return slot
+
+
+def cargo_faces(ob, img):
+    """The crystals a worker carries: the brightest gold faces mark the cluster, then every gold-toned
+    face inside that box joins it. The game shows this part only while the worker carries crystals."""
+    hue, sat, val = hsv(face_colours(ob, img))
+    fc = np.empty(len(ob.data.polygons) * 3, np.float32)
+    ob.data.polygons.foreach_get("center", fc)
+    fc = fc.reshape(-1, 3)
+    core = (hue > 36) & (hue < 60) & (sat > 0.72) & (val > 0.78)
+    if core.sum() < 10:
+        return np.zeros(len(hue), bool)
+    lo = np.percentile(fc[core], 3, axis=0) - 0.07
+    hi = np.percentile(fc[core], 97, axis=0) + 0.07
+    lo[0] += 0.04
+    gold = (hue > 22) & (hue < 64) & (sat > 0.4) & (val > 0.45)
+    return gold & np.all((fc >= lo) & (fc <= hi), axis=1)
+
+
+def split_cargo(ob, mask):
+    """Move the masked faces into their own object named cargo (it keeps the rig)."""
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.view_layer.objects.active = ob
+    ob.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bm = bmesh.from_edit_mesh(ob.data)
+    bm.faces.ensure_lookup_table()
+    for f in bm.faces:
+        f.select_set(False)
+    for i in np.nonzero(mask)[0]:
+        bm.faces[int(i)].select_set(True)
+    bmesh.update_edit_mesh(ob.data)
+    bpy.ops.mesh.separate(type="SELECTED")
+    bpy.ops.object.mode_set(mode="OBJECT")
+    new = [o for o in bpy.context.selected_objects if o != ob][0]
+    new.name = "cargo"
+    new.data.name = "cargo"
+    return new
 
 
 def make_materials(ob, race):
@@ -761,10 +799,12 @@ def bake(arm, cfg, P):
 
 # --- export and checks ------------------------------------------------------------------------------------
 
-def export(arm, ob, path):
+def export(arm, ob, path, extra=()):
     bpy.ops.object.select_all(action="DESELECT")
     arm.select_set(True)
     ob.select_set(True)
+    for e in extra:
+        e.select_set(True)
     bpy.context.view_layer.objects.active = arm
     os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True,
@@ -1001,6 +1041,7 @@ def build(uid, rnd, only_inspect):
     imgs = shrink_images(uid, 1024)
     img = base_image(ob)
     slot = classify(ob, img, cfg["race"], cfg.get("bone_sat", 0.42))
+    cargo_mask = cargo_faces(ob, img) & (slot == 0) if cfg.get("cargo") else None
     make_materials(ob, cfg["race"])
     counts = assign(ob, slot)
     shade(ob)
@@ -1015,8 +1056,12 @@ def build(uid, rnd, only_inspect):
     else:
         arm, P = rig_wings(ob, lo, hi, cfg)
     acts = bake(arm, cfg, P)
+    extra = []
+    if cargo_mask is not None and cargo_mask.any():
+        extra.append(split_cargo(ob, cargo_mask))
+        counts["cargo"] = int(cargo_mask.sum())
     path = os.path.join(MODELS, uid + ".glb")
-    export(arm, ob, path)
+    export(arm, ob, path, extra)
     rep = glb_report(path)
     info = {"id": uid, "raw_tris": raw_tris, "decimated": [t0, t1], "size_m": [round(float(x), 3) for x in hi - lo],
             "faces_by_material": counts, "images": imgs, "bones": [b.name for b in arm.data.bones], "glb": rep}

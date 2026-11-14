@@ -33,6 +33,15 @@ func _hp_col(f: float, own: bool) -> Color:
 	return Color(1.0, 0.3, 0.25)
 
 
+## A red lightning bolt in a ring: this building has lost its power.
+func _unpowered(c: Vector2) -> void:
+	var blink := 0.6 + 0.4 * sin(Time.get_ticks_msec() * 0.008)
+	draw_circle(c, 15.0, Color(0.1, 0.02, 0.02, 0.8))
+	draw_arc(c, 15.0, 0.0, TAU, 32, Color(1.0, 0.3, 0.25, blink), 2.5, true)
+	var bolt := PackedVector2Array([c + Vector2(3, -10), c + Vector2(-6, 2), c + Vector2(-0.5, 2), c + Vector2(-3, 10), c + Vector2(6, -2), c + Vector2(0.5, -2)])
+	draw_colored_polygon(bolt, Color(1.0, 0.4, 0.3, blink))
+
+
 func _draw() -> void:
 	if world == null or rig == null:
 		return
@@ -57,7 +66,8 @@ func _draw() -> void:
 			continue
 		var show_hp: bool = b.selected or b.hp < b.max_hp - 0.5
 		var show_prog: bool = (not b.built) or (b.queue.size() > 0 and b.owner_id == cmd.pid)
-		if not show_hp and not show_prog:
+		var unpowered: bool = b.built and b.needs_power and b.owner_id == cmd.pid and not world.is_powered(b)
+		if not show_hp and not show_prog and not unpowered:
 			continue
 		var top := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) + 0.6, b.p.y)
 		if not rig.in_front(top):
@@ -69,6 +79,8 @@ func _draw() -> void:
 		var f: float = b.hp / b.max_hp
 		if show_hp:
 			_bar(sp, w, f, _hp_col(f, b.owner_id == cmd.pid))
+		if b.built and b.needs_power and b.owner_id == cmd.pid and not world.is_powered(b):
+			_unpowered(sp + Vector2(0, -22))
 		if not b.built:
 			_bar(sp + Vector2(0, 9), w, b.progress, Color(0.4, 0.85, 1.0))
 		elif b.queue.size() > 0 and b.owner_id == cmd.pid:

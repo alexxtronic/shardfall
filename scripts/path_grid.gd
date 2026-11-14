@@ -66,6 +66,16 @@ func walkable_p(p: Vector2) -> bool:
 	return walkable(cell_of(p))
 
 
+## True when a round body of radius r at p overlaps no rock cell.
+func clear_of_rock(p: Vector2, r: float) -> bool:
+	if kind_at(cell_of(p)) == 1:
+		return false
+	if r <= 0.0:
+		return true
+	return kind_at(cell_of(p + Vector2(r, 0))) != 1 and kind_at(cell_of(p - Vector2(r, 0))) != 1 \
+		and kind_at(cell_of(p + Vector2(0, r))) != 1 and kind_at(cell_of(p - Vector2(0, r))) != 1
+
+
 func kind_at(c: Vector2i) -> int:
 	if not inside(c):
 		return 1

@@ -36,6 +36,7 @@ Both races must read instantly at small size: Ambron = bright cream and gold wit
 | Production buildings | 3 x 3 m | 3-3.5 |
 | Special building | 4 x 4 m | 4-5 |
 | Supply building | 2 x 2 m | 2-2.5 |
+| Defence tower | 2 x 2 m | 3-3.5 (a node named `turret` turns toward the target) |
 | Void Machine / Void Maw (extractor, sits on a slime pile) | 3 x 3 m | 2.5 |
 | Golden crystal node | about 2 x 1 m | 1.4-2.2 |
 | Slime pile | 3 x 3 m | 0.6-0.9 |
@@ -62,6 +63,7 @@ Buildings should fill their footprint (a little inset, about 0.15 m each side) s
 | `ambron_forge` | Mech Forge | Builds Scorchers and Hailfires |
 | `ambron_skyport` | Skyport | Builds Darts and Monoliths, landing pad |
 | `ambron_spire` | Apex Spire | Builds the Sovereign |
+| `ambron_arc_tower` | Arc Tower | Defence tower: a coil on a pylon that throws lightning |
 
 ### Void
 | id | Name | What it is |
@@ -81,6 +83,7 @@ Buildings should fill their footprint (a little inset, about 0.15 m each side) s
 | `void_warren` | Beast Warren | Grows Acidbacks and Spinefiends |
 | `void_aerie` | Aerie | Grows Skitters and Gorgons |
 | `void_abyss` | Abyssal Lair | Grows the Leviathan |
+| `void_slime_spire` | Slime Spire | Defence tower: a bony stalk with a slime sac that lobs slime |
 
 ### Neutral
 | id | What it is |

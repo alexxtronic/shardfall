@@ -1,6 +1,6 @@
 shader_type spatial;
 // Fog of war over the ground. vis = in sight now, seen = explored.
-render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
+render_mode unshaded, blend_mix, depth_draw_never, depth_test_disabled, cull_disabled, shadows_disabled;
 
 uniform sampler2D vis : filter_linear, repeat_disable;
 uniform sampler2D seen : filter_linear, repeat_disable;

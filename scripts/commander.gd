@@ -29,6 +29,8 @@ var place_cell: Vector2i = Vector2i.ZERO
 var place_ok: bool = false
 var ghost: Node3D = null
 var ghost_base: MeshInstance3D = null
+var fields: Node3D = null        # power fields shown while placing Ambron buildings
+var fields_rev: int = -1
 var touches: Dictionary = {}
 var multi: bool = false
 var pinch_d: float = 0.0
@@ -553,6 +555,9 @@ func cancel_mode() -> void:
 	if ghost:
 		ghost.queue_free()
 		ghost = null
+	if fields:
+		fields.queue_free()
+		fields = null
 	place_id = ""
 	if mode != M.NONE:
 		mode = M.NONE
@@ -567,6 +572,9 @@ func start_place(bid: String) -> void:
 		_say("Requires %s" % miss, "error")
 		return
 	var bd: Dictionary = Defs.buildings[bid]
+	if Defs.needs_power(bid) and world.relays(pid).is_empty():
+		_say("Build a Power Relay first: its field powers your structures", "error")
+		return
 	if not world.players[pid].can_afford(bd["cost"]):
 		_say("Not enough crystals" if world.players[pid].minerals < int(bd["cost"][0]) else "Not enough Void Slime", "error")
 		return
@@ -655,6 +663,24 @@ func _make_ghost(bid: String) -> void:
 	for mi in inner.find_children("*", "MeshInstance3D", true, false):
 		(mi as MeshInstance3D).material_override = gm
 	ghost.set_meta("gm", gm)
+	# Ambron: show where power reaches
+	if world.players[pid].race == "ambron":
+		if String(bd["slot"]) == "supply":
+			ghost.add_child(Models.power_field(Defs.POWER_RADIUS))
+		_show_fields()
+
+
+func _show_fields() -> void:
+	if fields:
+		fields.queue_free()
+	fields = Node3D.new()
+	fields.name = "PowerFields"
+	world.add_child(fields)
+	fields_rev = world.power_rev
+	for r in world.relays(pid):
+		var f := Models.power_field(Defs.POWER_RADIUS)
+		f.position = Vector3(r.p.x, 0, r.p.y)
+		fields.add_child(f)
 
 
 func _update_ghost() -> void:
@@ -663,6 +689,8 @@ func _update_ghost() -> void:
 	var bd: Dictionary = Defs.buildings[place_id]
 	var sz: int = int(bd["size"])
 	ghost.position = Vector3(place_cell.x + sz * 0.5, 0.05, place_cell.y + sz * 0.5)
+	if fields and fields_rev != world.power_rev:
+		_show_fields()
 	place_ok = world.can_place(pid, place_id, place_cell)
 	var col := Color(0.3, 1, 0.4, 0.45) if place_ok else Color(1, 0.25, 0.2, 0.5)
 	(ghost_base.material_override as StandardMaterial3D).albedo_color = col

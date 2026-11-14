@@ -12,7 +12,8 @@
  ],
  "faces_by_material": {
   "body": 3791,
-  "team": 207
+  "team": 207,
+  "cargo": 276
  },
  "images": [
   [
@@ -23,21 +24,21 @@
    ]
   ],
   [
-   "robotic_crystal_harvester_3d_model_basecolor",
+   "ambron_worker_basecolor",
    [
     1024,
     1024
    ]
   ],
   [
-   "robotic_crystal_harvester_3d_model_normal",
+   "ambron_worker_normal",
    [
     1024,
     1024
    ]
   ],
   [
-   "robotic_crystal_harvester_3d_model_rm",
+   "ambron_worker_rm",
    [
     1024,
     1024
@@ -75,6 +76,6 @@
   "joints": [
    2
   ],
-  "bytes": 512760
+  "bytes": 515476
  }
 }

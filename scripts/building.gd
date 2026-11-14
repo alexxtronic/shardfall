@@ -20,6 +20,13 @@ var slime_node = null          # ResourceNode under an extractor
 var occupant = null            # worker inside an extractor
 var seen: bool = false         # the human has seen it (fog memory)
 var anim_t: float = 0.0
+var needs_power: bool = false  # Ambron: must sit in a Power Relay's field
+var powered: bool = true
+var power_rev: int = -1
+var weapon: Dictionary = {}    # towers
+var cd: float = 0.0
+var target = null
+var facing: float = 0.0
 
 
 func setup(w, id: String, owner: int, c: Vector2i) -> void:
@@ -33,6 +40,10 @@ func setup(w, id: String, owner: int, c: Vector2i) -> void:
 	height = float(def.get("model_h", 3.0))
 	p = Vector2(c.x + size * 0.5, c.y + size * 0.5)
 	position = Vector3(p.x, 0, p.y)
+	needs_power = Defs.needs_power(id)
+	weapon = def.get("weapon", {})
+	if not weapon.is_empty():
+		tags = ["structure"]
 
 
 func is_main() -> bool:
@@ -66,6 +77,10 @@ func step(dt: float) -> void:
 			built = true
 			world.on_building_done(self)
 		return
+	if needs_power and not world.is_powered(self):
+		return
+	if not weapon.is_empty():
+		_defend(dt)
 	if queue.size() > 0:
 		prod_t += dt
 		var ud: Dictionary = Defs.units[queue[0]]
@@ -73,6 +88,24 @@ func step(dt: float) -> void:
 			var uid: String = queue.pop_front()
 			prod_t = 0.0
 			world.spawn_from(self, uid)
+
+
+## Towers: keep shooting the nearest enemy in range.
+func _defend(dt: float) -> void:
+	cd -= dt
+	var r: float = float(weapon["range"])
+	if target != null and (not is_instance_valid(target) or target.dead or dist_to(target.p) - target.radius > r):
+		target = null
+	if target == null:
+		target = world.tower_target(self, r)
+	if target == null:
+		return
+	var d: Vector2 = target.p - p
+	if d.length() > 0.01:
+		facing = atan2(d.x, d.y)
+	if cd <= 0.0:
+		cd = float(weapon["cd"])
+		world.tower_fire(self, target)
 
 
 func queue_progress() -> float:
@@ -109,6 +142,8 @@ func status_text() -> String:
 		return "Building %d%%" % int(progress * 100.0)
 	if queue.size() > 0:
 		return "Training %s %d%%" % [Defs.units[queue[0]]["name"], int(queue_progress() * 100.0)]
+	if needs_power and world and not world.is_powered(self):
+		return "Unpowered: build a Power Relay nearby"
 	if slot == "extractor" and slime_node:
 		return "Void Slime left: %d" % slime_node.amount
 	return ""

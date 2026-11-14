@@ -3,7 +3,7 @@ extends Node
 ## Plays the game by itself in a real window and checks it works.
 ##   Godot --path . --resolution 1280x720 -- --autotest=/tmp/sf_shots [--only=NAME]
 ## Prints PASS/FAIL lines, saves screenshots, ends with AUTOTEST DONE.
-## --only=title|economy|build|army|touch|combat|expand|void|full|models
+## --only=title|economy|build|army|touch|combat|expand|void|full|models|fx
 
 var out_dir: String = "/tmp/sf_shots"
 var args: PackedStringArray
@@ -96,6 +96,8 @@ func _run() -> void:
 			await _ui(race)
 	if want("models"):
 		await _models()
+	if want("fx"):
+		await _fx()
 	if want("full"):
 		await _full()
 	print("AUTOTEST %d passed, %d failed in %.1f s" % [passes, fails, (Time.get_ticks_msec() - t0) / 1000.0])
@@ -121,13 +123,25 @@ func _title() -> void:
 func _economy() -> void:
 	var w: World = m.world
 	var pl: PlayerState = w.players[0]
-	check(w.units.size() >= 24, "both players start with 12 workers (%d units)" % w.units.size())
+	check(w.units.size() == Defs.START_WORKERS * 2, "both players start with %d workers (%d units)" % [Defs.START_WORKERS, w.units.size()])
 	check(w.buildings.size() == 2, "both players start with a main base")
 	var crystals := 0
 	for r in w.resources:
 		if r.kind == "mineral":
 			crystals += 1
 	check(crystals >= 70 and w.sites.size() == 10, "map has 10 base sites with crystals (%d crystals)" % crystals)
+	# both halves must block alike, or one seat mines and walks faster
+	var n: int = w.grid.size
+	var odd := 0
+	var solid := 0
+	for y in n:
+		for x in n:
+			var a := w.grid.kind_at(Vector2i(x, y)) == 1
+			if a:
+				solid += 1
+			if w.grid.kind_at(Vector2i(x, y)) != w.grid.kind_at(Vector2i(n - 1 - x, n - 1 - y)):
+				odd += 1
+	check(odd == 0 and solid > 0, "the map is point-symmetric: rocks, resources, mains (%d rock cells, %d unmatched)" % [solid, odd])
 	await shot("01_start")
 	var m0 := pl.minerals
 	ff(30.0)
@@ -313,6 +327,18 @@ func _box(a: Vector2, b: Vector2) -> void:
 	await frames(2)
 
 
+func _free_cell(id: String, near: Vector2) -> Variant:
+	var w: World = m.world
+	var sz: int = int(Defs.buildings[id]["size"])
+	for attempt in 260:
+		var a := float(attempt) * 0.7
+		var q := near + Vector2(cos(a), sin(a)) * (3.0 + attempt * 0.06)
+		var c := Vector2i(int(q.x - sz * 0.5), int(q.y - sz * 0.5))
+		if w.grid.rect_free(c - Vector2i(1, 1), Vector2i(sz + 2, sz + 2)) and w.can_place(0, id, c):
+			return c
+	return null
+
+
 func _place(race: String, slot: String, near: Vector2) -> Building:
 	var w: World = m.world
 	var id := Defs.building_id(race, slot)
@@ -330,13 +356,14 @@ func _place(race: String, slot: String, near: Vector2) -> Building:
 				cell = s["cell"]
 				break
 	else:
-		for attempt in 200:
-			var a := float(attempt) * 0.7
-			var q := near + Vector2(cos(a), sin(a)) * (6.0 + attempt * 0.08)
-			var c := Vector2i(int(q.x - sz * 0.5), int(q.y - sz * 0.5))
-			if w.grid.rect_free(c - Vector2i(1, 1), Vector2i(sz + 2, sz + 2)) and w.can_place(0, id, c):
-				cell = c
-				break
+		cell = _free_cell(id, near)
+		if cell == null and Defs.needs_power(id):
+			# Ambron: the field is full, so put up another relay first
+			var rid := Defs.building_id(race, "supply")
+			var rc = _free_cell(rid, near + Vector2(randf_range(-8, 8), randf_range(-8, 8)))
+			if rc != null:
+				w.spawn_building(rid, 0, rc, true)
+				cell = _free_cell(id, near)
 	if cell == null:
 		check(false, "found a spot for %s" % id)
 		return null
@@ -381,8 +408,38 @@ func _build(race: String) -> void:
 		var s0 := pl.slime
 		ff(20.0)
 		check(pl.slime > s0, "Void Slime is harvested (%d -> %d)" % [s0, pl.slime])
+	var bar: Building = null
 	for slot in ["barracks", "factory", "airfield", "special"]:
-		await _place(race, slot, spot)
+		var nb := await _place(race, slot, spot)
+		if slot == "barracks":
+			bar = nb
+	var tower := await _place(race, "tower", spot)
+	check(tower != null and not tower.weapon.is_empty(), "%s: the defence tower is built and armed" % race)
+	if race == "ambron":
+		# power: nothing goes up outside a relay's field
+		var far := Vector2i(int(home.x) + 30, int(home.y) - 30)
+		var err := w.place_error(0, Defs.building_id(race, "barracks"), far)
+		check(err != "" , "ambron: buildings need a relay's power (%s)" % err)
+		check(w.place_error(0, Defs.building_id("ambron", "supply"), _free_cell(Defs.building_id("ambron", "supply"), home + Vector2(9, -9))) == "", "ambron: relays go up anywhere")
+		if bar:
+			check(w.is_powered(bar), "ambron: the barracks is powered")
+			# take its relays away: it loses power and stops training
+			var cells: Array = []
+			for r in w.relays(0):
+				if r.p.distance_to(bar.p) <= Defs.POWER_RADIUS:
+					cells.append(r.cell)
+					r.hp = 0
+					w.kill(r, null)
+			w._cleanup()
+			check(not w.is_powered(bar), "ambron: without a relay the barracks is unpowered")
+			w.queue_unit(bar, Defs.unit_id(race, "infantry"))
+			ff(3.0)
+			check(bar.prod_t == 0.0, "ambron: an unpowered barracks doesn't train")
+			for c in cells:
+				w.spawn_building(Defs.building_id(race, "supply"), 0, c, true)
+			w.power_rev += 1
+			ff(1.0)
+			check(w.is_powered(bar) and bar.prod_t > 0.0, "ambron: power back, training resumes")
 	m.rig.look_at_ground(spot)
 	m.rig.dist = 40.0
 	await frames(4)
@@ -414,9 +471,10 @@ func _army(race: String) -> void:
 			continue
 		m.cmd.set_selection([b])
 		await frames(2)
+		var q0 := b.queue.size()
 		for uid in b.produces():
 			m.cmd.action("train:%s" % uid)
-		check(b.queue.size() == b.produces().size(), "%s queues its units" % b.def["name"])
+		check(b.queue.size() - q0 == b.produces().size(), "%s queues its units (%d -> %d)" % [b.def["name"], q0, b.queue.size()])
 	ff(140.0)
 	for slot in Defs.UNIT_SLOTS:
 		var id := Defs.unit_id(race, slot)
@@ -504,6 +562,16 @@ func _ui(race: String) -> void:
 	var pl: PlayerState = w.players[0]
 	pl.minerals = 2000
 	pl.slime = 1000
+	if race == "ambron":
+		# Ambron needs a relay's field before anything else goes up
+		var home: Vector2 = w.sites[pl.start_site]["center"]
+		var away: Vector2 = -(w.sites[pl.start_site]["dir"] as Vector2).normalized()
+		var rid := Defs.building_id(race, "supply")
+		var rc = _free_cell(rid, home + away * 7.0)
+		if rc != null:
+			w.spawn_building(rid, 0, rc, true)
+		m.rig.look_at_ground(home + away * 7.0)
+		await frames(2)
 	m.hud._left_action("build_menu")
 	await frames(4)
 	check(m.hud.card.get_child_count() >= 7, "%s: BUILD opens the build menu (%d cards)" % [race, m.hud.card.get_child_count()])
@@ -555,6 +623,66 @@ func _models() -> void:
 	m.rig.look_at_ground(Vector2(56, 64))
 	m.rig.dist = 26.0
 	await shot("30_units")
+	# every building of both races in two rows
+	for u in w.units.duplicate():
+		w.kill(u, null)
+	var by := {"ambron": 58, "void": 70}
+	for race in ["ambron", "void"]:
+		var x := 34
+		for slot in Defs.BUILDING_SLOTS:
+			var id := Defs.building_id(race, slot)
+			var sz: int = int(Defs.BUILDING_SLOTS[slot]["size"])
+			var b = w.spawn_building(id, 0 if race == "ambron" else 1, Vector2i(x, by[race] - sz / 2), true)
+			check(b != null, "%s spawns for the lineup" % id)
+			x += sz + 2
+	w.fog.update()
+	w._sync_visuals(0.016)
+	await frames(3)
+	m.rig.look_at_ground(Vector2(52, 64))
+	m.rig.dist = 30.0
+	await shot("31_buildings")
+	m.rig.look_at_ground(Vector2(44, 62))
+	m.rig.dist = 16.0
+	await shot("32_buildings_close")
+
+
+## Towers and Void weapons in action, close up, in real time.
+func _fx() -> void:
+	await start(["ambron", "void"], false)
+	var w: World = m.world
+	w.fog.enabled = false
+	var c := Vector2(72, 84)
+	var at := w.spawn_building("ambron_arc_tower", 0, Vector2i(int(c.x) - 5, int(c.y) - 1), true)
+	w.spawn_building("ambron_relay", 0, Vector2i(int(c.x) - 8, int(c.y) + 2), true)
+	var vs := w.spawn_building("void_slime_spire", 1, Vector2i(int(c.x) + 4, int(c.y) - 1), true)
+	check(at.weapon.size() > 0 and vs.weapon.size() > 0, "both towers are armed")
+	var hp0: float = vs.hp
+	var hpa: float = at.hp
+	for i in 5:
+		w.spawn_unit("ambron_lancer", 0, c + Vector2(-3, -3 + i * 1.4))
+		w.spawn_unit("void_spitter", 1, c + Vector2(2, -3 + i * 1.4))
+	for i in 2:
+		w.spawn_unit("void_spinefiend", 1, c + Vector2(4.5, -1 + i * 2.5))
+		w.spawn_unit("void_mauler", 1, c + Vector2(3, -2 + i * 3.0))
+		w.spawn_unit("ambron_bulwark", 0, c + Vector2(-2, -2 + i * 3.0))
+	w.spawn_unit("void_acidback", 1, c + Vector2(3.5, 3.5))
+	w.fog.update()
+	m.rig.look_at_ground(c)
+	m.rig.dist = 15.0
+	w.running = true
+	var shots_taken := 0
+	for k in 70:
+		await frames(1)
+		if k in [25, 40, 55, 69]:
+			await shot("60_fx_%d" % shots_taken)
+			shots_taken += 1
+	ff(4.0)
+	check(vs.hp < hp0 or vs.dead or at.hp < hpa or at.dead, "towers take part in the fight")
+	var tower_hit := false
+	for u in w.units:
+		if u.hp < u.max_hp:
+			tower_hit = true
+	check(tower_hit, "units take damage in the tower fight")
 
 
 func _full() -> void:

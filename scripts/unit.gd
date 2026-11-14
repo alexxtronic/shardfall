@@ -240,6 +240,9 @@ func _step_amove(dt: float) -> void:
 		target = world.find_target(self, sight)
 		if target:
 			return
+	# a fight in range clears the path: pick the march back up afterwards
+	if path.size() == 0 and p.distance_to(goal) > arrive_tol + 0.6:
+		set_goal(goal)
 	if _follow(dt):
 		_arrive()
 
@@ -395,16 +398,25 @@ func _slide(delta: Vector2) -> void:
 		p = p.clamp(Vector2(1, 1), Vector2(world.grid.size - 1, world.grid.size - 1))
 		return
 	var np := p + delta
-	if world.grid.walkable_p(np):
+	if ground_ok(np):
 		p = np
 		return
 	var nx := Vector2(p.x + delta.x, p.y)
-	if world.grid.walkable_p(nx):
+	if ground_ok(nx):
 		p = nx
 		return
 	var nz := Vector2(p.x, p.y + delta.y)
-	if world.grid.walkable_p(nz):
+	if ground_ok(nz):
 		p = nz
+
+
+## A ground unit may stand at q: the cell is open and its body doesn't
+## overlap a rock (unless it already does, so it can always work free).
+func ground_ok(q: Vector2) -> bool:
+	if not world.grid.walkable_p(q):
+		return false
+	var pr := minf(radius * 0.8, 0.45)
+	return world.grid.clear_of_rock(q, pr) or not world.grid.clear_of_rock(p, pr)
 
 
 # ---------------------------------------------------------------- workers

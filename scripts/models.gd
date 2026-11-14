@@ -130,13 +130,43 @@ static func tint_team(root: Node, col: Color) -> void:
 				var key := "%d_%s" % [m.get_instance_id(), col.to_html()]
 				if not team_mats.has(key):
 					var nm := (m as StandardMaterial3D).duplicate() if m is StandardMaterial3D else StandardMaterial3D.new()
-					nm.albedo_color = col
 					nm.emission_enabled = true
 					nm.emission = col
-					# flat team lights glow; textured team areas (Void bone) are tinted, with a faint glow
-					nm.emission_energy_multiplier = 0.15 if nm.albedo_texture else 0.6
+					if nm.albedo_texture:
+						# textured team areas (Void bone) keep their own colour and take a light wash
+						nm.albedo_color = Color.WHITE.lerp(col, 0.22)
+						nm.emission_energy_multiplier = 0.03
+					else:
+						# flat team lights glow in the player colour
+						nm.albedo_color = col
+						nm.emission_energy_multiplier = 0.6
 					team_mats[key] = nm
 				m3.set_surface_override_material(i, team_mats[key])
+
+
+static var cool_mats: Dictionary = {}
+
+
+## Void flesh is crimson in the source art; pull it toward violet so the
+## swarm reads purple and the team colour stays legible.
+static func cool_void(root: Node) -> void:
+	for mi in root.find_children("*", "MeshInstance3D", true, false):
+		var m3: MeshInstance3D = mi
+		if m3.mesh == null:
+			continue
+		for i in m3.mesh.get_surface_count():
+			var m: Material = m3.get_active_material(i)
+			if m == null or not (m is StandardMaterial3D):
+				continue
+			var nm := m.resource_name.to_lower()
+			if nm.begins_with("team") or nm.begins_with("glow"):
+				continue
+			var key := m.get_instance_id()
+			if not cool_mats.has(key):
+				var c := (m as StandardMaterial3D).duplicate() as StandardMaterial3D
+				c.albedo_color = c.albedo_color * Color(0.78, 0.8, 1.0)
+				cool_mats[key] = c
+			m3.set_surface_override_material(i, cool_mats[key])
 
 
 static func _anim_player(root: Node) -> AnimationPlayer:
@@ -158,6 +188,8 @@ static func attach_unit(w, u) -> void:
 		inner = ps.instantiate()
 		holder.add_child(inner)
 		fit(inner, float(u.def["model_w"]), float(u.def["model_h"]))
+		if race == "void":
+			cool_void(inner)
 		tint_team(inner, u.team_color())
 	else:
 		inner = Node3D.new()
@@ -194,13 +226,14 @@ static func attach_unit(w, u) -> void:
 		gem.visible = false
 		holder.add_child(gem)
 		u.set_meta("gem", gem)
+		# a model may carry its own crystals (a node named cargo): shown only while carrying them
+		var cargo := inner.find_children("cargo*", "MeshInstance3D", true, false)
+		if cargo.size() > 0:
+			u.set_meta("cargo", cargo[0])
+			(cargo[0] as Node3D).visible = false
 	u.make_ring(u.radius, Color(0.3, 1.0, 0.45, 0.9))
-	u.make_team_disc(u.radius * 0.95)
-	if u.is_air:
-		if u.ring:
-			u.ring.position.y = -u.fly + 0.06
-		if u.team_disc:
-			u.team_disc.position.y = -u.fly + 0.03
+	if u.is_air and u.ring:
+		u.ring.position.y = -u.fly + 0.06
 	if u.shown == false:
 		u.visible = false
 
@@ -317,7 +350,10 @@ static func animate_unit(u, delta: float) -> void:
 	var model: Node3D = u.visual
 	if u.has_meta("gem"):
 		var gem: MeshInstance3D = u.get_meta("gem")
-		gem.visible = u.carry > 0
+		var has_cargo: bool = u.has_meta("cargo")
+		if has_cargo:
+			(u.get_meta("cargo") as Node3D).visible = u.carry > 0 and u.carry_kind == "mineral"
+		gem.visible = u.carry > 0 and not (has_cargo and u.carry_kind == "mineral")
 		if gem.visible:
 			gem.material_override = mat(Color(1.0, 0.78, 0.2), 1.2, 0.3) if u.carry_kind == "mineral" else mat(Color(0.55, 0.25, 0.95), 1.5, 0.2)
 			gem.rotation.y = t * 2.0
@@ -405,8 +441,53 @@ static func attach_building(w, b) -> void:
 	if floaty.size() > 0:
 		b.set_meta("floaty", floaty[0])
 		b.set_meta("floaty_y", (floaty[0] as Node3D).position.y)
+	var tur := inner.find_children("turret*", "Node3D", true, false)
+	if tur.size() > 0:
+		b.set_meta("turret", tur[0])
 	b.make_ring(sz * 0.62, Color(0.3, 1.0, 0.45, 0.9))
-	b.make_team_disc(sz * 0.5, 0.12)
+
+
+static var field_mats: Array = []
+
+
+## The power field of an Ambron relay: a faint disc with a bright rim.
+static func power_field(r: float) -> Node3D:
+	if field_mats.is_empty():
+		var fill := StandardMaterial3D.new()
+		fill.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fill.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fill.albedo_color = Color(0.35, 0.85, 1.0, 0.13)
+		fill.no_depth_test = false
+		var rim := fill.duplicate()
+		rim.albedo_color = Color(0.5, 0.92, 1.0, 0.75)
+		field_mats = [fill, rim]
+	var root := Node3D.new()
+	root.name = "PowerField"
+	var disc := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r
+	cm.bottom_radius = r
+	cm.height = 0.02
+	cm.radial_segments = 48
+	cm.rings = 1
+	disc.mesh = cm
+	disc.material_override = field_mats[0]
+	disc.position.y = 0.06
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(disc)
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = r - 0.09
+	tm.outer_radius = r + 0.09
+	tm.rings = 64
+	tm.ring_segments = 4
+	ring.mesh = tm
+	ring.scale = Vector3(1, 0.3, 1)
+	ring.position.y = 0.08
+	ring.material_override = field_mats[1]
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(ring)
+	return root
 
 
 static func _placeholder_building(root: Node3D, slot: String, race: String, sz: float, h: float, team: Color) -> void:
@@ -429,6 +510,17 @@ static func _placeholder_building(root: Node3D, slot: String, race: String, sz: 
 				_cyl(root, 0.15, 0.45, h * 0.8, body, Vector3(0, h * 0.4 + 0.2, 0), Vector3.ZERO, 4)
 				var fl := _sphere(root, 0.25, glow, Vector3(0, h + 0.2, 0), Vector3(0.8, 1.3, 0.8))
 				fl.name = "float_crystal"
+			"tower":
+				_cyl(root, s * 0.32, s * 0.45, h * 0.7, body, Vector3(0, h * 0.35 + 0.2, 0), Vector3.ZERO, 6)
+				_cyl(root, s * 0.36, s * 0.36, 0.12, tm, Vector3(0, h * 0.55, 0), Vector3.ZERO, 6)
+				var head := Node3D.new()
+				head.name = "turret"
+				head.position = Vector3(0, h * 0.9, 0)
+				root.add_child(head)
+				_sphere(head, 0.42, glow, Vector3.ZERO)
+				for i in 3:
+					var a := TAU * i / 3.0
+					_cyl(head, 0.03, 0.08, 0.9, trim, Vector3(cos(a) * 0.45, 0.2, sin(a) * 0.45), Vector3(sin(a) * 0.4, 0, -cos(a) * 0.4), 5)
 			"extractor":
 				_cyl(root, s * 0.35, s * 0.42, h * 0.6, dark, Vector3(0, h * 0.3 + 0.2, 0), Vector3.ZERO, 10)
 				_cyl(root, s * 0.2, s * 0.2, 0.3, mat(Color(0.6, 0.3, 1.0), 2.0), Vector3(0, h * 0.62 + 0.2, 0))
@@ -457,6 +549,18 @@ static func _placeholder_building(root: Node3D, slot: String, race: String, sz: 
 				for i in 4:
 					var a := TAU * i / 4.0
 					_cyl(root, 0.02, 0.08, 1.6, trim, Vector3(cos(a) * 0.55, 0.8, sin(a) * 0.55), Vector3(sin(a) * 0.3, 0, -cos(a) * 0.3), 5)
+			"tower":
+				_cyl(root, s * 0.22, s * 0.42, h * 0.75, body, Vector3(0, h * 0.37, 0), Vector3.ZERO, 9)
+				_sphere(root, s * 0.42, tm, Vector3(0, h * 0.08, 0), Vector3(1, 0.2, 1))
+				var maw := Node3D.new()
+				maw.name = "turret"
+				maw.position = Vector3(0, h * 0.85, 0)
+				root.add_child(maw)
+				_sphere(maw, 0.5, body, Vector3.ZERO, Vector3(1, 0.8, 1.2))
+				_sphere(maw, 0.26, glow, Vector3(0, 0.05, 0.38))
+				for i in 4:
+					var a := TAU * i / 4.0
+					_cyl(maw, 0.0, 0.09, 0.6, trim, Vector3(cos(a) * 0.4, 0.3, sin(a) * 0.4), Vector3(sin(a) * 0.5, 0, -cos(a) * 0.5), 5)
 			"extractor":
 				_cyl(root, s * 0.42, s * 0.48, h * 0.5, body, Vector3(0, h * 0.25, 0), Vector3.ZERO, 12)
 				_cyl(root, s * 0.25, s * 0.25, 0.1, glow, Vector3(0, h * 0.5 + 0.02, 0))
@@ -482,6 +586,10 @@ static func animate_building(b, delta: float) -> void:
 		v.scale = Vector3(0.92 + 0.08 * b.progress, k, 0.92 + 0.08 * b.progress)
 	else:
 		v.scale = Vector3.ONE
+	if b.has_meta("turret"):
+		var tn: Node3D = b.get_meta("turret")
+		if is_instance_valid(tn):
+			tn.rotation.y = lerp_angle(tn.rotation.y, b.facing, minf(1.0, delta * 8.0))
 	if b.has_meta("floaty"):
 		var f: Node3D = b.get_meta("floaty")
 		if is_instance_valid(f):

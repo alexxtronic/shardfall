@@ -32,13 +32,16 @@ The mouse stands in for a finger (one press is one touch). You can also use thes
 
 ## How to play
 
-- **Economy.** Workers harvest golden crystals on their own (5 per trip). Void Slime, the second resource, needs an extractor built on a black slime pile first: the Void Machine for Ambron, the Void Maw for Void. Three workers per extractor saturate it.
+- **Start.** Each side begins with a main base and 6 workers.
+- **Economy.** Workers harvest golden crystals on their own (5 per trip). A worker carries a crystal only while it is bringing one back. Void Slime, the second resource, needs an extractor built on a black slime pile first: the Void Machine for Ambron, the Void Maw for Void. Three workers per extractor saturate it.
 - **Base and production.** Every main base trains workers and is a drop-off. Supply structures raise the supply cap, which tops out at 200. The tech tree runs:
   - main base;
   - infantry building (ranged and heavy infantry);
   - vehicle building, or beast building for Void (flame and missile units);
   - air building (light and heavy flyers);
   - special building (one huge late-game unit).
+- **Ambron power.** Every Ambron structure except the main base, Power Relays and the Void Machine must stand inside a finished Power Relay's field, which shows as a cyan circle while you place a building. An unpowered building stops training and an unpowered tower stops firing until a relay covers it again. Void can build anywhere.
+- **Defence towers.** Once you have an infantry building you can build a tower: the Ambron Arc Tower throws lightning, the Void Slime Spire lobs slime. Both hit ground and air, with the same numbers apart from the usual Void health and fire-rate difference.
 - **Expanding.** Build another main base on any of the 8 open sites. Every site has 8 crystal nodes and 2 slime piles.
 - **Touch controls:**
   - Tap to select. Double-tap or hold a unit to select every unit of that type on screen. Hold, then drag, to draw a selection box.
@@ -85,7 +88,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   /Applications/Godot.app/Contents/MacOS/Godot --path . --resolution 1280x720 -- --autotest=/tmp/shardfall_shots
   ```
 
-  Add `--only=touch,ui` to run selected sections. The sections are `title`, `economy`, `touch`, `build`, `army`, `combat`, `expand`, `void`, `ui`, `models` and `full`.
+  Add `--only=touch,ui` to run selected sections. The sections are `title`, `economy`, `touch`, `build`, `army`, `combat`, `expand`, `void`, `ui`, `models`, `fx` and `full`. `economy` also checks that the map is an exact 180-degree mirror, so neither seat starts ahead.
 - **Balance.** It runs headless and rewrites `docs/BALANCE.md`:
 
   ```bash
@@ -104,7 +107,9 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
 The MVP is playable end to end:
 - race selection, then a full 1v1 against a bot;
 - both resources, with workers that harvest and build;
-- every building and unit of both races;
+- every building and unit of both races, plus a defence tower each;
+- an icon-based interface in Orbitron and Chakra Petch (both OFL, in `assets/fonts`);
+- a rocky alien ground with cracked plates, craters and mounds under the rock walls;
 - expansions, fog of war and a victory screen.
 
 The core units come from Tripo: ChatGPT concept art goes to a Tripo model, then `art/tripo/build.py` decimates it, splits the team and glow materials, rigs it and animates it in Blender (see [art/tripo/README.md](art/tripo/README.md)). The Ambron Harvester is Alex's own Tripo "robot crystal harvester". The buildings, resources and the rest of the art are built procedurally in Blender.

@@ -125,7 +125,7 @@ func _on_over(winner: int) -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
-	var t := UiKit.label("VICTORY" if won else "DEFEAT", 54, UiKit.GOLD if won else UiKit.BAD)
+	var t := UiKit.head("VICTORY" if won else "DEFEAT", 54, UiKit.GOLD if won else UiKit.BAD)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
 	var me: PlayerState = world.players[0]

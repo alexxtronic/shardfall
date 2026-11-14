@@ -25,7 +25,6 @@ var sight: float = 8.0
 
 var visual: Node3D
 var ring: MeshInstance3D
-var team_disc: MeshInstance3D
 var selected: bool = false
 var shown: bool = true              # visible to the human player (fog)
 var last_damaged: float = -100.0
@@ -99,41 +98,6 @@ func make_ring(r: float, col: Color) -> void:
 	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	ring.visible = false
 	add_child(ring)
-
-
-static var disc_mats: Dictionary = {}
-static var disc_meshes: Dictionary = {}
-
-
-## A faint disc in the player colour under the entity. Materials and meshes
-## are shared so thousands of units still batch.
-func make_team_disc(r: float, alpha: float = 0.28) -> void:
-	if world == null or not world.visuals or owner_id < 0:
-		return
-	team_disc = MeshInstance3D.new()
-	var rk := snappedf(r, 0.05)
-	if not disc_meshes.has(rk):
-		var cm := CylinderMesh.new()
-		cm.top_radius = rk
-		cm.bottom_radius = rk
-		cm.height = 0.02
-		cm.radial_segments = 24
-		cm.rings = 1
-		disc_meshes[rk] = cm
-	team_disc.mesh = disc_meshes[rk]
-	team_disc.position.y = 0.03
-	var c := team_color()
-	var key := "%s_%.2f" % [c.to_html(false), alpha]
-	if not disc_mats.has(key):
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		c.a = alpha
-		m.albedo_color = c
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		disc_mats[key] = m
-	team_disc.material_override = disc_mats[key]
-	team_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(team_disc)
 
 
 func race_pitch() -> float:

@@ -34,6 +34,16 @@ Both races must have identical power per resource spent. Never give one race a u
    - **Tripo:** organic creatures and character units (`art/tripo/README.md`).
    - **Blender:** fitting, rigging and animating Tripo models, plus any finishing pass on a Kiln GLB (splitting team and glow materials, applying the triangle budget).
 3. **Kiln models follow the art contract below.** Kiln is Y-up like glTF, so a Kiln model stands on y = 0 and faces +Z. That is the same as Blender's −Y front.
+4. **Buildings (Alex, 2026-11-14).** Every building of both races gets its own ChatGPT inspiration image, made in Alex's Chrome. Kiln then builds it to match that image as closely as possible: silhouette, proportions, colours and details. Compare the Kiln renders side by side with the image before exporting.
+
+## Gameplay rules (Alex, 2026-11-14)
+
+- **Start:** each player begins with 6 workers (`Defs.START_WORKERS`).
+- **Ambron power:** every Ambron structure except the main base, relays and extractors must stand inside a finished Power Relay's field (`Defs.POWER_RADIUS`, like a Protoss pylon).
+  - An unpowered building stops training, and an unpowered tower stops firing.
+  - Void has no placement limit.
+- **Towers:** both races get a defence tower in the shared `tower` slot: the Ambron Arc Tower (lightning) and the Void Slime Spire (slime). Their numbers are identical apart from the usual Void HP and cooldown multipliers.
+- **Rocks:** the map generator places every rock model first and marks the cells under it solid, so what you see is what blocks. Ground units also keep their body clear of rock cells.
 
 ## Art contract
 

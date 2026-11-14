@@ -293,9 +293,42 @@ func _full_game(races: Array, s: int) -> Array:
 			_timeline(w)
 	var winner := w.winner if w.over else -1
 	var tt := w.time
+	if verbose and not w.over:
+		_stall_report(w)
 	print("full game %d: %s vs %s -> %s at %s (P1 made %d, P2 made %d; gathered %d / %d)" % [s, races[0], races[1], str(winner), UiKit.fmt_time(tt), w.players[0].units_made, w.players[1].units_made, w.players[0].gathered_m, w.players[1].gathered_m])
 	w.queue_free()
 	return [winner, tt]
+
+
+## Why a game stalled: what each side still has, where, and what the bots chase.
+func _stall_report(w: World) -> void:
+	for pl in w.players:
+		var cells: Array = []
+		for b in w.buildings:
+			if b.owner_id == pl.id and not b.dead:
+				var reach := w.grid.find_path(w.grid.nearest_walkable(Vector2(72, 72)), w.grid.nearest_walkable(b.p + Vector2(0, b.size * 0.5 + 1.0))).size() > 0
+				cells.append("%s@%s%s%s" % [b.slot, str(b.cell), "" if b.built else "(unbuilt)", "" if reach else "(UNREACHABLE)"])
+		print("P%d buildings: %s" % [pl.id + 1, ", ".join(cells)])
+		var c := Vector2.ZERO
+		var n := 0
+		var stuck := 0
+		for u in w.units:
+			if u.owner_id == pl.id and not u.dead and not u.is_worker:
+				c += u.p
+				n += 1
+				if u.moving and u.order != Unit.O.IDLE:
+					stuck += 1
+		if n > 0:
+			print("P%d army %d at %s (moving %d)" % [pl.id + 1, n, str((c / n).round()), stuck])
+			var k := 0
+			for u in w.units:
+				if u.owner_id == pl.id and not u.dead and not u.is_worker and k < 10:
+					k += 1
+					var pr := minf(u.radius * 0.8, 0.45)
+					print("   %s p%s order %d moving %s path %d/%d goal %s rockclear %s target %s" % [u.def_id, str(u.p.snapped(Vector2(0.1, 0.1))), u.order, str(u.moving), u.path_i, u.path.size(), str(u.goal.round()), str(w.grid.clear_of_rock(u.p, pr)), str(u.target)])
+	for ai in w.ais:
+		var t = ai.attack_target
+		print("bot P%d state %s target %s" % [ai.pid + 1, ai.state, (str(t.slot) + "@" + str(t.cell)) if t and is_instance_valid(t) else "none"])
 
 
 func _timeline(w: World) -> void:

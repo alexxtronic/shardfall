@@ -7,9 +7,9 @@ extends Node
 ## in waves that grow over time.
 
 const LEVELS := {
-	"easy": {"think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6},
-	"normal": {"think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0},
-	"hard": {"think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8},
+	"easy": {"towers": 0, "think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6},
+	"normal": {"towers": 1, "think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0},
+	"hard": {"towers": 2, "think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8},
 }
 
 var world
@@ -29,6 +29,7 @@ var base_dir: Vector2
 var mix_flip: int = 0
 var stats := {}
 var reserve: Array = [0, 0]
+var _want_q: Vector2 = Vector2.ZERO   # where the last building was wanted
 
 
 func _ready() -> void:
@@ -242,6 +243,8 @@ func _tech(pl: PlayerState, workers: Array, mains: Array, active: Array) -> void
 		want = "special"
 	elif _free_slime_near_mains() > 0 and _live_extractors() < active.size() * 2 and t > 240.0 * td and pl.slime < 600:
 		want = "extractor"
+	elif world.has_built(pid, bid("barracks")) and t > 200.0 * td and _count("tower") < int(cfg["towers"]) * maxi(1, mains.size()) and pl.minerals >= 200:
+		want = "tower"
 	else:
 		# more production as the economy grows
 		var nb := active.size()
@@ -383,10 +386,36 @@ func _build(slot: String) -> bool:
 		return false
 	var c = _spot(slot)
 	if c == null:
+		# Ambron: no powered ground left there, so put up a relay first
+		if Defs.needs_power(id) and _pending("supply") == 0 and _unbuilt("supply") == 0 and slot != "supply":
+			return _build_relay_near(_want_q)
 		return false
 	var cell: Vector2i = c
 	var center := Vector2(cell.x + bd["size"] * 0.5, cell.y + bd["size"] * 0.5)
 	var w = _builder(center)
+	if w == null:
+		return false
+	return world.command_build(w, id, cell) == ""
+
+
+func _unbuilt(slot: String) -> int:
+	var n := 0
+	for b in _mine(slot, true):
+		if not b.built:
+			n += 1
+	return n
+
+
+func _build_relay_near(q: Vector2) -> bool:
+	var id := bid("supply")
+	var bd: Dictionary = Defs.buildings[id]
+	if not world.players[pid].can_afford(bd["cost"]):
+		return false
+	var c = world.suggest_spot(pid, id, q)
+	if c == null or _reserved(c):
+		return false
+	var cell: Vector2i = c
+	var w = _builder(Vector2(cell.x + 1, cell.y + 1))
 	if w == null:
 		return false
 	return world.command_build(w, id, cell) == ""
@@ -434,11 +463,18 @@ func _spot(slot: String) -> Variant:
 	if mains.is_empty():
 		return null
 	# home first, then the other bases; build on the side away from the crystals
+	# (towers go toward the choke instead)
 	var tries: Array = []
 	for i in mains.size():
 		var mb: Building = mains[i]
 		var away := base_dir if i == 0 else _away_from_minerals(mb)
-		tries.append(mb.p + away * 7.0)
+		if slot == "tower":
+			var to_rally := (rally - mb.p).normalized() if i == 0 else away
+			away = to_rally
+			tries.append(mb.p + away * (11.0 if i == 0 else 7.0))
+		else:
+			tries.append(mb.p + away * 7.0)
+	_want_q = tries[0]
 	for q in tries:
 		var c = world.suggest_spot(pid, bid(slot), q)
 		if c != null and not _reserved(c):

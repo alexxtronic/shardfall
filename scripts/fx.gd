@@ -25,7 +25,16 @@ const LOOK := {
 	"bile": [Color(0.55, 1.0, 0.2), "", 0.0, 0.0, "beam"],
 	"zap": [Color(0.4, 0.9, 1.0), "", 0.0, 0.0, ""],
 	"bite": [Color(0.6, 1.0, 0.3), "", 0.0, 0.0, ""],
+	"lightning": [Color(0.55, 0.85, 1.0), "", 0.0, 0.0, "zap"],
+	"slime": [Color(0.5, 1.0, 0.2), "ball", 0.2, 1.4, "slime"],
 }
+
+## Void weapons that throw slime, and those that drive bone spikes.
+const SLIMY := ["glob", "bomb", "acid", "bile", "bite", "slime"]
+const SPIKY := ["shard", "spine"]
+const SLIME_COL := Color(0.5, 1.0, 0.2)
+const BONE_COL := Color(0.9, 0.84, 0.7)
+static var bone_mat: StandardMaterial3D
 
 
 static func _shader() -> Shader:
@@ -53,6 +62,29 @@ static func _mesh(kind: String) -> Mesh:
 			cy.height = 3.0
 			cy.radial_segments = 6
 			m = cy
+		"bone_spike":
+			var bs := CylinderMesh.new()
+			bs.top_radius = 0.0
+			bs.bottom_radius = 0.5
+			bs.height = 1.0
+			bs.radial_segments = 5
+			bs.rings = 1
+			if bone_mat == null:
+				bone_mat = StandardMaterial3D.new()
+				bone_mat.albedo_color = BONE_COL
+				bone_mat.roughness = 0.55
+				bone_mat.rim_enabled = true
+				bone_mat.rim = 0.4
+			bs.surface_set_material(0, bone_mat)
+			meshes[kind] = bs
+			return bs
+		"disc":
+			var sd := SphereMesh.new()
+			sd.radius = 1.0
+			sd.height = 2.0
+			sd.radial_segments = 24
+			sd.rings = 4
+			m = sd
 		"beam":
 			var cb := CylinderMesh.new()
 			cb.top_radius = 1.0
@@ -178,9 +210,19 @@ func step(dt: float) -> void:
 				if dir.length() > 0.001:
 					node.look_at(vis + dir, Vector3.UP if absf(dir.normalized().y) < 0.98 else Vector3.RIGHT)
 					node.rotate_object_local(Vector3.RIGHT, -PI / 2)
-				if s["kind"] == "missile" or s["kind"] == "spine":
+				if s["kind"] == "missile":
 					if randf() < 0.6:
 						_flash(vis, Color(0.6, 0.6, 0.65, 0.5), 0.18, 0.4, 0.4)
+				elif s["kind"] == "spine":
+					if randf() < 0.5:
+						_flash(vis, Color(0.75, 0.7, 0.6, 0.35), 0.12, 0.3, 0.5)
+				elif SLIMY.has(s["kind"]):
+					# a wobbling blob that sheds drips as it flies
+					var base: float = LOOK[s["kind"]][2]
+					var wob := sin(float(s["flown"]) * 4.0) * 0.22
+					node.scale = Vector3(base * (1.0 - wob), base * (1.0 + wob), base * (1.0 - wob))
+					if randf() < 0.45:
+						_drip(vis, LOOK[s["kind"]][0])
 		i -= 1
 
 
@@ -195,10 +237,17 @@ func instant(u, t) -> void:
 	var a := _muzzle(u)
 	var b := _aim(t)
 	match kind:
-		"flame", "acid":
+		"flame":
 			_spray(a, b, col)
-		"beam", "bile":
+		"acid":
+			_spray(a, b, col)
+		"beam":
 			_beam(a, b, col, 0.22 if u.slot == "special" else 0.08)
+		"bile":
+			_slime_stream(a, b, col, u.slot == "special")
+		"bite":
+			_flash(b, col, 0.3, 0.12)
+			_burst(b, col, 6, 2.0)
 		_:
 			_flash(b, col, 0.3, 0.12)
 	var snd := String(look[4])
@@ -276,11 +325,175 @@ func impact(at: Vector2, t, kind: String, splash: float) -> void:
 		if not t.shown:
 			return
 	var p3 := Vector3(at.x, y, at.y)
-	if splash > 0.0:
+	var ground := Vector3(at.x, 0.0, at.y)
+	var on_ground: bool = not (t and is_instance_valid(t) and t is Unit and t.is_air)
+	if SLIMY.has(kind):
+		# goo splashes off the target and pools on the ground
+		_flash(p3, look[0], 0.25 + splash * 0.4, 0.3, 2.0)
+		_burst(p3, look[0], 10 + int(splash * 8.0), 3.5)
+		if on_ground and (splash > 0.0 or randf() < 0.35):
+			_puddle(ground, look[0], 0.45 + splash * 0.4, 1.8 + splash)
+		if kind == "bomb" or kind == "slime":
+			Sfx.play_at("slime", at, 0.9)
+	elif SPIKY.has(kind):
+		# bone spikes burst out of the ground under the target
+		_flash(p3, Color(0.95, 0.9, 0.8), 0.18, 0.12)
+		if on_ground:
+			_spikes(ground, 3 if kind == "shard" else 7, 0.5 + splash * 1.2, 0.7 if kind == "shard" else 1.25)
+			Sfx.play_at("spike", at, 1.1 if kind == "shard" else 0.8)
+		else:
+			_burst(p3, BONE_COL, 8, 3.0)
+	elif splash > 0.0:
 		_flash(p3, look[0], splash * 0.5, 0.35, 2.0)
 		_burst(p3, look[0], 14, 3.0)
 	else:
 		_flash(p3, look[0], 0.22, 0.14)
+
+
+## A glowing slime pool that spreads and soaks away.
+func _puddle(at: Vector3, col: Color, size: float, life: float) -> void:
+	if not world.visuals:
+		return
+	var n := _glow_node("disc", Color(col.r * 0.45, col.g * 0.55, col.b * 0.3, 0.32), 1.0)
+	n.position = at + Vector3(randf_range(-0.2, 0.2), 0.04, randf_range(-0.2, 0.2))
+	n.scale = Vector3(size * 0.3, 0.03, size * 0.3)
+	n.rotation.y = randf() * TAU
+	var stretch := randf_range(0.75, 1.0)
+	var tw := create_tween()
+	tw.tween_property(n, "scale", Vector3(size, 0.03, size * stretch), 0.18).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(life * 0.5)
+	tw.tween_method(func(v): if is_instance_valid(n): n.set_instance_shader_parameter("fade", v), 1.0, 0.0, life * 0.5)
+	tw.tween_callback(n.queue_free)
+
+
+## A drop of slime falling from a blob in flight.
+func _drip(at: Vector3, col: Color) -> void:
+	var n := _glow_node("ball", col, 0.06)
+	n.position = at
+	var fall := minf(at.y, 1.2)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(n, "position:y", at.y - fall, 0.35).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(n, "scale", Vector3(0.04, 0.09, 0.04), 0.35)
+	tw.tween_method(func(v): if is_instance_valid(n): n.set_instance_shader_parameter("fade", v), 1.0, 0.0, 0.35)
+	tw.chain().tween_callback(n.queue_free)
+
+
+## Bone spikes that erupt from the ground in a ring, hold, then sink.
+func _spikes(at: Vector3, n: int, r: float, h: float) -> void:
+	for i in n:
+		var a := TAU * float(i) / float(n) + randf() * 0.6
+		var rr := r * (0.35 if i == 0 else randf_range(0.6, 1.0))
+		var pos := at + Vector3(cos(a) * rr, 0.0, sin(a) * rr)
+		var hh := h * randf_range(0.6, 1.1) * (1.35 if i == 0 else 1.0)
+		var mi := MeshInstance3D.new()
+		mi.mesh = _mesh("bone_spike")
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		mi.position = pos
+		var tilt := Vector3(pos.x - at.x, 0, pos.z - at.z).normalized() * 0.45 if i > 0 else Vector3.ZERO
+		mi.rotation = Vector3(tilt.z, randf() * TAU, -tilt.x)
+		var w := hh * 0.32
+		mi.scale = Vector3(w, 0.01, w)
+		var tw := create_tween()
+		tw.tween_interval(randf() * 0.06)
+		tw.tween_property(mi, "scale", Vector3(w, hh, w), 0.07).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.parallel().tween_property(mi, "position:y", pos.y + hh * 0.42, 0.07)
+		tw.tween_interval(0.45)
+		tw.tween_property(mi, "position:y", pos.y - hh * 0.55, 0.35).set_ease(Tween.EASE_IN)
+		tw.tween_callback(mi.queue_free)
+	_burst(at + Vector3(0, 0.2, 0), Color(0.5, 0.42, 0.36), 10, 3.0)
+
+
+## A thick rope of slime that sags between a and b, then rains down.
+func _slime_stream(a: Vector3, b: Vector3, col: Color, big: bool) -> void:
+	var n := 10 if big else 7
+	var size := 0.3 if big else 0.14
+	var sag := a.distance_to(b) * 0.12
+	for i in n + 1:
+		var k := float(i) / float(n)
+		var pos := a.lerp(b, k) + Vector3(0, -sin(k * PI) * sag, 0)
+		var delay := k * 0.1
+		var get_t := get_tree().create_timer(delay)
+		get_t.timeout.connect(func():
+			if not is_instance_valid(self):
+				return
+			_flash(pos, col, size * randf_range(0.8, 1.3), 0.32, 1.3)
+			if randf() < 0.5:
+				_drip(pos, col))
+	Sfx.play_at("slime", Vector2(b.x, b.z), 0.7 if big else 1.0)
+
+
+# ---------------------------------------------------------------- towers
+
+func tower_shot(b, t) -> void:
+	if not (b.shown or t.shown):
+		return
+	var kind: String = b.def.get("fx", "lightning")
+	var look: Array = LOOK.get(kind, LOOK["lightning"])
+	var top := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) * 1.2, b.p.y)
+	var end := _aim(t)
+	if kind == "lightning":
+		_lightning(top, end, look[0])
+		_flash(top, Color(0.8, 0.95, 1.0), 0.45, 0.15)
+	else:
+		_slime_lob(top, end, look[0])
+	Sfx.play_at(String(look[4]), b.p, 1.0)
+
+
+## A jagged forked bolt from a to b that flickers out.
+func _lightning(a: Vector3, b: Vector3, col: Color) -> void:
+	var pts := _jag(a, b, 7, 0.55)
+	_bolt_path(pts, col, 0.07)
+	# a thinner fork off the middle
+	var mid: Vector3 = pts[3]
+	var off := (b - a).normalized().cross(Vector3.UP).normalized() * randf_range(-1.6, 1.6) + Vector3(0, -0.8, 0)
+	_bolt_path(_jag(mid, mid.lerp(b, 0.5) + off, 3, 0.35), col, 0.035)
+	_flash(b, Color(0.85, 0.97, 1.0), 0.5, 0.18, 2.2)
+	_burst(b, col, 10, 4.0)
+
+
+func _jag(a: Vector3, b: Vector3, n: int, amp: float) -> Array:
+	var pts: Array = [a]
+	for i in range(1, n):
+		var k := float(i) / float(n)
+		var j := Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * amp * sin(k * PI)
+		pts.append(a.lerp(b, k) + j)
+	pts.append(b)
+	return pts
+
+
+func _bolt_path(pts: Array, col: Color, w: float) -> void:
+	for i in pts.size() - 1:
+		var p0: Vector3 = pts[i]
+		var p1: Vector3 = pts[i + 1]
+		var L := p0.distance_to(p1)
+		if L < 0.01:
+			continue
+		var seg := _glow_node("beam", col, 1.0)
+		seg.position = (p0 + p1) * 0.5
+		var dir := (p1 - p0) / L
+		if absf(dir.y) < 0.99:
+			seg.look_at(p1, Vector3.UP)
+			seg.rotate_object_local(Vector3.RIGHT, PI / 2)
+		seg.scale = Vector3(w, L, w)
+		var tw := create_tween()
+		tw.tween_method(func(v): if is_instance_valid(seg): seg.set_instance_shader_parameter("fade", v * (0.6 + 0.4 * sin(v * 40.0))), 1.0, 0.0, 0.22)
+		tw.tween_callback(seg.queue_free)
+
+
+## A fast arc of slime blobs from the spire's mouth to the target.
+func _slime_lob(a: Vector3, b: Vector3, col: Color) -> void:
+	var n := 8
+	var arc := minf(2.2, a.distance_to(b) * 0.25)
+	for i in n + 1:
+		var k := float(i) / float(n)
+		var pos := a.lerp(b, k) + Vector3(0, sin(k * PI) * arc, 0)
+		var timer := get_tree().create_timer(k * 0.12)
+		timer.timeout.connect(func():
+			if is_instance_valid(self):
+				_flash(pos, col, 0.16 + k * 0.1, 0.25, 1.2))
+	_flash(a, col, 0.35, 0.15)
 
 
 func _burst(at: Vector3, col: Color, n: int, spd: float) -> void:

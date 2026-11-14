@@ -10,7 +10,7 @@ extends Node
 
 const MAP_SIZE := 144
 const START_MINERALS := 50
-const START_WORKERS := 12
+const START_WORKERS := 6
 const SUPPLY_MAX := 200
 const MINERAL_PER_TRIP := 5
 const SLIME_PER_TRIP := 4
@@ -19,6 +19,10 @@ const SLIME_TIME := 1.4
 const MINERAL_AMOUNT := 1500
 const SLIME_AMOUNT := 2250
 const SLIME_VALUE := 1.5  # one slime is worth this many minerals when valuing armies
+
+## Ambron structures (other than mains, relays and extractors) must stand in
+## the power field of a finished Power Relay, like a pylon field.
+const POWER_RADIUS := 6.5
 
 const VOID_HP_MULT := 1.15
 const VOID_CD_MULT := 1.15
@@ -99,9 +103,11 @@ const BUILDING_SLOTS := {
 	"factory": {"cost": [150, 100], "time": 43.0, "hp": 1250.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["vehicle_flame", "vehicle_missile"], "requires": ["barracks"], "model_h": 3.2},
 	"airfield": {"cost": [150, 100], "time": 36.0, "hp": 1300.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["air_light", "air_heavy"], "requires": ["factory"], "model_h": 3.4},
 	"special": {"cost": [150, 150], "time": 50.0, "hp": 1000.0, "armor": 1.0, "size": 4, "supply": 0, "sight": 9.0, "produces": ["special"], "requires": ["airfield"], "model_h": 5.0},
+	"tower": {"cost": [125, 0], "time": 32.0, "hp": 450.0, "armor": 1.0, "size": 2, "supply": 0, "sight": 10.0, "produces": [], "requires": ["barracks"], "model_h": 3.2,
+		"weapon": {"dmg": 14.0, "cd": 1.0, "range": 7.0, "ground": true, "air": true, "splash": 0.0, "bonus": {}, "proj": 0.0}},
 }
 
-const BUILD_ORDER := ["main", "supply", "extractor", "barracks", "factory", "airfield", "special"]
+const BUILD_ORDER := ["main", "supply", "extractor", "barracks", "tower", "factory", "airfield", "special"]
 
 ## Race-specific names and looks for each slot.
 const RACE_UNITS := {
@@ -136,6 +142,7 @@ const RACE_BUILDINGS := {
 		"factory": {"id": "ambron_forge", "name": "Mech Forge", "desc": "Builds Scorchers and Hailfires."},
 		"airfield": {"id": "ambron_skyport", "name": "Skyport", "desc": "Builds Darts and Monoliths."},
 		"special": {"id": "ambron_spire", "name": "Apex Spire", "desc": "Builds the Sovereign."},
+		"tower": {"id": "ambron_arc_tower", "name": "Arc Tower", "fx": "lightning", "desc": "Defence tower. Strikes air and ground with lightning."},
 	},
 	"void": {
 		"main": {"id": "void_hive", "name": "Hive Heart", "desc": "Main base. Spawns Drudges, takes in resources."},
@@ -145,6 +152,7 @@ const RACE_BUILDINGS := {
 		"factory": {"id": "void_warren", "name": "Beast Warren", "desc": "Grows Acidbacks and Spinefiends."},
 		"airfield": {"id": "void_aerie", "name": "Aerie", "desc": "Grows Skitters and Gorgons."},
 		"special": {"id": "void_abyss", "name": "Abyssal Lair", "desc": "Grows the Leviathan."},
+		"tower": {"id": "void_slime_spire", "name": "Slime Spire", "fx": "slime", "desc": "Defence tower. Spits slime at air and ground."},
 	},
 }
 
@@ -187,8 +195,12 @@ func _build() -> void:
 			d["race"] = race
 			d["slot"] = slot
 			d["kind"] = "building"
+			d["fx"] = r.get("fx", "")
 			if race == "void":
 				d["hp"] = roundf(float(d["hp"]) * VOID_HP_MULT)
+				if d.has("weapon"):
+					var bw: Dictionary = d["weapon"]
+					bw["cd"] = snappedf(float(bw["cd"]) * VOID_CD_MULT, 0.01)
 			# resolve produced unit slots to this race's ids
 			var prod: Array = []
 			for s in d["produces"]:
@@ -230,6 +242,14 @@ func race_building_list(race: String) -> Array:
 	for slot in BUILD_ORDER:
 		out.append(RACE_BUILDINGS[race][slot]["id"])
 	return out
+
+
+## Ambron structures that need a relay's power field.
+func needs_power(id: String) -> bool:
+	var d := get_def(id)
+	if d.is_empty() or String(d.get("race", "")) != "ambron" or String(d.get("kind", "")) != "building":
+		return false
+	return not (String(d["slot"]) in ["main", "supply", "extractor"])
 
 
 func dps(id: String) -> float:

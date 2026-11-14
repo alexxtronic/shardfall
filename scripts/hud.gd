@@ -42,6 +42,7 @@ func setup(w: World, c: Commander, r: CameraRig) -> void:
 	root = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UiKit.set_race(world.players[pid].race)
 	root.theme = UiKit.make_theme()
 	add_child(root)
 	overlay = Overlay.new()
@@ -76,29 +77,36 @@ func blocks(pos: Vector2) -> bool:
 
 func _top_bar() -> void:
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", UiKit.box(UiKit.BG, UiKit.EDGE, 14))
+	var sb := UiKit.panel_box(14)
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
+	bar.add_theme_stylebox_override("panel", sb)
 	bar.position = Vector2(232, 6)
-	bar.size = Vector2(560, 44)
+	bar.size = Vector2(600, 46)
 	bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	root.add_child(bar)
 	blockers.append(bar)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 18)
+	h.add_theme_constant_override("separation", 14)
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	bar.add_child(h)
-	lbl_min = _res_chip(h, "crystal_a", UiKit.GOLD)
-	lbl_slime = _res_chip(h, "slime_pile", UiKit.SLIME)
-	lbl_supply = _res_chip(h, "", UiKit.TEXT, "⬢")
-	lbl_workers = _res_chip(h, "", UiKit.DIM, "⛏")
-	lbl_time = UiKit.label("00:00", 18, UiKit.DIM)
-	h.add_child(lbl_time)
+	lbl_min = _res_chip(h, "crystal_a", UiKit.GOLD, Color.WHITE)
+	_divider(h)
+	lbl_slime = _res_chip(h, "slime_pile", UiKit.SLIME, Color.WHITE)
+	_divider(h)
+	lbl_supply = _res_chip(h, "ui:supply", UiKit.TEXT, UiKit.accent)
+	_divider(h)
+	lbl_workers = _res_chip(h, "ui:worker", UiKit.DIM, UiKit.DIM)
+	_divider(h)
+	lbl_time = _res_chip(h, "ui:clock", UiKit.DIM, UiKit.DIM)
 	var mb := Button.new()
-	mb.text = "☰"
+	mb.icon = UiKit.icon("ui:menu")
+	mb.expand_icon = true
+	mb.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mb.add_theme_constant_override("icon_max_width", 30)
 	mb.custom_minimum_size = Vector2(64, 52)
 	mb.focus_mode = Control.FOCUS_NONE
-	mb.add_theme_font_size_override("font_size", 26)
 	mb.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	mb.position = Vector2(-74, 6)
 	root.add_child(mb)
 	mb.anchor_left = 1.0
 	mb.anchor_right = 1.0
@@ -110,30 +118,32 @@ func _top_bar() -> void:
 	blockers.append(mb)
 
 
-func _res_chip(parent: Control, icon_id: String, col: Color, glyph: String = "") -> Label:
+func _divider(parent: Control) -> void:
+	var d := ColorRect.new()
+	d.color = Color(1, 1, 1, 0.12)
+	d.custom_minimum_size = Vector2(1, 26)
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var c := CenterContainer.new()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.add_child(d)
+	parent.add_child(c)
+
+
+func _res_chip(parent: Control, icon_id: String, col: Color, tint: Color) -> Label:
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 4)
+	h.add_theme_constant_override("separation", 6)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(h)
-	var tex := UiKit.icon(icon_id) if icon_id != "" else null
+	var tex := UiKit.icon(icon_id)
 	if tex:
-		var tr := TextureRect.new()
-		tr.texture = tex
-		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tr.custom_minimum_size = Vector2(28, 28)
-		h.add_child(tr)
-	else:
-		var sw := ColorRect.new()
-		sw.color = col
-		sw.custom_minimum_size = Vector2(14, 14)
-		if glyph != "":
-			var g := UiKit.label(glyph, 20, col)
-			h.add_child(g)
-		else:
-			var cc := CenterContainer.new()
-			cc.add_child(sw)
-			h.add_child(cc)
-	var l := UiKit.label("0", 20, col)
+		var sz := 28.0 if not icon_id.begins_with("ui:") else 22.0
+		var tr := UiKit.tex_rect(tex, Vector2(sz, sz), tint)
+		var cc := CenterContainer.new()
+		cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cc.add_child(tr)
+		h.add_child(cc)
+	var l := UiKit.head("0", 17, col)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	h.add_child(l)
 	return l
 
@@ -143,18 +153,44 @@ func _left_buttons() -> void:
 	v.position = Vector2(10, 64)
 	v.add_theme_constant_override("separation", 8)
 	root.add_child(v)
-	for spec in [["ARMY", "army"], ["IDLE", "idle"], ["BASE", "base"], ["BUILD", "build_menu"]]:
+	for spec in [["ARMY", "army", "ui:army"], ["IDLE", "idle", "ui:idle"], ["BASE", "base", "ui:base"], ["BUILD", "build_menu", "ui:build"]]:
 		var b := Button.new()
-		b.text = spec[0]
-		b.custom_minimum_size = Vector2(86, 58)
+		b.custom_minimum_size = Vector2(86, 70)
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 17)
+		var col := VBoxContainer.new()
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		col.alignment = BoxContainer.ALIGNMENT_CENTER
+		col.add_theme_constant_override("separation", 2)
+		b.add_child(col)
+		col.add_child(UiKit.tex_rect(UiKit.icon(spec[2]), Vector2(70, 32), UiKit.accent.lerp(Color.WHITE, 0.35)))
+		var t := UiKit.head(spec[0], 12, UiKit.TEXT)
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		t.name = "Title"
+		col.add_child(t)
 		var a: String = spec[1]
 		b.pressed.connect(func(): _left_action(a))
 		v.add_child(b)
 		blockers.append(b)
 		if a == "idle":
 			idle_btn = b
+			# a count badge in the corner
+			var badge := UiKit.head("", 12, Color(0.1, 0.07, 0.02))
+			badge.name = "Badge"
+			badge.add_theme_constant_override("outline_size", 0)
+			var bb := PanelContainer.new()
+			var st := UiKit.box(UiKit.GOLD, UiKit.GOLD, 6, 1)
+			st.content_margin_left = 5
+			st.content_margin_right = 5
+			st.content_margin_top = 0
+			st.content_margin_bottom = 0
+			bb.add_theme_stylebox_override("panel", st)
+			bb.add_child(badge)
+			bb.position = Vector2(56, -6)
+			bb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bb.name = "BadgeBox"
+			bb.visible = false
+			b.add_child(bb)
 
 
 func _left_action(a: String) -> void:
@@ -170,7 +206,7 @@ func _left_action(a: String) -> void:
 
 func _minimap() -> void:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", UiKit.box(UiKit.BG, UiKit.EDGE, 10, 2))
+	p.add_theme_stylebox_override("panel", UiKit.panel_box(10))
 	p.anchor_top = 1.0
 	p.anchor_bottom = 1.0
 	p.offset_left = 8
@@ -229,6 +265,7 @@ func _messages() -> void:
 	msg_box.offset_top = 62
 	msg_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	msg_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	msg_box.add_theme_constant_override("separation", 4)
 	root.add_child(msg_box)
 
 
@@ -244,13 +281,17 @@ func _place_bar() -> void:
 	place_bar.offset_bottom = -200
 	place_bar.add_theme_constant_override("separation", 16)
 	root.add_child(place_bar)
-	for spec in [["✓", "confirm", UiKit.GOOD], ["✕", "cancel", UiKit.BAD]]:
+	for spec in [["ui:confirm", "confirm", UiKit.GOOD], ["ui:cancel", "cancel", UiKit.BAD]]:
 		var b := Button.new()
-		b.text = spec[0]
+		b.icon = UiKit.icon(spec[0])
+		b.expand_icon = true
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.add_theme_constant_override("icon_max_width", 36)
+		b.add_theme_color_override("icon_normal_color", spec[2])
+		b.add_theme_color_override("icon_hover_color", spec[2].lightened(0.3))
+		b.add_theme_color_override("icon_pressed_color", Color.WHITE)
 		b.custom_minimum_size = Vector2(96, 64)
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 30)
-		b.add_theme_color_override("font_color", spec[2])
 		var a: String = spec[1]
 		b.pressed.connect(func(): cmd.action(a))
 		place_bar.add_child(b)
@@ -275,7 +316,7 @@ func _menu() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
 	p.add_child(v)
-	var t := UiKit.label("Paused", 30)
+	var t := UiKit.head("PAUSED", 28, UiKit.accent)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
 	for spec in [["Resume", "resume"], ["Speed: Normal", "speed"], ["Restart", "restart"], ["Surrender", "surrender"], ["Quit to title", "quit"]]:
@@ -336,8 +377,9 @@ func _process(delta: float) -> void:
 			if u.order == Unit.O.IDLE:
 				idle += 1
 	lbl_workers.text = str(workers)
-	idle_btn.text = "IDLE %d" % idle if idle > 0 else "IDLE"
-	idle_btn.add_theme_color_override("font_color", UiKit.GOLD if idle > 0 else UiKit.TEXT)
+	var bb: Control = idle_btn.get_node("BadgeBox")
+	bb.visible = idle > 0
+	(bb.get_node("Badge") as Label).text = str(idle)
 	refresh_t += delta
 	if refresh_t > 0.2:
 		refresh_t = 0.0
@@ -374,10 +416,24 @@ func show_message(text: String, kind: String = "info") -> void:
 		Sfx.play("complete", 1.0, -8.0)
 	# don't stack the same line twice
 	for c in msg_box.get_children():
-		if c is Label and c.text == text:
+		if c.has_meta("text") and c.get_meta("text") == text:
 			c.queue_free()
-	var l := UiKit.label(text, 20, col)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			msg_box.remove_child(c)
+	var l := PanelContainer.new()
+	l.set_meta("text", text)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var st := UiKit.box(Color(0.03, 0.04, 0.07, 0.72), Color(col.r, col.g, col.b, 0.0), 8, 0)
+	st.border_width_left = 3
+	st.border_color = Color(col.r, col.g, col.b, 0.9)
+	st.content_margin_left = 14
+	st.content_margin_right = 14
+	st.content_margin_top = 3
+	st.content_margin_bottom = 3
+	l.add_theme_stylebox_override("panel", st)
+	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var lt := UiKit.label(text, 18, col)
+	lt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_child(lt)
 	msg_box.add_child(l)
 	while msg_box.get_child_count() > 4:
 		msg_box.get_child(0).queue_free()
@@ -435,10 +491,10 @@ func _refresh_card(force: bool) -> void:
 		c.queue_free()
 		card.remove_child(c)
 	if cmd.mode == Commander.M.PLACE:
-		_cmd_button("Cancel", "", [], "cancel")
+		_cmd_button("Cancel", "ui:cancel", [], "cancel")
 		return
 	if cmd.mode in [Commander.M.ATTACK, Commander.M.MOVE, Commander.M.RALLY]:
-		_cmd_button("Cancel", "", [], "cancel")
+		_cmd_button("Cancel", "ui:cancel", [], "cancel")
 		return
 	var race: String = pl.race
 	if card_state == "build" or card_state == "build_free":
@@ -451,7 +507,7 @@ func _refresh_card(force: bool) -> void:
 				b.tooltip_text = "Requires %s" % miss
 			elif not pl.can_afford(bd["cost"]):
 				b.modulate = Color(1, 0.75, 0.75, 0.8)
-		_cmd_button("Back", "", [], "back")
+		_cmd_button("Back", "ui:back", [], "back")
 		return
 	var workers := cmd.own_workers()
 	var army := cmd.own_units(false)
@@ -462,18 +518,18 @@ func _refresh_card(force: bool) -> void:
 			own_b.append(e)
 	if army.size() > 0 or workers.size() > 0:
 		if workers.size() > 0 and army.is_empty():
-			_cmd_button("Build", "", [], "open_build")
-			_cmd_button("Harvest", "crystal_a", [], "gather")
-		_cmd_button("Attack", "", [], "attack")
-		_cmd_button("Move", "", [], "move")
-		_cmd_button("Stop", "", [], "stop")
+			_cmd_button("Build", "ui:build", [], "open_build")
+			_cmd_button("Harvest", "ui:harvest", [], "gather")
+		_cmd_button("Attack", "ui:attack", [], "attack")
+		_cmd_button("Move", "ui:move", [], "move")
+		_cmd_button("Stop", "ui:stop", [], "stop")
 		if army.size() > 0:
-			_cmd_button("Hold", "", [], "hold")
+			_cmd_button("Hold", "ui:hold", [], "hold")
 		return
 	if own_b.size() > 0:
 		var b0: Building = own_b[0]
 		if not b0.built:
-			_cmd_button("Cancel", "", [], "cancel_build")
+			_cmd_button("Cancel", "ui:cancel", [], "cancel_build")
 			return
 		if producers.size() > 0:
 			for uid in b0.produces():
@@ -482,7 +538,7 @@ func _refresh_card(force: bool) -> void:
 				var b := _cmd_button(String(ud["name"]), uid, ud["cost"], "train:%s" % uid, true)
 				if not ok:
 					b.modulate = Color(1, 0.75, 0.75, 0.8)
-			_cmd_button("Rally", "", [], "rally")
+			_cmd_button("Rally", "ui:rally", [], "rally")
 
 
 # ---------------------------------------------------------------- selection panel
@@ -514,7 +570,7 @@ func _refresh_selection(force: bool) -> void:
 	grid.add_theme_constant_override("v_separation", 3)
 	grid.position = Vector2(4, 24)
 	sel_content.add_child(grid)
-	var head := UiKit.label("%d selected" % sel.size(), 15, UiKit.DIM)
+	var head := UiKit.head("%d SELECTED" % sel.size(), 13, UiKit.DIM)
 	head.position = Vector2(6, 0)
 	sel_content.add_child(head)
 	var shown := 0
@@ -556,7 +612,7 @@ func _single(e) -> void:
 	var owner_txt := ""
 	if e.owner_id >= 0 and e.owner_id != pid:
 		owner_txt = "  (enemy)"
-	var t := UiKit.label(name + owner_txt, 20, UiKit.BAD if owner_txt != "" else UiKit.TEXT)
+	var t := UiKit.head(name.to_upper() + owner_txt, 16, UiKit.BAD if owner_txt != "" else UiKit.TEXT)
 	t.position = Vector2(x0, 0)
 	sel_content.add_child(t)
 	if not (e is ResourceNode):

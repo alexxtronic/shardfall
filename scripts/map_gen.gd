@@ -27,9 +27,12 @@ const BLOBS := [
 	[Vector2(84, 104), 3.0],
 	[Vector2(104, 98), 3.5],
 	[Vector2(64, 96), 2.0],
-	[Vector2(30, 98), 2.0],
 	[Vector2(70, 50), 2.5],
 ]
+
+## Rock models' half-extents (x, z) at scale 1, measured from rock_a/b/c.glb.
+const ROCK_EXT := [Vector2(1.42, 1.42), Vector2(1.92, 0.95), Vector2(2.42, 1.42)]
+const KEEP_CLEAR := 10.5
 
 
 static func mirror(v: Vector2, size: int) -> Vector2:
@@ -39,12 +42,13 @@ static func mirror(v: Vector2, size: int) -> Vector2:
 static func build_standard(w) -> void:
 	var size: int = w.grid.size
 	var rock_cells: Dictionary = {}
-	# walls round each main, with one choke facing its natural
-	_ring(rock_cells, SITES[0][0], 16.5, 23.0, -103.0, -77.0, size)
-	_ring(rock_cells, SITES[1][0], 16.5, 23.0, 77.0, 103.0, size)
+	# walls round each main, with one wide choke facing its natural
+	_ring(rock_cells, SITES[0][0], 20.0, 25.5, -110.0, -70.0, size)
 	for b in BLOBS:
 		_blob(rock_cells, b[0], b[1], size)
-		_blob(rock_cells, mirror(b[0], size), b[1], size)
+	# P2's half is P1's turned 180 degrees, cell for cell
+	for c in rock_cells.keys():
+		rock_cells[Vector2i(size - 1 - c.x, size - 1 - c.y)] = true
 	# keep base sites and their resources clear
 	var keep: Array = []
 	for s in SITES:
@@ -53,7 +57,7 @@ static func build_standard(w) -> void:
 		var cp := Vector2(c.x + 0.5, c.y + 0.5)
 		var ok := true
 		for k in keep:
-			if cp.distance_to(k) < 10.5:
+			if cp.distance_to(k) < KEEP_CLEAR:
 				ok = false
 				break
 		if ok:
@@ -61,6 +65,8 @@ static func build_standard(w) -> void:
 	# base sites and resources
 	for i in SITES.size():
 		_make_site(w, i, SITES[i][0], (SITES[i][1] as Vector2).normalized())
+	# rock models, and the cells under them made solid so nothing walks through
+	w.set_meta("rock_spots", _place_rocks(w, keep))
 	if w.visuals:
 		_terrain(w)
 		_rocks_visual(w)
@@ -141,8 +147,9 @@ static func _terrain(w) -> void:
 	var mesh := PlaneMesh.new()
 	var ext := float(size) + 120.0
 	mesh.size = Vector2(ext, ext)
-	mesh.subdivide_width = 2
-	mesh.subdivide_depth = 2
+	# about one vertex per metre, so the shader can raise mounds and swells
+	mesh.subdivide_width = int(ext)
+	mesh.subdivide_depth = int(ext)
 	var mi := MeshInstance3D.new()
 	mi.name = "Ground"
 	mi.mesh = mesh
@@ -157,35 +164,126 @@ static func _terrain(w) -> void:
 	w.set_meta("ground_mask", img)
 
 
-static func _rocks_visual(w) -> void:
+## Pick every rock model's spot, size and turn (seeded, the same with or
+## without visuals), then mark the cells under each one solid. A rock must sit
+## mostly on wall cells, and never on a base site or a resource.
+static func _place_rocks(w, keep: Array) -> Array:
 	var size: int = w.grid.size
-	var spots: Array = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	# one rock per ~2.6 m of rock cells (thinned grid), plus a border ring
+	var out: Array = []
 	for y in range(0, size, 3):
 		for x in range(0, size, 3):
 			var c := Vector2i(x + 1, y + 1)
-			if w.grid.kind_at(c) == 1:
-				var interior := x > 0 and y > 0 and x < size - 3 and y < size - 3
-				if interior:
-					spots.append(Vector2(c.x + 0.5 + rng.randf_range(-0.8, 0.8), c.y + 0.5 + rng.randf_range(-0.8, 0.8)))
+			# P1's half only; every rock gets an exact twin on P2's half
+			if c.x + c.y > size - 1 or (c.x + c.y == size - 1 and c.x > c.y):
+				continue
+			if w.grid.kind_at(c) != 1 or x == 0 or y == 0 or x >= size - 3 or y >= size - 3:
+				continue
+			var v := rng.randi() % 3
+			var yaw := rng.randf() * TAU
+			var sc := rng.randf_range(0.85, 1.3)
+			var hy := rng.randf_range(0.8, 1.3)
+			var q := Vector2(c.x + 0.5 + rng.randf_range(-0.6, 0.6), c.y + 0.5 + rng.randf_range(-0.6, 0.6))
+			for attempt in 3:
+				var cells := _footprint(q, ROCK_EXT[v] * sc, yaw, size)
+				if _fits(w, cells, keep, 0.6):
+					_add_pair(w, out, cells, q, v, yaw, sc, hy, size)
+					break
+				sc *= 0.75
+	# a ring of rocks just outside the map edge: top and left, mirrored to
+	# bottom and right
 	for i in range(-2, size + 3, 4):
-		for e in [Vector2(i, -1.5), Vector2(i, size + 1.5), Vector2(-1.5, i), Vector2(size + 1.5, i)]:
-			spots.append(e + Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1)))
+		for e in [Vector2(i, -1.5), Vector2(-1.5, i)]:
+			var q: Vector2 = e + Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1))
+			var v := rng.randi() % 3
+			var yaw := rng.randf() * TAU
+			var sc := rng.randf_range(0.85, 1.3)
+			var hy := rng.randf_range(0.8, 1.3)
+			var cells := _footprint(q, ROCK_EXT[v] * sc, yaw, size)
+			if not _fits(w, cells, keep, 0.0):
+				sc *= 0.6
+				cells = _footprint(q, ROCK_EXT[v] * sc, yaw, size)
+				if not _fits(w, cells, keep, 0.0):
+					continue
+			_add_pair(w, out, cells, q, v, yaw, sc, hy, size)
+	return out
+
+
+## Places a rock and its twin turned 180 degrees about the map centre. The
+## twin's cells are the mirrored cells, so both halves block exactly alike.
+static func _add_pair(w, out: Array, cells: Array, q: Vector2, v: int, yaw: float, sc: float, hy: float, size: int) -> void:
+	var twin: Array = []
+	for c in cells:
+		twin.append(Vector2i(size - 1 - c.x, size - 1 - c.y))
+	_mark(w, cells)
+	_mark(w, twin)
+	out.append([q, v, yaw, sc, hy])
+	out.append([mirror(q, size), v, yaw + PI, sc, hy])
+
+
+## Map cells a rock covers: an ellipse turned by yaw, a little generous so the
+## visible edge never overhangs a walkable cell.
+static func _footprint(q: Vector2, ext: Vector2, yaw: float, size: int) -> Array:
+	var ex := ext.x * 0.85 + 0.35
+	var ez := ext.y * 0.85 + 0.35
+	var r := maxf(ex, ez)
+	var cs := cos(yaw)
+	var sn := sin(yaw)
+	var out: Array = []
+	for y in range(int(floor(q.y - r)), int(ceil(q.y + r)) + 1):
+		for x in range(int(floor(q.x - r)), int(ceil(q.x + r)) + 1):
+			if x < 0 or y < 0 or x >= size or y >= size:
+				continue
+			var d := Vector2(x + 0.5, y + 0.5) - q
+			# Basis(UP, yaw) maps local (lx, lz) to world; this is its inverse
+			var lx := cs * d.x - sn * d.y
+			var lz := sn * d.x + cs * d.y
+			if (lx * lx) / (ex * ex) + (lz * lz) / (ez * ez) <= 1.0:
+				out.append(Vector2i(x, y))
+	return out
+
+
+static func _fits(w, cells: Array, keep: Array, min_rock: float) -> bool:
+	if cells.is_empty():
+		return true
+	var rock := 0
+	for c in cells:
+		var k: int = w.grid.kind_at(c)
+		if k == 1:
+			rock += 1
+			continue
+		if k != 0:
+			return false
+		var cp := Vector2(c.x + 0.5, c.y + 0.5)
+		for s in keep:
+			if cp.distance_to(s) < KEEP_CLEAR:
+				return false
+	return float(rock) / float(cells.size()) >= min_rock
+
+
+static func _mark(w, cells: Array) -> void:
+	for c in cells:
+		if w.grid.kind_at(c) == 0:
+			w.grid.set_cell(c, 1, null)
+
+
+static func _rocks_visual(w) -> void:
+	var spots: Array = w.get_meta("rock_spots", [])
 	var meshes: Array = [Models.rock_mesh(0), Models.rock_mesh(1), Models.rock_mesh(2)]
 	var per: Array = [[], [], []]
 	for s in spots:
-		per[rng.randi() % 3].append(s)
+		per[int(s[1])].append(s)
 	for v in 3:
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = meshes[v]
 		mm.instance_count = per[v].size()
 		for i in per[v].size():
-			var q: Vector2 = per[v][i]
-			var sc := rng.randf_range(0.8, 1.35)
-			var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * rng.randf_range(0.8, 1.3), sc)), Vector3(q.x, -0.1, q.y))
+			var s: Array = per[v][i]
+			var q: Vector2 = s[0]
+			var sc: float = s[3]
+			var t := Transform3D(Basis(Vector3.UP, float(s[2])).scaled(Vector3(sc, sc * float(s[4]), sc)), Vector3(q.x, -0.1, q.y))
 			mm.set_instance_transform(i, t)
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "Rocks%d" % v

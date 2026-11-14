@@ -45,3 +45,7 @@ art/tripo/review/round2/
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Kiln runtime state: build cache, review runs and lock files (the locks hold local session tokens)
+.kiln/cache/
+.kiln/review/

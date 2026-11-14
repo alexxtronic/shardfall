@@ -41,7 +41,7 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 14)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(v)
-	var t := UiKit.label("SHARDFALL", 72, UiKit.GOLD)
+	var t := UiKit.head("SHARDFALL", 66, UiKit.GOLD)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_constant_override("outline_size", 10)
 	v.add_child(t)
@@ -88,7 +88,7 @@ func _ready() -> void:
 				icons.add_child(cr)
 				continue
 			icons.add_child(tr)
-		var nm := UiKit.label(String(info["name"]).to_upper(), 34, info["accent"])
+		var nm := UiKit.head(String(info["name"]).to_upper(), 32, info["accent"])
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		inner.add_child(nm)
 		var bl := UiKit.label(info["blurb"], 15, UiKit.TEXT)
@@ -204,6 +204,8 @@ func _help(root: Control) -> void:
 		["• BUILD (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm.", 17, UiKit.TEXT],
 		["• Void Slime needs an extractor built on a black slime pile first.", 17, UiKit.TEXT],
 		["• Supply limits your army: build Power Relays (Ambron) or Brood Pods (Void).", 17, UiKit.TEXT],
+		["• Ambron structures must stand inside a Power Relay's field (the blue circle shown while placing).", 17, UiKit.TEXT],
+		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 17, UiKit.TEXT],
 		["• Expand: build a new main base at another crystal field to grow your economy.", 17, UiKit.TEXT],
 		["Tech: main base → infantry → vehicles/beasts → air → special.", 17, UiKit.DIM],
 	]

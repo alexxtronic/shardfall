@@ -34,6 +34,7 @@ var cam = null                   # CameraRig (for alerts)
 var speed_mult: float = 1.0
 var cfg: Dictionary = {}
 var check_victory: bool = true
+var power_rev: int = 0           # bumps whenever a Power Relay finishes or dies
 
 
 func setup(c: Dictionary) -> void:
@@ -136,6 +137,8 @@ func spawn_building(bid: String, pid: int, c: Vector2i, finished: bool) -> Build
 		Models.attach_building(self, b)
 	if finished:
 		b.finish_instantly()
+		if b.slot == "supply":
+			power_rev += 1
 	else:
 		b.start_construction()
 	return b
@@ -252,7 +255,7 @@ func _separate() -> void:
 				share = 0.05
 			var push: Vector2 = d / dist * (mn - dist) * share * 0.6
 			var np: Vector2 = u.p + push
-			if u.is_air or grid.walkable_p(np):
+			if u.is_air or u.ground_ok(np):
 				u.p = np
 
 
@@ -306,6 +309,15 @@ func find_target(u: Unit, r: float):
 		if s < best_s:
 			best_s = s
 			best = v
+	# towers shoot back, so they count as armed targets
+	if can_ground:
+		for b in buildings:
+			if b.dead or b.weapon.is_empty() or b.owner_id == u.owner_id or b.owner_id < 0:
+				continue
+			var d: float = b.dist_to(u.p)
+			if d <= r and d < best_s:
+				best_s = d
+				best = b
 	if best != null or not can_ground:
 		return best
 	for b in buildings:
@@ -316,6 +328,32 @@ func find_target(u: Unit, r: float):
 			best_s = d
 			best = b
 	return best
+
+
+## The nearest enemy unit a tower can hit, armed ones first.
+func tower_target(b: Building, r: float):
+	var w: Dictionary = b.weapon
+	var best = null
+	var best_s := INF
+	for v in units_near(b.p, r + b.size):
+		if v.dead or v.owner_id == b.owner_id or v.owner_id < 0 or v.hidden_inside:
+			continue
+		if (v.is_air and not bool(w["air"])) or (not v.is_air and not bool(w["ground"])):
+			continue
+		var d: float = b.dist_to(v.p) - v.radius
+		if d > r:
+			continue
+		var s := d + (5.0 if (v.is_worker or v.weapon.is_empty()) else 0.0)
+		if s < best_s:
+			best_s = s
+			best = v
+	return best
+
+
+func tower_fire(b: Building, t: Entity) -> void:
+	if visuals:
+		fx.tower_shot(b, t)
+	hit(b.owner_id, b, t, t.p, b.weapon, String(b.def.get("fx", "")))
 
 
 func damage_vs(w: Dictionary, t: Entity) -> float:
@@ -399,6 +437,8 @@ func kill(e: Entity, src: Entity) -> void:
 	elif e is Building:
 		var b: Building = e
 		players[b.owner_id].value_lost += Defs.value_of(b.def_id)
+		if b.slot == "supply":
+			power_rev += 1
 		if b.slot == "extractor" and b.slime_node and is_instance_valid(b.slime_node):
 			var r: ResourceNode = b.slime_node
 			r.extractor = null
@@ -590,6 +630,8 @@ func spawn_from(b: Building, uid: String) -> void:
 
 
 func on_building_done(b: Building) -> void:
+	if b.slot == "supply":
+		power_rev += 1
 	if b.owner_id == human:
 		message.emit("%s complete" % b.def["name"], "done")
 	if b.slot == "extractor":
@@ -610,23 +652,59 @@ func on_building_done(b: Building) -> void:
 # ---------------------------------------------------------------- building placement
 
 func can_place(pid: int, bid: String, c: Vector2i) -> bool:
+	return place_error(pid, bid, c) == ""
+
+
+## Why a building can't go at c, or "" when it can.
+func place_error(pid: int, bid: String, c: Vector2i) -> String:
 	var bd: Dictionary = Defs.buildings[bid]
 	var sz: int = int(bd["size"])
 	if String(bd["slot"]) == "extractor":
 		var r = grid.who_at(c)
-		return r is ResourceNode and r.kind == "slime" and r.cell == c and r.extractor == null and not r.dead
+		if r is ResourceNode and r.kind == "slime" and r.cell == c and r.extractor == null and not r.dead:
+			return ""
+		return "Build it on a slime pile"
 	if not grid.rect_free(c, Vector2i(sz, sz)):
-		return false
+		return "Can't build there"
 	if String(bd["slot"]) == "main":
 		# base sites are laid out by hand, so they are always fine
 		for st in sites:
 			if Vector2i(st["cell"]) == c:
-				return st["taken_by"] < 0
+				return "" if st["taken_by"] < 0 else "Can't build there"
 		var rect := Rect2(Vector2(c), Vector2(sz, sz)).grow(3.0)
 		for r in resources:
 			if not r.dead and rect.intersects(Rect2(Vector2(r.cell), Vector2(r.cells))):
-				return false
-	return true
+				return "Too close to resources"
+	if Defs.needs_power(bid) and not powered_at(pid, Vector2(c.x + sz * 0.5, c.y + sz * 0.5)):
+		return "Must be inside a Power Relay's field"
+	return ""
+
+
+## Ambron power: inside the field of a finished Power Relay.
+func powered_at(pid: int, at: Vector2) -> bool:
+	for b in buildings:
+		if b.owner_id == pid and not b.dead and b.built and b.slot == "supply" and b.p.distance_to(at) <= Defs.POWER_RADIUS:
+			return true
+	return false
+
+
+## Whether a building has the power it needs (cached until a relay changes).
+func is_powered(b: Building) -> bool:
+	if not b.needs_power:
+		return true
+	if b.power_rev != power_rev:
+		b.power_rev = power_rev
+		b.powered = powered_at(b.owner_id, b.p)
+	return b.powered
+
+
+## Finished Power Relays of a player (their fields are drawn while placing).
+func relays(pid: int) -> Array:
+	var out: Array = []
+	for b in buildings:
+		if b.owner_id == pid and not b.dead and b.built and b.slot == "supply" and players[pid].race == "ambron":
+			out.append(b)
+	return out
 
 
 ## The nearest good spot for a building near q: the footprint is free, a
@@ -689,8 +767,9 @@ func command_build(w: Unit, bid: String, c: Vector2i) -> String:
 	var miss := missing_requirement(w.owner_id, bid)
 	if miss != "":
 		return "Requires %s" % miss
-	if not can_place(w.owner_id, bid, c):
-		return "Can't build there"
+	var perr := place_error(w.owner_id, bid, c)
+	if perr != "":
+		return perr
 	var bd: Dictionary = Defs.buildings[bid]
 	var pl: PlayerState = players[w.owner_id]
 	if pl.minerals < int(bd["cost"][0]):
