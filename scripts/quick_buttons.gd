@@ -1,8 +1,8 @@
 class_name QuickButtons
 extends RefCounted
 ## The quick buttons on the battlefield: which ones show and where. The player picks and
-## places them in Settings > Customize buttons (QuickButtonsEditor); they start stacked in
-## the bottom-left corner, where the left thumb rests.
+## places them in Settings > Customize buttons (QuickButtonsEditor); they start on the left
+## edge, where the left thumb rests (see default_layout).
 ##
 ## A layout is an Array of {id, ax, ay, x, y}: the button's top-left corner is (x, y) pixels
 ## from the screen corner (ax, ay), each 0 or 1, inside the phone's safe area. Anchoring to
@@ -58,14 +58,17 @@ static func spec(id: String, race: String) -> Dictionary:
 	return {}
 
 
-## BASE, BUILDINGS and ARMY in a column in the bottom-left corner, ARMY at the bottom.
+## The layout a new player starts with: Alex's own, from his phone (2026-11-15). On the left
+## edge, where the thumb rests: GROUND and AIR side by side, ARMY and BUILDINGS below them,
+## and BASE at the bottom, just above the selection panel's row.
 static func default_layout() -> Array:
-	var out: Array = []
-	var order := ["base", "buildings", "army"]
-	for i in order.size():
-		var from_bottom := order.size() - i
-		out.append({"id": order[i], "ax": 0, "ay": 1, "x": MARGIN, "y": -MARGIN - from_bottom * SIZE.y - (from_bottom - 1) * GAP})
-	return out
+	return [
+		{"id": "base", "ax": 0, "ay": 1, "x": 0.0, "y": -148.0},
+		{"id": "buildings", "ax": 0, "ay": 1, "x": 124.0, "y": -244.0},
+		{"id": "army", "ax": 0, "ay": 1, "x": 0.0, "y": -244.0},
+		{"id": "ground", "ax": 0, "ay": 0, "x": 0.0, "y": 296.0},
+		{"id": "air", "ax": 0, "ay": 0, "x": 124.0, "y": 296.0},
+	]
 
 
 ## The saved layout, or the default when there is none.

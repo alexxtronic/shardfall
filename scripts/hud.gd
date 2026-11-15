@@ -194,7 +194,7 @@ func _res_chip(parent: Control, icon_id: String, col: Color, tint: Color, icon_s
 
 
 ## The quick buttons, from the player's layout (Settings > Customize buttons). By default
-## BASE, BUILDINGS and ARMY sit in the bottom-left corner where the left thumb rests.
+## The quick buttons start on the left edge where the left thumb rests (QuickButtons.default_layout).
 func _quick_buttons() -> void:
 	for b in quick_btns:
 		blockers.erase(b)

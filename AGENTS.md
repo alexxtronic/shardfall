@@ -99,7 +99,7 @@ Animated units carry an armature with `idle_loop`, `walk_loop` (or `fly_loop` fo
 
 ## Controls (Alex, 2026-11-15)
 
-- **Layout:** the minimap sits in the top-right corner. The quick buttons start in the bottom-left corner (BASE, BUILDINGS, ARMY, with ARMY at the bottom), where the left thumb rests.
+- **Layout:** the minimap sits in the top-right corner. The quick buttons start on the left edge, where the left thumb rests, in the layout Alex made on his own phone and asked to be the default (2026-11-15): GROUND and AIR, then ARMY and BUILDINGS, then BASE (`QuickButtons.default_layout`).
 - **Quick buttons are the player's:** Settings > Customize buttons adds, removes and moves them, saved in Prefs `quick_buttons` (`QuickButtons.layout()`). Never hard-code their position; `QuickButtonsEditor.zones()` must keep matching the HUD's fixed panels.
 - **Orders (Alex, 2026-11-15):** a tap or a hold on the ground is a plain move: units don't fight on the way and fight again once they stop. Attack-move is the Attack button, then a tap. A tap on an enemy focuses it, and the overlay rings every enemy the player's units were told to attack in red.
 - **Hold to choose (Alex, 2026-11-15):** with units selected, a hold on the ground shows a green MOVE and a red ATTACK target beside the finger (`Commander.order_spot`); letting go on one gives that order at the held spot. Anywhere else the hold is still a box select.

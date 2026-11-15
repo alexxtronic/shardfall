@@ -2,7 +2,7 @@ class_name QuickButtonsEditor
 extends Control
 ## Settings > Customize buttons: lay out the quick buttons on a full-screen picture of the
 ## battlefield. Drag a button anywhere; tap a name in the list to add or remove it; Reset
-## puts BASE, BUILDINGS and ARMY back in the bottom-left corner. Every change is saved at
+## puts the starting five back (GROUND, AIR, ARMY, BUILDINGS, BASE on the left edge). Every change is saved at
 ## once (Prefs "quick_buttons") and a running match rebuilds its buttons to match.
 
 var area: Rect2                  # the safe area, where the HUD lives

@@ -622,7 +622,13 @@ func _buildings_hold() -> void:
 	var ar: Rect2 = hud.army_btn.get_global_rect()
 	var br: Rect2 = hud.bld_btn.get_global_rect()
 	var bs: Rect2 = (hud.root.find_child("Base", true, false) as Control).get_global_rect()
-	check(ar.position.x < vr.position.x + 20.0 and ar.end.y > vr.end.y - 20.0 and br.end.y <= ar.position.y and bs.end.y <= br.position.y, "quick buttons start in the bottom-left corner: BASE, BUILDINGS, then ARMY at the bottom")
+	var gr: Rect2 = (hud.root.find_child("Ground", true, false) as Control).get_global_rect()
+	var air_r: Rect2 = (hud.root.find_child("Air", true, false) as Control).get_global_rect()
+	var sel_top: float = hud.sel_panel.get_global_rect().position.y
+	check(hud.quick_btns.size() == 5 and ar.position.x < vr.position.x + 20.0 and bs.position.x < vr.position.x + 20.0 and gr.position.x < vr.position.x + 20.0
+		and br.position.x > ar.end.x and air_r.position.x > gr.end.x and gr.end.y <= ar.position.y and ar.end.y <= bs.position.y
+		and absf(br.position.y - ar.position.y) < 1.0 and absf(air_r.position.y - gr.position.y) < 1.0 and br.end.y <= sel_top,
+		"the starting layout: GROUND and AIR, then ARMY and BUILDINGS, then BASE, on the left edge and clear of the selection panel")
 	var bc: Vector2 = hud.bld_btn.get_global_rect().get_center()
 	# a quick tap still opens the build menu (after a few frames, so a first-frame
 	# shader stall can't stretch the tap into a hold)
@@ -774,24 +780,24 @@ func _quick() -> void:
 	sp._customize()
 	await frames(3)
 	var ed := sp.find_child("QuickButtonsEditor", true, false) as QuickButtonsEditor
-	check(ed != null and ed.previews.size() == 3, "the button editor opens with the three default buttons")
+	check(ed != null and ed.previews.size() == 5, "the button editor opens with the five starting buttons")
 	if ed == null:
 		sp.queue_free()
 		return
-	(ed.toggles["ground"] as Button).button_pressed = true
+	(ed.toggles["workers"] as Button).button_pressed = true
 	(ed.toggles["unit:air_light"] as Button).button_pressed = true
 	await frames(2)
 	var ids: Array = []
 	for e in QuickButtons.layout():
 		ids.append(e["id"])
-	check(ids.has("ground") and ids.has("unit:air_light") and ed.previews.has("ground"), "tapping names adds GROUND and a unit type (%s)" % str(ids))
-	var g_r: Rect2 = ed.previews["ground"].get_global_rect()
+	check(ids.has("workers") and ids.has("unit:air_light") and ed.previews.has("workers"), "tapping names adds WORKERS and a unit type (%s)" % str(ids))
+	var g_r: Rect2 = ed.previews["workers"].get_global_rect()
 	var overlaps := false
 	for z in QuickButtonsEditor.zones(ed.area):
 		if (z[1] as Rect2).intersects(g_r.grow(-1)):
 			overlaps = true
 	for id in ed.previews:
-		if id != "ground" and (ed.previews[id] as Control).get_global_rect().intersects(g_r.grow(-1)):
+		if id != "workers" and (ed.previews[id] as Control).get_global_rect().intersects(g_r.grow(-1)):
 			overlaps = true
 	check(not overlaps and g_r.position.x < ed.area.get_center().x and g_r.end.y > ed.area.get_center().y, "new buttons land in a free spot near the bottom left")
 	# drag ARMY to the right edge, halfway up
@@ -867,7 +873,9 @@ func _quick() -> void:
 		check(hg != null and absf(hg.get_global_rect().get_center().y - g1.y) < 8.0, "dragging a button in the match's editor moves it in the match too")
 		med.reset()
 		await frames(2)
-		check(hud.root.find_child("Ground", true, false) == null and hud.army_btn != null, "Reset brings back the default buttons, live in the match")
+		var hg2 := hud.root.find_child("Ground", true, false) as Button
+		check(hud.quick_btns.size() == 5 and hud.root.find_child("Workers", true, false) == null and hg2 != null and absf(hg2.get_global_rect().get_center().y - g0.y) < 2.0
+			and hud.army_btn != null and hud.army_btn.get_global_rect().position.x < 20.0, "Reset brings back the starting buttons, live in the match")
 		med.queue_free()
 	if msp:
 		msp.queue_free()
@@ -1634,7 +1642,7 @@ func _touch() -> void:
 	for i in 80:
 		var q := u.p + Vector2(cos(i * 0.9), sin(i * 0.9)) * (4.0 + i * 0.15)
 		var qs := rig.to_screen(Vector3(q.x, w.height_at(q), q.y))
-		if w.grid.kind_at(Vector2i(q)) == 0 and w.units_near(q, 3.0).is_empty() and not w._near_resources(Vector2i(q), 1, 2.5) and not m.hud.blocks(qs) and Rect2(80, 80, 1120, 400).has_point(qs):
+		if w.grid.kind_at(Vector2i(q)) == 0 and w.units_near(q, 3.0).is_empty() and not w._near_resources(Vector2i(q), 1, 2.5) and not m.hud.blocks(qs) and Rect2(80, 80, 1120, 400).has_point(qs) and cmd.pick(qs) == null:
 			g = q
 			break
 	await _tap(rig.to_screen(Vector3(g.x, w.height_at(g), g.y)))

@@ -9,6 +9,7 @@ Margin is Ambron's value left minus Void's, as a share of the starting value: 0%
 | Slot | Ambron unit | Void unit | Ambron win rate | Avg margin |
 |---|---|---|---|---|
 | infantry | Lancer | Spitter | 40% | -4% |
+| raider | Strider | Ripper | 10% | -10% |
 | heavy | Bulwark | Mauler | 40% | -8% |
 | vehicle_flame | Scorcher | Acidback | 40% | -1% |
 | vehicle_missile | Hailfire | Spinefiend | 60% | -4% |
@@ -27,21 +28,22 @@ Margin is Ambron's value left minus Void's, as a share of the starting value: 0%
 
 ## 3. Random armies
 
-40 random composition pairs, each played with the races swapped: Ambron wins **51%**, average margin +0%.
+40 random composition pairs, each played with the races swapped: Ambron wins **45%**, average margin -2%.
 
-**Overall Ambron win rate across all battles: 57%** (target 50%, within about 10 points is noise at these sample sizes).
+**Overall Ambron win rate across all battles: 53%** (target 50%, within about 10 points is noise at these sample sizes).
 
 ## 4. Counter table (Ambron vs Ambron, equal value): row's margin against column
 
-| | infantry | heavy | vehicle_flame | vehicle_missile | air_light | air_heavy | special |
-|---|---|---|---|---|---|---|---|
-| infantry | - | -69% | -61% | +43% | +82% | +71% | -71% |
-| heavy | +68% | - | +11% | -67% | -100% | -100% | -63% |
-| vehicle_flame | +64% | -16% | - | -39% | -100% | -100% | -72% |
-| vehicle_missile | -43% | +72% | +37% | - | -100% | -100% | +21% |
-| air_light | -83% | +100% | +100% | +100% | - | +100% | -88% |
-| air_heavy | -71% | +100% | +100% | +100% | -100% | - | -32% |
-| special | +68% | +62% | +70% | -15% | +89% | +37% | - |
+| | infantry | raider | heavy | vehicle_flame | vehicle_missile | air_light | air_heavy | special |
+|---|---|---|---|---|---|---|---|---|
+| infantry | - | +69% | -69% | -61% | +43% | +82% | +71% | -71% |
+| raider | -69% | - | -87% | -74% | +32% | -100% | -100% | -83% |
+| heavy | +68% | +87% | - | +11% | -67% | -100% | -100% | -63% |
+| vehicle_flame | +64% | +76% | -16% | - | -39% | -100% | -100% | -72% |
+| vehicle_missile | -43% | -37% | +72% | +37% | - | -100% | -100% | +21% |
+| air_light | -83% | +100% | +100% | +100% | +100% | - | +100% | -88% |
+| air_heavy | -71% | +100% | +100% | +100% | +100% | -100% | - | -32% |
+| special | +68% | +85% | +62% | +70% | -15% | +89% | +37% | - |
 
 ## 5. Full games, bot against bot (normal)
 
@@ -49,19 +51,19 @@ Each map is played from both seats with both races, each game on its own seed. E
 
 | Game | Map | P1 | P2 | Winner | Time |
 |---|---|---|---|---|---|
-| 1 | Shatterfield | ambron | void | ambron | 11:35 |
-| 2 | Frostspire Pass | ambron | void | ambron | 19:17 |
-| 3 | Ember Rift | ambron | void | void | 16:01 |
-| 4 | Shatterfield | void | ambron | ambron | 15:48 |
-| 5 | Frostspire Pass | void | ambron | void | 19:23 |
-| 6 | Ember Rift | void | ambron | ambron | 19:44 |
-| 7 | Shatterfield | ambron | void | void | 19:32 |
-| 8 | Frostspire Pass | ambron | void | ambron | 18:58 |
-| 9 | Ember Rift | ambron | void | void | 14:38 |
-| 10 | Shatterfield | void | ambron | void | 12:12 |
-| 11 | Frostspire Pass | void | ambron | void | 15:54 |
-| 12 | Ember Rift | void | ambron | void | 18:58 |
+| 1 | Shatterfield | ambron | void | void | 16:46 |
+| 2 | Frostspire Pass | ambron | void | void | 17:19 |
+| 3 | Ember Rift | ambron | void | ambron | 17:38 |
+| 4 | Shatterfield | void | ambron | ambron | 12:13 |
+| 5 | Frostspire Pass | void | ambron | void | 19:34 |
+| 6 | Ember Rift | void | ambron | ambron | 15:48 |
+| 7 | Shatterfield | ambron | void | ambron | 24:53 |
+| 8 | Frostspire Pass | ambron | void | ambron | 22:52 |
+| 9 | Ember Rift | ambron | void | ambron | 15:30 |
+| 10 | Shatterfield | void | ambron | ambron | 17:11 |
+| 11 | Frostspire Pass | void | ambron | void | 18:27 |
+| 12 | Ember Rift | void | ambron | ambron | 15:14 |
 
-Ambron 5, Void 7, unfinished 0. By seat: P1 7, P2 5.
+Ambron 8, Void 4, unfinished 0. By seat: P1 6, P2 6.
 
-Run time: 337.9 s
+Run time: 403.2 s
