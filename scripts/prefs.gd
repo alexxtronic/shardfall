@@ -1,6 +1,6 @@
 extends Node
-## Player settings kept between sessions in user://settings.cfg: volumes, screen shake and the
-## last match setup. Also makes the Music and Effects audio buses the volume sliders drive.
+## Player settings kept between sessions in user://settings.cfg: volumes, screen shake,
+## graphics quality, the quick-button layout and the last match setup. Also makes the Music and Effects audio buses the volume sliders drive.
 ## Test runs (--autotest, --balance) read the defaults and never write the file.
 
 signal changed(key: String)
@@ -18,6 +18,8 @@ const DEFAULTS := {
 	"tutorial_done": false,
 	"army_tip": 0,
 	"bld_tip": 0,
+	"graphics": -1,              # Graphics level; -1 = automatic for this device
+	"quick_buttons": [],         # QuickButtons layout; empty = the default
 }
 
 var data: Dictionary = DEFAULTS.duplicate()
@@ -69,6 +71,7 @@ func save() -> void:
 
 
 func apply() -> void:
+	Graphics.apply(get_viewport() if is_inside_tree() else null)
 	_vol("Master", float(data["master"]))
 	_vol("Music", float(data["music"]))
 	_vol("Effects", float(data["effects"]))

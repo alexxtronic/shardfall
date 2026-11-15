@@ -12,6 +12,7 @@ var cmd: Commander
 var hud: Hud
 var end_layer: CanvasLayer
 var sun: DirectionalLight3D
+var world_env: WorldEnvironment
 var result: Dictionary = {}     # the leaderboard result of this game, once it's over
 var tutorial: Tutorial
 
@@ -108,6 +109,11 @@ func _intro() -> void:
 	tw.tween_callback(layer.queue_free)
 
 
+func _on_pref(key: String) -> void:
+	if key == "graphics" and is_instance_valid(world_env):
+		world_env.environment.glow_enabled = bool(Graphics.setting("glow"))
+
+
 func _environment(th: Dictionary) -> void:
 	var env := Environment.new()
 	var sky := Sky.new()
@@ -125,7 +131,7 @@ func _environment(th: Dictionary) -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = float(th["exposure"])
-	env.glow_enabled = true
+	env.glow_enabled = bool(Graphics.setting("glow"))
 	env.glow_intensity = 0.7
 	env.glow_bloom = 0.08
 	env.glow_hdr_threshold = 1.1
@@ -135,6 +141,9 @@ func _environment(th: Dictionary) -> void:
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
+	world_env = we
+	# the graphics slider can change mid-game
+	Prefs.changed.connect(_on_pref)
 	sun = DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.light_color = th["sun"]

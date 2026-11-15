@@ -381,7 +381,7 @@ func _help(parent: Control) -> void:
 		["Win by destroying every enemy building.", 18, UiKit.TEXT],
 		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 16, UiKit.TEXT],
 		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen.", 16, UiKit.TEXT],
-		["• Hold, then drag, to draw a selection box. ARMY selects every fighter; hold ARMY and slide to pick ground, air, workers, idle workers or one unit type, then let go.", 16, UiKit.TEXT],
+		["• Hold on the ground, then slide, to draw a box: everything of yours inside is selected. ARMY selects every fighter; hold ARMY and slide to pick ground, air, workers, idle workers or one unit type.", 16, UiKit.TEXT],
 		["• With units selected, tap the ground to attack-move, tap an enemy to attack. Use Move to retreat.", 16, UiKit.TEXT],
 		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 16, UiKit.TEXT],
 		["• BUILDINGS (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm. Hold BUILDINGS and slide to select every building of one type; BASE taps go through your bases.", 16, UiKit.TEXT],
@@ -391,6 +391,7 @@ func _help(parent: Control) -> void:
 		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 16, UiKit.TEXT],
 		["• High ground: units can't see up a cliff until they climb a ramp, and shots fired uphill miss 30% of the time.", 16, UiKit.TEXT],
 		["• Expand: build a new main base at another crystal field to grow your economy.", 16, UiKit.TEXT],
+		["• Settings: Customize buttons adds quick buttons (ground, air, one unit or building type) and lets you drag them anywhere. A lower Graphics level keeps your phone cooler.", 16, UiKit.TEXT],
 		["Tech: main base → infantry → vehicles/beasts → air → special.", 16, UiKit.DIM],
 	]
 	for l in lines:

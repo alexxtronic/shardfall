@@ -251,6 +251,22 @@ static func card_button(title: String, icon_id: String, cost: Array, hotkey: Str
 	return b
 
 
+## The phone's safe area (clear of the notch or Dynamic Island, rounded corners and home
+## bar) in viewport coordinates. On a desktop it's the whole viewport.
+static func safe_rect(vp: Viewport) -> Rect2:
+	var full := vp.get_visible_rect()
+	var win := Vector2(DisplayServer.window_get_size())
+	if not OS.has_feature("mobile") or win.x <= 0.0 or win.y <= 0.0:
+		return full
+	var k := full.size / win
+	var safe := Rect2(DisplayServer.get_display_safe_area())
+	var l := maxf(safe.position.x * k.x, 0.0)
+	var t := maxf(safe.position.y * k.y, 0.0)
+	var r := maxf((win.x - safe.end.x) * k.x, 0.0)
+	var b := maxf((win.y - safe.end.y) * k.y, 0.0)
+	return Rect2(full.position + Vector2(l, t), full.size - Vector2(l + r, t + b))
+
+
 ## 12345 -> "12,345".
 static func fmt_int(n: int) -> String:
 	var s := str(absi(n))

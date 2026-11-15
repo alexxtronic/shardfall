@@ -30,7 +30,8 @@ var menu: Control
 var blockers: Array = []
 var refresh_t: float = 0.0
 var sel_sig: String = ""
-var army_btn: Button
+var quick_btns: Array = []      # the quick buttons on screen (QuickButtons layout)
+var army_btn: Button            # null when the player took ARMY off the screen
 var bld_btn: Button             # BUILDINGS: tap for the build menu, hold to select a type
 var group_menu: GroupMenu       # open while ARMY or BUILDINGS is held (or after a hold, until a tap)
 var hold_kind: String = ""      # "army" or "buildings": the button being held
@@ -45,18 +46,12 @@ const HOLD_OPEN := 0.3          # seconds of holding before the group menu opens
 ## and the home bar. The overlay (health bars, selection box) stays full screen, since it
 ## draws at the units' screen positions. Desktop windows keep the full rect.
 func _fit_safe_area() -> void:
-	var l := 0.0
-	var t := 0.0
-	var r := 0.0
-	var b := 0.0
-	var win := Vector2(DisplayServer.window_get_size())
-	if OS.has_feature("mobile") and win.x > 0.0 and win.y > 0.0:
-		var k := get_viewport().get_visible_rect().size / win
-		var safe := Rect2(DisplayServer.get_display_safe_area())
-		l = maxf(safe.position.x * k.x, 0.0)
-		t = maxf(safe.position.y * k.y, 0.0)
-		r = maxf((win.x - safe.end.x) * k.x, 0.0)
-		b = maxf((win.y - safe.end.y) * k.y, 0.0)
+	var full := get_viewport().get_visible_rect()
+	var safe := UiKit.safe_rect(get_viewport())
+	var l := safe.position.x - full.position.x
+	var t := safe.position.y - full.position.y
+	var r := full.end.x - safe.end.x
+	var b := full.end.y - safe.end.y
 	root.offset_left = l
 	root.offset_top = t
 	root.offset_right = -r
@@ -88,7 +83,8 @@ func setup(w: World, c: Commander, r: CameraRig) -> void:
 	_fit_safe_area()
 	get_viewport().size_changed.connect(_fit_safe_area)
 	_top_bar()
-	_left_buttons()
+	_quick_buttons()
+	Prefs.changed.connect(_on_pref)
 	_minimap()
 	_selection_panel()
 	_command_card()
@@ -152,12 +148,13 @@ func _top_bar() -> void:
 	mb.focus_mode = Control.FOCUS_NONE
 	mb.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	root.add_child(mb)
+	# just left of the minimap in the top-right corner
 	mb.anchor_left = 1.0
 	mb.anchor_right = 1.0
-	mb.offset_left = -74
-	mb.offset_right = -10
-	mb.offset_top = 6
-	mb.offset_bottom = 58
+	mb.offset_left = -296
+	mb.offset_right = -228
+	mb.offset_top = 8
+	mb.offset_bottom = 60
 	mb.pressed.connect(toggle_menu)
 	blockers.append(mb)
 
@@ -192,52 +189,83 @@ func _res_chip(parent: Control, icon_id: String, col: Color, tint: Color, icon_s
 	return l
 
 
-## BASE, BUILDINGS and ARMY, stacked just above the minimap where the left thumb rests.
-func _left_buttons() -> void:
-	var v := VBoxContainer.new()
-	v.name = "LeftButtons"
-	v.add_theme_constant_override("separation", 8)
-	v.anchor_top = 1.0
-	v.anchor_bottom = 1.0
-	v.offset_left = 8
-	v.offset_right = 8 + 100
-	v.offset_bottom = -226
-	v.offset_top = -226 - (3 * 72 + 2 * 8)
-	v.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	root.add_child(v)
-	# top to bottom: BASE, BUILDINGS, then ARMY (the most used) right above the minimap
-	for spec in [["BASE", "base", "ui:base"], ["BUILDINGS", "build_menu", "ui:build"], ["ARMY", "army", "ui:army"]]:
-		var b := Button.new()
-		b.name = String(spec[0]).capitalize()
-		b.custom_minimum_size = Vector2(100, 72)
-		b.focus_mode = Control.FOCUS_NONE
-		var col := VBoxContainer.new()
-		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		col.alignment = BoxContainer.ALIGNMENT_CENTER
-		col.add_theme_constant_override("separation", 2)
-		b.add_child(col)
-		col.add_child(UiKit.tex_rect(UiKit.icon(spec[2]), Vector2(70, 32), UiKit.accent.lerp(Color.WHITE, 0.35)))
-		var t := UiKit.head(spec[0], 12 if String(spec[0]).length() <= 6 else 10, UiKit.TEXT)
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		t.name = "Title"
-		col.add_child(t)
-		var a: String = spec[1]
-		b.pressed.connect(func(): _left_action(a))
-		v.add_child(b)
+## The quick buttons, from the player's layout (Settings > Customize buttons). By default
+## BASE, BUILDINGS and ARMY sit in the bottom-left corner where the left thumb rests.
+func _quick_buttons() -> void:
+	for b in quick_btns:
+		blockers.erase(b)
+		if is_instance_valid(b):
+			b.get_parent().remove_child(b)    # out now, so the new buttons keep their names
+			b.queue_free()
+	quick_btns.clear()
+	army_btn = null
+	bld_btn = null
+	close_groups()
+	var race: String = world.players[pid].race
+	for e in QuickButtons.layout():
+		var id: String = e["id"]
+		var sp := QuickButtons.spec(id, race)
+		if sp.is_empty():
+			continue
+		var b := QuickButtons.make_button(sp)
+		b.name = id.replace(":", "_").capitalize()
+		b.set_meta("quick", e)
+		b.anchor_left = float(e["ax"])
+		b.anchor_right = float(e["ax"])
+		b.anchor_top = float(e["ay"])
+		b.anchor_bottom = float(e["ay"])
+		b.offset_left = float(e["x"])
+		b.offset_top = float(e["y"])
+		b.offset_right = float(e["x"]) + QuickButtons.SIZE.x
+		b.offset_bottom = float(e["y"]) + QuickButtons.SIZE.y
+		root.add_child(b)
 		blockers.append(b)
-		if a == "army" or a == "build_menu":
-			var kind := "army" if a == "army" else "buildings"
-			if a == "army":
+		quick_btns.append(b)
+		b.pressed.connect(_quick_tap.bind(id, String(sp["kind"])))
+		if id == "army" or id == "buildings":
+			if id == "army":
 				army_btn = b
 			else:
 				bld_btn = b
-			b.button_down.connect(_hold_down.bind(kind))
+			b.button_down.connect(_hold_down.bind(id))
 			# a small corner mark: there's more behind a hold
 			var more := UiKit.head("›", 18, UiKit.accent.lerp(Color.WHITE, 0.2))
-			more.position = Vector2(84, 20)
+			more.position = Vector2(QuickButtons.SIZE.x - 16, 20)
 			more.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			b.add_child(more)
+	_clamp_quick.call_deferred()
+
+
+## A layout saved on a bigger screen may not fit this one: keep every button on it.
+func _clamp_quick() -> void:
+	var area := root.get_global_rect()
+	for b in quick_btns:
+		if not is_instance_valid(b):
+			continue
+		var r := QuickButtons.rect_of(b.get_meta("quick"), area)
+		if not r.position.is_equal_approx(b.global_position):
+			b.global_position = r.position
+
+
+func _quick_tap(id: String, kind: String) -> void:
+	match id:
+		"army":
+			_left_action("army")
+		"buildings":
+			_left_action("build_menu")
+		"base":
+			_left_action("base")
+		_:
+			if GroupMenu.members(world, pid, kind).is_empty():
+				Sfx.play("error", 1.0, -6.0)
+				show_message("No %s yet" % GroupMenu.describe(kind, 2).substr(2), "hint")
+				return
+			pick_group(kind, true)
+
+
+func _on_pref(key: String) -> void:
+	if key == "quick_buttons":
+		_quick_buttons()
 
 
 func _left_action(a: String) -> void:
@@ -275,6 +303,11 @@ func _held_btn() -> Button:
 	return bld_btn if hold_kind == "buildings" else army_btn
 
 
+func _on_held_btn(pos: Vector2) -> bool:
+	var b := _held_btn()
+	return b != null and is_instance_valid(b) and b.get_global_rect().has_point(pos)
+
+
 ## Open the group menu beside the held button. `slide`: it follows the finger that is
 ## still holding the button, and picks whatever group that finger lifts on.
 func open_groups(slide: bool, kind: String = "") -> void:
@@ -286,12 +319,18 @@ func open_groups(slide: bool, kind: String = "") -> void:
 	root.add_child(group_menu)
 	group_menu.build(world, pid, "buildings" if hold_kind == "buildings" else "units")
 	# right of the button, lifted so the finger slides up and across into it, kept on screen
-	var br := _held_btn().get_global_rect()
+	var hb := _held_btn()
+	var area := root.get_global_rect()
+	var br := hb.get_global_rect() if hb else Rect2(area.position + Vector2(8, area.size.y * 0.5), Vector2.ZERO)
 	var msz := group_menu.get_combined_minimum_size()
-	var top := root.get_global_rect().position.y + 60.0
-	var bottom := root.get_global_rect().end.y - 8.0
+	var top := area.position.y + 60.0
+	var bottom := area.end.y - 8.0
 	var y := clampf(br.end.y - msz.y * 0.6, top, maxf(top, bottom - msz.y))
-	group_menu.global_position = Vector2(br.end.x + 10.0, y)
+	# beside the button, on whichever side has room
+	var x := br.end.x + 10.0
+	if x + msz.x > area.end.x - 8.0:
+		x = maxf(area.position.x + 8.0, br.position.x - 10.0 - msz.x)
+	group_menu.global_position = Vector2(x, y)
 	group_menu.picked.connect(pick_group)
 	blockers.append(group_menu)
 	sliding = slide
@@ -308,12 +347,14 @@ func close_groups() -> void:
 	sliding = false
 
 
-func pick_group(kind: String) -> void:
+func pick_group(kind: String, jump: bool = false) -> void:
 	var list := GroupMenu.members(world, pid, kind)
 	close_groups()
 	if list.is_empty():
 		return
 	cmd.set_selection(list)
+	if jump:
+		rig.look_at_ground(GroupMenu.cluster_center(list))
 	Sfx.play("click")
 	Input.vibrate_handheld(12)
 	var line := "%s selected. Tap where to send them." % GroupMenu.describe(kind, list.size())
@@ -373,13 +414,13 @@ func _input(ev: InputEvent) -> void:
 				var k := group_menu.hot_at(pos)
 				if k != "":
 					pick_group(k)
-				elif not _held_btn().get_global_rect().has_point(pos):
+				elif not _on_held_btn(pos):
 					close_groups()
 				# lifted on the button itself: the menu stays open for a tap
 		return
 	# a new press: inside the menu or on its button is theirs; anywhere else just closes it
 	if group_menu and not sliding:
-		if group_menu.get_global_rect().has_point(pos) or _held_btn().get_global_rect().has_point(pos):
+		if group_menu.get_global_rect().has_point(pos) or _on_held_btn(pos):
 			return
 		close_groups()
 		close_frame = Engine.get_process_frames()
@@ -389,15 +430,17 @@ func _input(ev: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## The minimap, in the top-right corner (the bottom-left is the thumb's, for quick buttons).
 func _minimap() -> void:
 	var p := PanelContainer.new()
+	p.name = "MinimapPanel"
 	p.add_theme_stylebox_override("panel", UiKit.panel_box(10))
-	p.anchor_top = 1.0
-	p.anchor_bottom = 1.0
-	p.offset_left = 8
-	p.offset_right = 8 + 208
-	p.offset_top = -216
-	p.offset_bottom = -8
+	p.anchor_left = 1.0
+	p.anchor_right = 1.0
+	p.offset_left = -216
+	p.offset_right = -8
+	p.offset_top = 8
+	p.offset_bottom = 216
 	root.add_child(p)
 	minimap = Minimap.new()
 	minimap.custom_minimum_size = Vector2(192, 192)
@@ -411,8 +454,8 @@ func _selection_panel() -> void:
 	sel_panel.anchor_top = 1.0
 	sel_panel.anchor_bottom = 1.0
 	sel_panel.anchor_left = 0.0
-	sel_panel.offset_left = 224
-	sel_panel.offset_right = 224 + 380
+	sel_panel.offset_left = 120
+	sel_panel.offset_right = 120 + 380
 	sel_panel.offset_top = -150
 	sel_panel.offset_bottom = -8
 	root.add_child(sel_panel)
@@ -749,7 +792,7 @@ func _refresh_selection(force: bool) -> void:
 		c.queue_free()
 		sel_content.remove_child(c)
 	if sel.is_empty():
-		var hint := UiKit.label("Tap a unit or building.\nDrag to look around, pinch to zoom.\nHold then drag to box-select.", 15, UiKit.DIM)
+		var hint := UiKit.label("Tap a unit or building.\nDrag to look around, pinch to zoom.\nHold, then slide to box-select.", 15, UiKit.DIM)
 		hint.position = Vector2(10, 18)
 		sel_content.add_child(hint)
 		return

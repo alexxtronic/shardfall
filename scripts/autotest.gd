@@ -114,6 +114,8 @@ func _run() -> void:
 		await _buildings_hold()
 	if want("supply"):
 		await _supply_rule()
+	if want("quick"):
+		await _quick()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -604,9 +606,13 @@ func _buildings_hold() -> void:
 			w.spawn_building(sup_id, 0, c2, true)
 	await frames(3)
 	check(hud.find_child("Idle", true, false) == null and hud.bld_btn != null and (hud.bld_btn.find_child("Title", true, false) as Label).text == "BUILDINGS", "IDLE is gone and BUILD is now BUILDINGS")
+	var vr: Rect2 = hud.root.get_global_rect()
 	var mm: Rect2 = hud.minimap.get_parent().get_global_rect()
-	var lb: Rect2 = (hud.root.find_child("LeftButtons", true, false) as Control).get_global_rect()
-	check(lb.end.y <= mm.position.y and mm.position.y - lb.end.y < 24.0 and lb.end.y > 420.0, "the left buttons sit just above the minimap (%d..%d, minimap at %d)" % [lb.position.y, lb.end.y, mm.position.y])
+	check(mm.end.x > vr.end.x - 20.0 and mm.position.y < vr.position.y + 20.0, "the minimap sits in the top-right corner (%s)" % mm)
+	var ar: Rect2 = hud.army_btn.get_global_rect()
+	var br: Rect2 = hud.bld_btn.get_global_rect()
+	var bs: Rect2 = (hud.root.find_child("Base", true, false) as Control).get_global_rect()
+	check(ar.position.x < vr.position.x + 20.0 and ar.end.y > vr.end.y - 20.0 and br.end.y <= ar.position.y and bs.end.y <= br.position.y, "quick buttons start in the bottom-left corner: BASE, BUILDINGS, then ARMY at the bottom")
 	var bc: Vector2 = hud.bld_btn.get_global_rect().get_center()
 	# a quick tap still opens the build menu (after a few frames, so a first-frame
 	# shader stall can't stretch the tap into a hold)
@@ -707,6 +713,125 @@ func _supply_rule() -> void:
 	w.spawn_building(sup_id, 0, _free_cell(sup_id, home + Vector2(-9, -6)), true)
 	ff(0.2)
 	check(bar.queue.size() == 1 and not bar.supply_blocked and w.supply_used(0) == used + int(Defs.units[inf_id]["supply"]), "room again: it comes out, and only then takes supply")
+
+
+## Settings > Customize buttons: add a button, drag one to the other side of the screen,
+## reset; the match builds its quick buttons from the saved layout, and a group button
+## selects its group. Hold and slide on the battlefield box-selects everything inside.
+func _quick() -> void:
+	Prefs.set_v("quick_buttons", [])
+	# Settings from the title screen: no match behind it (an earlier section's match would
+	# sit on a higher canvas layer and take the presses)
+	if is_instance_valid(m):
+		m.queue_free()
+		m = null
+		await frames(2)
+	var sp := SettingsPanel.new()
+	main.add_child(sp)
+	await frames(2)
+	sp._customize()
+	await frames(3)
+	var ed := sp.find_child("QuickButtonsEditor", true, false) as QuickButtonsEditor
+	check(ed != null and ed.previews.size() == 3, "the button editor opens with the three default buttons")
+	if ed == null:
+		sp.queue_free()
+		return
+	(ed.toggles["ground"] as Button).button_pressed = true
+	(ed.toggles["unit:air_light"] as Button).button_pressed = true
+	await frames(2)
+	var ids: Array = []
+	for e in QuickButtons.layout():
+		ids.append(e["id"])
+	check(ids.has("ground") and ids.has("unit:air_light") and ed.previews.has("ground"), "tapping names adds GROUND and a unit type (%s)" % str(ids))
+	var g_r: Rect2 = ed.previews["ground"].get_global_rect()
+	var overlaps := false
+	for z in QuickButtonsEditor.zones(ed.area):
+		if (z[1] as Rect2).intersects(g_r.grow(-1)):
+			overlaps = true
+	for id in ed.previews:
+		if id != "ground" and (ed.previews[id] as Control).get_global_rect().intersects(g_r.grow(-1)):
+			overlaps = true
+	check(not overlaps and g_r.position.x < ed.area.get_center().x and g_r.end.y > ed.area.get_center().y, "new buttons land in a free spot near the bottom left")
+	# drag ARMY to the right edge, halfway up
+	var army_b: Button = ed.previews["army"]
+	var from := army_b.get_global_rect().get_center()
+	var to := Vector2(ed.area.end.x - 70, ed.area.get_center().y + 60)
+	await _press(from)
+	await _slide(from, to)
+	await _release(to)
+	var army_e: Dictionary = {}
+	for e in QuickButtons.layout():
+		if e["id"] == "army":
+			army_e = e
+	check(int(army_e.get("ax", 0)) == 1 and absf(army_b.get_global_rect().get_center().x - to.x) < 6.0, "dragging ARMY moves it and anchors it to the right edge (%s)" % str(army_e))
+	await shot("94_button_editor")
+	# a match uses the layout
+	(ed.toggles["unit:air_light"] as Button).button_pressed = false
+	sp.queue_free()
+	await frames(2)
+	await start(["ambron", "void"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var home: Vector2 = w.sites[w.players[0].start_site]["center"]
+	for i in 3:
+		w.spawn_unit(Defs.unit_id("ambron", "infantry"), 0, home + Vector2(-6 + i, 7))
+	w.spawn_unit(Defs.unit_id("ambron", "air_light"), 0, home + Vector2(2, 7))
+	await frames(3)
+	var gb := hud.root.find_child("Ground", true, false) as Button
+	check(gb != null and hud.army_btn != null and hud.army_btn.get_global_rect().get_center().x > hud.root.get_global_rect().get_center().x, "the match shows GROUND, and ARMY where it was dragged")
+	if gb:
+		await frames(8)
+		await _tap(gb.get_global_rect().get_center())
+		check(m.cmd.selection.size() == 3, "GROUND selects the 3 ground fighters (%d)" % m.cmd.selection.size())
+	await shot("94_quick_match")
+	# hold and slide on the battlefield: a box of everything inside, workers too
+	m.cmd.set_selection([])
+	var mid := Vector2.ZERO
+	var n := 0
+	for u in w.units:
+		if u.owner_id == 0:
+			mid += u.p
+			n += 1
+	m.rig.look_at_ground(mid / maxi(n, 1))
+	m.rig.dist = 46.0
+	await frames(4)
+	await _box(Vector2(330, 90), Vector2(1000, 520))
+	var workers := 0
+	var fighters := 0
+	for e in m.cmd.selection:
+		if e.is_worker:
+			workers += 1
+		else:
+			fighters += 1
+	check(workers >= 3 and fighters >= 3, "hold and slide box-selects every unit inside, workers too (%d workers, %d fighters)" % [workers, fighters])
+	# Settings > Customize buttons in the middle of a match: the editor sits over the HUD
+	hud._menu_pick("settings")
+	await frames(2)
+	var msp := hud.root.find_child("Settings", true, false) as SettingsPanel
+	if msp:
+		msp._customize()
+		await frames(3)
+	var med: QuickButtonsEditor = msp.find_child("QuickButtonsEditor", true, false) if msp else null
+	check(med != null and med.previews.has("ground"), "Customize buttons opens over a running match")
+	if med:
+		var gb2: Button = med.previews["ground"]
+		var g0 := gb2.get_global_rect().get_center()
+		var g1 := g0 + Vector2(0, -100)
+		await _press(g0)
+		await _slide(g0, g1)
+		await _release(g1)
+		await frames(2)
+		var hg := hud.root.find_child("Ground", true, false) as Button
+		check(hg != null and absf(hg.get_global_rect().get_center().y - g1.y) < 8.0, "dragging a button in the match's editor moves it in the match too")
+		med.reset()
+		await frames(2)
+		check(hud.root.find_child("Ground", true, false) == null and hud.army_btn != null, "Reset brings back the default buttons, live in the match")
+		med.queue_free()
+	if msp:
+		msp.queue_free()
+		msp.closed.emit()
+	Prefs.set_v("quick_buttons", [])
+	await frames(2)
 
 
 func _press(sp: Vector2) -> void:
@@ -833,7 +958,17 @@ func _title() -> void:
 	tt._open_settings()
 	await frames(2)
 	check(tt.root.get_node_or_null("Settings") != null, "settings panel opens")
+	var gs := tt.root.get_node("Settings").find_child("graphics", true, false) as HSlider
+	check(gs != null and int(gs.value) == Graphics.level(), "settings has a graphics slider")
 	await shot("00_title_settings")
+	if gs:
+		gs.value = 0
+		await frames(2)
+		check(Engine.max_fps == 30 and is_equal_approx(get_viewport().scaling_3d_scale, 0.6), "Battery: 30 fps, 3D at 60%% (%d fps, %.2f)" % [Engine.max_fps, get_viewport().scaling_3d_scale])
+		gs.value = 3
+		await frames(2)
+		check(Engine.max_fps == 0 and is_equal_approx(get_viewport().scaling_3d_scale, 1.0) and get_viewport().msaa_3d == Viewport.MSAA_2X, "Max: no cap, full resolution, MSAA")
+		Prefs.set_v("graphics", -1)
 	tt.root.get_node("Settings").queue_free()
 	var cp := CreditsPanel.new()
 	cp.name = "Credits"

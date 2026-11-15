@@ -3,7 +3,7 @@ extends Node
 ## A guided first match on Shatterfield against an easy bot. One lesson at a time, each
 ## gated on something the player actually does: look around, train a worker, build supply,
 ## build a barracks, train infantry, move out, then destroy the enemy. The bot waits
-## until the last step. The card sits top right, under the menu button, and never blocks
+## until the last step. The card sits on the right, under the minimap, and never blocks
 ## the battlefield; "Skip" ends the lessons and leaves a normal game.
 
 signal step_changed(i: int)
@@ -175,7 +175,7 @@ func _card() -> void:
 	card.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	card.offset_left = -392
 	card.offset_right = -14
-	card.offset_top = 70
+	card.offset_top = 226        # under the minimap
 	card.add_theme_stylebox_override("panel", UiKit.solid_panel())
 	hud.root.add_child(card)
 	hud.blockers.append(card)

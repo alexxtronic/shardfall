@@ -89,6 +89,15 @@ Both races must have identical power per resource spent. Never give one race a u
 
 Animated units carry an armature with `idle_loop`, `walk_loop` (or `fly_loop` for flyers) and `attack`. `Models` matches these by name and loops idle, walk and fly. A node named `turret` turns toward the unit's target.
 
+## Controls (Alex, 2026-11-15)
+
+- **Layout:** the minimap sits in the top-right corner. The quick buttons start in the bottom-left corner (BASE, BUILDINGS, ARMY, with ARMY at the bottom), where the left thumb rests.
+- **Quick buttons are the player's:** Settings > Customize buttons adds, removes and moves them, saved in Prefs `quick_buttons` (`QuickButtons.layout()`). Never hard-code their position; `QuickButtonsEditor.zones()` must keep matching the HUD's fixed panels.
+- **Box select:** hold on the ground, then slide. It selects every unit of yours inside, workers included.
+- **Graphics:** the Settings slider's levels live in `Graphics.LEVELS`. Phones default to Balanced (60 fps cap). Keep a frame cap on phones: uncapped, an iPhone runs at 120 fps and gets hot.
+
 ## Tests
 
 Run the autotest after gameplay changes, and the balance harness after stat or bot changes. Asset-only changes need just a re-import (`Godot --headless --path . --import`) and a look at the `models` section.
+
+Prefs don't save during tests, but they do change for the rest of the run, so a test that changes one (graphics, quick buttons) must put it back.

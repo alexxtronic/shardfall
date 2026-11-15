@@ -56,10 +56,12 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
 - **Defence towers.** Once you have an infantry building you can build a tower: the Ambron Arc Tower throws lightning, the Void Slime Spire lobs slime. Both hit ground and air, with the same numbers apart from the usual Void health and fire-rate difference.
 - **Expanding.** Build another main base on any of the 8 open sites. Every site has 8 crystal nodes and 2 slime piles.
 - **Touch controls:**
-  - Tap to select. Double-tap or hold a unit to select every unit of that type on screen. Hold, then drag, to draw a selection box.
+  - Tap to select. Double-tap or hold a unit to select every unit of that type on screen.
+  - **Box select.** Hold on the ground for a moment (a ring pulses and the phone gives a tap), then slide your finger to draw a box. Everything of yours inside is selected, workers included.
   - With an army selected, tap the ground to attack-move or tap an enemy to attack it. With workers selected, tapping the ground moves them and tapping crystals or an extractor sends them to harvest.
-  - Drag to pan, pinch to zoom, and tap the minimap to jump the camera.
-  - BASE, BUILDINGS and ARMY sit on the left, stacked above the minimap where the left thumb rests, with ARMY at the bottom, closest to it. ARMY selects every fighter. Each tap on BASE goes to your next base, in the order you built them. BUILDINGS opens the structures, and the nearest worker builds them. Idle workers are in the hold-ARMY menu (and on the `.` key).
+  - Drag to pan, pinch to zoom, and tap the minimap (top-right corner) to jump the camera.
+  - The quick buttons start in the bottom-left corner, where the left thumb rests: BASE, BUILDINGS and ARMY, with ARMY at the bottom. ARMY selects every fighter. Each tap on BASE goes to your next base, in the order you built them. BUILDINGS opens the structures, and the nearest worker builds them. Idle workers are in the hold-ARMY menu (and on the `.` key).
+  - **Custom quick buttons.** Settings > Customize buttons shows the battlefield's layout. Tap a name to add or remove a button: BASE, BUILDINGS, ARMY, GROUND, AIR, WORKERS, IDLE, any unit type or any building type. Drag a button anywhere on the screen. It keeps to its nearest screen corner, so it stays in the same place on any phone shape. A unit-type button selects every unit of that type; a building-type button selects every finished building of that type and jumps the camera there. Reset brings back the three defaults, and a running match picks up every change at once.
   - **Group select.** Hold ARMY for a moment and a menu opens: all army, ground, air, workers, idle workers, and one entry per unit type you have, each with its count. Slide your finger onto a group and let go to select all of it, wherever it is on the map, then tap where to send it. If you let go on ARMY itself, the menu stays open so you can tap a group instead.
   - **Building select.** Hold BUILDINGS the same way for one entry per building type you have finished. Let go on one to select every building of that type and jump the camera to them. Each tap on a unit then trains it in the least busy one, so three taps with three Assembly Bays selected start three Lancers at once.
 - **High ground.** Plateaus sit 2.6 m above the ground below, edged by cliffs that nothing walks over. Ramps are the only way up. A ground unit can't see up a cliff until it climbs, and a ground shot fired uphill misses 30% of the time. Flyers ignore both.
@@ -82,7 +84,18 @@ Your commander profile (`user://profile.json`) keeps the following:
 - **Tier.** Bronze to Master.
 - **Score.** A best score per map, and the last 40 games.
 
-The ladder ranks you among 13 AI rival commanders with fixed ratings. The end screen shows your score, rating change and rank. Rename your commander in the leaderboard. Settings (volumes and screen shake) live in `user://settings.cfg`.
+The ladder ranks you among 13 AI rival commanders with fixed ratings. The end screen shows your score, rating change and rank. Rename your commander in the leaderboard. Settings (volumes, graphics, screen shake and the quick-button layout) live in `user://settings.cfg`.
+
+**Graphics.** The Settings slider has four levels. The interface stays sharp at every level; only the 3D scene changes.
+
+| Level | Frame cap | 3D resolution | Shadows | Anti-aliasing | Glow | Weather particles |
+|---|---|---|---|---|---|---|
+| Battery | 30 fps | 60% | 1024, hard | off | off | 40% |
+| Balanced (phone default) | 60 fps | 75%, FSR | 2048, soft | off | on | 70% |
+| High | 60 fps | 100% | 4096, soft | MSAA 2× | on | 100% |
+| Max (desktop default) | none | 100% | 4096, soft | MSAA 2× | on | 100% |
+
+`graphics.gd` holds the table. Without the cap, an iPhone runs the game at 120 fps, which is what made it hot.
 
 ## Units
 
@@ -113,9 +126,10 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
     - `weather.gd` adds the particles.
   - **Interface:**
     - `commander.gd` (touch input and orders), `hud.gd`, `group_menu.gd` (the hold-ARMY and hold-BUILDINGS group select), `minimap.gd`, `overlay.gd`, `camera_rig.gd`;
+    - `quick_buttons.gd` (which quick buttons show and where) and `quick_buttons_editor.gd` (Settings > Customize buttons);
     - `title.gd` and the overlays `settings_panel.gd`, `leaderboard_panel.gd` and `credits_panel.gd`;
     - `tutorial.gd`, the guided first match;
-    - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads.
+    - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads; `graphics.gd` (the quality levels behind the Graphics slider).
   - **Opponent:** `bot_ai.gd`, the bot, which plays by the same rules (easy, normal, hard).
   - **Look and sound:**
     - `models.gd` loads GLBs and animates them; `fx.gd` makes the effects.
@@ -143,6 +157,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
   - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), BASE cycling, and the selection card's text staying inside its panel.
   - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
+  - `quick`: the button editor (add, free spot, drag to another corner, from the title and over a running match), GROUND selecting its units, Reset, and hold-and-slide box select taking workers too.
 
   `--only=previews` is not a test. It re-bakes the map previews (`assets/ui/maps/`), the app icon and the boot splash after a map or art change.
 - **Balance.** It runs headless and rewrites `docs/BALANCE.md`:

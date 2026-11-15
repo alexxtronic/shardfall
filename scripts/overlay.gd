@@ -96,3 +96,7 @@ func _draw() -> void:
 		var r := Rect2(cmd.box_start, Vector2.ZERO).expand(cmd.box_end)
 		draw_rect(r, Color(0.35, 1.0, 0.5, 0.12))
 		draw_rect(r, Color(0.35, 1.0, 0.5, 0.9), false, 2.0)
+		# armed but not moved yet: a pulsing ring under the finger says "now slide"
+		if r.size.length() < 6.0:
+			var k := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 90.0)
+			draw_arc(cmd.box_start, 30.0 + 6.0 * k, 0.0, TAU, 40, Color(0.35, 1.0, 0.5, 0.85), 3.0, true)

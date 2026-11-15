@@ -3,7 +3,8 @@ extends Node
 ## Turns touches into selections and orders.
 ##
 ## Tap your unit/building: select it. Double-tap (or long-press) a unit: select
-## every one of that type on screen. Long-press then drag: box select.
+## every one of that type on screen. Press and hold, then slide: box select (every one of
+## your units inside it, workers too).
 ## With units selected: tap ground to attack-move there (workers just move),
 ## tap an enemy to attack it, tap crystals or your Void Machine to harvest.
 ## With a production building selected: tap ground to set its rally point.
@@ -15,7 +16,7 @@ signal mode_changed
 enum M { NONE, PLACE, ATTACK, MOVE, RALLY }
 
 const TAP_MOVE := 14.0
-const LONG_PRESS := 0.42
+const LONG_PRESS := 0.35
 const DOUBLE_TAP := 0.38
 
 var world: World
@@ -71,8 +72,9 @@ func _process(_delta: float) -> void:
 			box_active = true
 			box_start = t["start"]
 			box_end = t["start"]
+			Input.vibrate_handheld(20)
 			if hud:
-				hud.haptic_hint("Drag to select")
+				hud.haptic_hint("Slide to draw a box: everything of yours inside is selected")
 	if mode == M.PLACE:
 		_update_ghost()
 
@@ -398,8 +400,7 @@ func select_type_on_screen(def_id: String) -> void:
 
 func _finish_box() -> void:
 	var r := Rect2(box_start, Vector2.ZERO).expand(box_end)
-	var army: Array = []
-	var workers: Array = []
+	var inside: Array = []
 	for u in world.units:
 		if u.owner_id != pid or u.dead or u.hidden_inside:
 			continue
@@ -407,12 +408,11 @@ func _finish_box() -> void:
 		if not rig.in_front(c3):
 			continue
 		if r.grow(10).has_point(rig.to_screen(c3)):
-			if u.is_worker:
-				workers.append(u)
-			else:
-				army.append(u)
-	set_selection(army if army.size() > 0 else workers)
+			inside.append(u)
+	set_selection(inside)
 	Sfx.play("click")
+	if inside.size() > 0:
+		Input.vibrate_handheld(12)
 
 
 func own_units(include_workers: bool) -> Array:

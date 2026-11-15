@@ -31,6 +31,7 @@ func setup(r: CameraRig, k: String, low_detail: bool = false) -> void:
 
 func _layer(amount: int, life: float, box: Vector3, offset: Vector3, drift: Vector3, size: float,
 		col: Color, glow: float, wobble: float) -> void:
+	amount = int(amount * float(Graphics.setting("particles")))
 	if amount <= 0:
 		return
 	var p := GPUParticles3D.new()
