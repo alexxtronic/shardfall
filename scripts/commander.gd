@@ -6,8 +6,10 @@ extends Node
 ## every one of that type on screen. Double-tap (or long-press) a building: select every
 ## finished building of that type, wherever it is, to train from all of them at once. Press and hold, then slide: box select (every one of
 ## your units inside it, workers too).
-## With units selected: tap ground to attack-move there (workers just move),
-## tap an enemy to attack it, tap crystals or your Void Machine to harvest.
+## With units selected: tap (or hold on) the ground to move there. They don't stop to fight
+## on the way, and fight again once they arrive; the Attack button is for fighting your way
+## there. Tap an enemy to focus it: every selected unit that can hit it attacks that one
+## (the overlay circles it in red). Tap crystals or your Void Machine to harvest.
 ## With a production building selected: tap ground to set its rally point.
 ## One finger drags the map, two fingers pinch to zoom.
 ##
@@ -291,10 +293,13 @@ func smart(sp: Vector2, right_click: bool) -> void:
 			return
 		if e.owner_id >= 0:
 			if all_units.size() > 0:
-				world.command_attack(army, e)
+				var n: int = world.command_attack(army, e)
 				if workers.size() > 0 and army.is_empty():
-					world.command_attack(workers, e)
-				_ack(e.p, Color(1, 0.3, 0.2))
+					n += world.command_attack(workers, e)
+				if n > 0:
+					_ack(e.p, Color(1, 0.3, 0.2))
+				else:
+					_say("Those units can't hit %s" % ("flyers" if e.is_air else "ground targets"), "error")
 			else:
 				_select_tap(e)
 			return
@@ -309,24 +314,22 @@ func smart(sp: Vector2, right_click: bool) -> void:
 				else:
 					_say("Build a %s on the slime first" % Defs.buildings[Defs.building_id(world.players[pid].race, "extractor")]["name"], "error")
 				if army.size() > 0:
-					world.command_move(army, g, true)
+					world.command_move(army, g, false)
 				return
 			if producers.size() > 0:
 				_set_rally(sp)
 				return
 			if army.size() > 0:
-				world.command_move(army, g, true)
-				_ack(g, Color(1, 0.3, 0.2))
+				world.command_move(army, g, false)
+				_ack(g, Color(0.3, 1, 0.45))
 				return
 			_select_tap(e)
 			return
-	# plain ground
+	# plain ground: go there. Fighters don't stop to fight on the way (the Attack button is
+	# for that) and take up the fight again once they arrive.
 	if all_units.size() > 0:
-		if army.size() > 0:
-			world.command_move(army, g, true)
-		if workers.size() > 0:
-			world.command_move(workers, g, false)
-		_ack(g, Color(1, 0.45, 0.3) if army.size() > 0 else Color(0.3, 1, 0.45))
+		world.command_move(all_units, g, false)
+		_ack(g, Color(0.3, 1, 0.45))
 		return
 	if producers.size() > 0:
 		_set_rally(sp)

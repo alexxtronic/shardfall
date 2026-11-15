@@ -384,7 +384,7 @@ func _help(parent: Control) -> void:
 		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 16, UiKit.TEXT],
 		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen. Double-tap a building to select every building of that type.", 16, UiKit.TEXT],
 		["• Hold on the ground, then slide, to draw a box: everything of yours inside is selected. ARMY selects every fighter; hold ARMY and slide to pick ground, air, workers, idle workers or one unit type.", 16, UiKit.TEXT],
-		["• With units selected, tap the ground to attack-move, tap an enemy to attack. Use Move to retreat.", 16, UiKit.TEXT],
+		["• With units selected, tap the ground to move there: they don't stop to fight on the way. Tap an enemy to focus it (a red circle marks it). Tap Attack, then the ground, to fight your way there.", 16, UiKit.TEXT],
 		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 16, UiKit.TEXT],
 		["• BUILDINGS (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm. Hold BUILDINGS and slide to select every building of one type; BASE taps go through your bases.", 16, UiKit.TEXT],
 		["• Void Slime needs an extractor built on a black slime pile first.", 16, UiKit.TEXT],

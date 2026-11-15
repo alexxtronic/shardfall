@@ -10,6 +10,7 @@ var cmd: Commander
 var line_t: float = 0.0
 var line_n: Dictionary = {}        # your main bases -> collectors on their crystals (counted 4 times a second)
 var line_labels: Dictionary = {}   # main base -> the text drawn over it this frame
+var focus: Array = []              # enemies your units were told to attack, circled in red this frame
 
 
 func _ready() -> void:
@@ -26,6 +27,23 @@ func _process(d: float) -> void:
 			if b.owner_id == cmd.pid and b.slot == "main" and b.built and not b.dead:
 				line_n[b] = world.line_collectors(cmd.pid, world.site_of_main(b))
 	queue_redraw()
+
+
+## A red ring on the ground round `t` (at its height if it flies), with a soft pulse.
+func _focus_ring(t) -> void:
+	var fly: float = t.fly if t is Unit else 0.0
+	var h: float = t.ground_h() + fly + 0.15
+	var r: float = t.radius * 1.25 + 0.25
+	var pts := PackedVector2Array()
+	for i in 25:
+		var a := TAU * float(i) / 24.0
+		var q := Vector3(t.p.x + cos(a) * r, h, t.p.y + sin(a) * r)
+		if not rig.in_front(q):
+			return
+		pts.append(rig.to_screen(q))
+	var k := 0.75 + 0.25 * sin(Time.get_ticks_msec() * 0.008)
+	draw_polyline(pts, Color(0.0, 0.0, 0.0, 0.45), 5.0, true)
+	draw_polyline(pts, Color(1.0, 0.22, 0.18, k), 2.5, true)
 
 
 ## "12/14" beside a crystal: the workers collecting on a base's crystal line and the most
@@ -117,6 +135,14 @@ func _draw() -> void:
 			_bar(sp + Vector2(0, 9), w, b.progress, Color(0.4, 0.85, 1.0))
 		elif b.queue.size() > 0 and b.owner_id == cmd.pid:
 			_bar(sp + Vector2(0, 9), w, b.queue_progress(), Color(0.95, 0.95, 1.0))
+	# a red circle round every enemy your units have been told to attack
+	focus.clear()
+	for u in world.units:
+		if u.owner_id == cmd.pid and not u.dead and u.order == Unit.O.ATTACK and u.target != null and is_instance_valid(u.target) \
+				and not u.target.dead and u.target.owner_id != cmd.pid and u.target.shown and not focus.has(u.target):
+			focus.append(u.target)
+	for t in focus:
+		_focus_ring(t)
 	# collectors on each of your crystal lines, over its main base
 	line_labels.clear()
 	for b in line_n:

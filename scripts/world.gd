@@ -1017,15 +1017,23 @@ func formation(list: Array, to: Vector2) -> Array:
 	return out
 
 
-func command_attack(list: Array, t: Entity) -> void:
+## Can `u` shoot at `t` at all (air or ground)?
+func can_hit(u, t: Entity) -> bool:
+	if u.weapon.is_empty():
+		return false
+	return bool(u.weapon["air"]) if t.is_air else bool(u.weapon["ground"])
+
+
+## Order every unit of `list` that can hit `t` to attack it. Units that can't (a ground-only
+## weapon and a flyer, say) keep doing what they were doing. Returns how many took the order.
+func command_attack(list: Array, t: Entity) -> int:
+	var n := 0
 	for u in list:
-		if u.dead or u.weapon.is_empty():
+		if u.dead or not can_hit(u, t):
 			continue
-		var w: Dictionary = u.weapon
-		if (t.is_air and bool(w["air"])) or (not t.is_air and bool(w["ground"])):
-			u.cmd_attack(t)
-		else:
-			u.cmd_move(t.p, true)
+		u.cmd_attack(t)
+		n += 1
+	return n
 
 
 func command_gather(list: Array, node) -> void:

@@ -582,13 +582,26 @@ func _army(army: Array) -> void:
 		center += u.p
 	center /= army.size()
 	# defend first: any enemy near our buildings?
-	var threat = _threat()
-	if threat != null:
-		state = "defend"
+	# each fighter answers the nearest threat it can actually hit: nothing runs out to
+	# stand under flyers it can't shoot
+	var threats := _threats()
+	var answered := false
+	if not threats.is_empty():
 		for u in army:
+			var threat = null
+			var td := INF
+			for t in threats:
+				if world.can_hit(u, t) and u.p.distance_to(t.p) < td:
+					td = u.p.distance_to(t.p)
+					threat = t.p
+			if threat == null:
+				continue
+			answered = true
 			if u.order != Unit.O.ATTACK and (u.order == Unit.O.IDLE or u.order == Unit.O.MOVE or u.goal.distance_to(threat) > 8.0):
 				if u.target == null:
 					u.cmd_move(threat, true)
+	if answered:
+		state = "defend"
 		return
 	if state == "defend":
 		state = "build"
@@ -643,18 +656,29 @@ func _army(army: Array) -> void:
 			world.command_move(army, attack_target.p, true)
 
 
-func _threat():
+## Enemy units near our buildings (up to a handful: enough to pick who answers what).
+func _threats() -> Array:
 	var mine: Array = []
 	for b in world.buildings:
 		if b.owner_id == pid and not b.dead:
 			mine.append(b)
+	var out: Array = []
+	var got_air := false
+	var got_ground := false
 	for u in world.units:
-		if u.dead or u.owner_id == pid or u.owner_id < 0:
+		if u.dead or u.owner_id == pid or u.owner_id < 0 or (u.is_air and got_air and out.size() >= 6) or (not u.is_air and got_ground and out.size() >= 6):
 			continue
 		for b in mine:
 			if b.p.distance_to(u.p) < 16.0:
-				return u.p
-	return null
+				out.append(u)
+				if u.is_air:
+					got_air = true
+				else:
+					got_ground = true
+				break
+		if out.size() >= 12:
+			break
+	return out
 
 
 func _enemy_target(from: Vector2):

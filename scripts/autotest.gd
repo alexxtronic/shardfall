@@ -122,6 +122,8 @@ func _run() -> void:
 		await _levels()
 	if want("lines"):
 		await _lines()
+	if want("orders"):
+		await _orders()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -870,6 +872,127 @@ func _quick() -> void:
 		msp.closed.emit()
 	Prefs.set_v("quick_buttons", [])
 	await frames(2)
+
+
+## Move and attack orders: a tap (or a hold) on the ground moves without fighting; a tap on
+## an enemy focuses it, with a red circle; nothing is sent after a target it can't hit.
+func _orders() -> void:
+	await start(["ambron", "void"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var cmd: Commander = m.cmd
+	var spot := Vector2(72, 80)
+	w.fog.enabled = false
+	w.fog.update()
+	var inf: Array = []
+	for i in 4:
+		inf.append(w.spawn_unit(Defs.unit_id("ambron", "infantry"), 0, spot + Vector2(-10, i - 2)))
+	var heavy: Unit = w.spawn_unit(Defs.unit_id("ambron", "heavy"), 0, spot + Vector2(-11, 3))
+	heavy.cmd_hold()
+	var foe: Unit = w.spawn_unit(Defs.unit_id("void", "heavy"), 1, spot + Vector2(-2, 0))
+	foe.cmd_hold()
+	m.rig.look_at_ground(spot)
+	m.rig.dist = 34.0
+	m.rig.apply()
+	await frames(4)
+	# a tap on the ground past the enemy: they walk by without shooting
+	cmd.set_selection(inf)
+	var past := spot + Vector2(8, 0)
+	await _tap(m.rig.to_screen(Vector3(past.x, w.height_at(past), past.y)))
+	var all_move := true
+	for u in inf:
+		if u.order != Unit.O.MOVE:
+			all_move = false
+	check(all_move, "a tap on the ground is a move order")
+	var hp0: float = foe.hp
+	for i in 30:
+		w.step(0.1)
+	var passing := true
+	for u in inf:
+		if u.order == Unit.O.MOVE and u.target != null:
+			passing = false
+	check(passing and foe.hp >= hp0 - 0.01, "moving units don't stop to fight on the way (enemy hp %.0f of %.0f)" % [foe.hp, hp0])
+	for i in 100:
+		w.step(0.1)
+	check(foe.hp < hp0 or foe.dead, "once they arrive they fight what is near (enemy hp %.0f of %.0f)" % [foe.hp, hp0])
+	# a clean field for the rest: no enemies, my units back in a group, holding
+	if not foe.dead:
+		w.kill(foe, null)
+	var squad: Array = [heavy]
+	for u in inf:
+		if not u.dead:
+			squad.append(u)
+	for i in squad.size():
+		squad[i].p = spot + Vector2(-12, i - 2)
+		squad[i].cmd_hold()
+	await frames(3)
+	# a hold on the ground (no slide) is the same move
+	cmd.set_selection(squad)
+	var near := spot + Vector2(-9, 0)
+	var nsp: Vector2 = m.rig.to_screen(Vector3(near.x, w.height_at(near), near.y))
+	await _press(nsp)
+	await get_tree().create_timer(0.5).timeout
+	await _release(nsp)
+	var held_move := true
+	for u in squad:
+		if u.order != Unit.O.MOVE:
+			held_move = false
+	check(held_move, "holding on the ground is a move order too")
+	for i in squad.size():
+		squad[i].p = spot + Vector2(-12, i - 2)
+		squad[i].cmd_hold()
+	# a tap on an enemy: every selected unit that can hit it attacks that one, and it gets a ring
+	var mark: Unit = w.spawn_unit(Defs.unit_id("void", "heavy"), 1, spot + Vector2(2, -8))
+	mark.cmd_hold()
+	var flyer: Unit = w.spawn_unit(Defs.unit_id("void", "air_heavy"), 1, spot + Vector2(8, 2))
+	flyer.cmd_hold()
+	await frames(3)
+	await _tap(m.rig.to_screen(Vector3(mark.p.x, w.height_at(mark.p) + 0.6, mark.p.y)))
+	var on_it := 0
+	for u in squad:
+		if u.order == Unit.O.ATTACK and u.target == mark:
+			on_it += 1
+	await frames(2)
+	check(on_it == squad.size() and hud.overlay.focus.has(mark), "a tap on an enemy focuses it and circles it in red (%d of %d units, ring %s)" % [on_it, squad.size(), hud.overlay.focus.has(mark)])
+	await shot("92_focus_ring")
+	# a flyer: only the units that can shoot up take the order; the Bulwark keeps its target
+	await _tap(m.rig.to_screen(Vector3(flyer.p.x, w.height_at(flyer.p) + flyer.fly, flyer.p.y)))
+	var inf_on := 0
+	for u in squad:
+		if u != heavy and u.order == Unit.O.ATTACK and u.target == flyer:
+			inf_on += 1
+	check(inf_on == squad.size() - 1 and heavy.target == mark, "a tap on a flyer sends only the units that can hit it (%d of %d; the Bulwark keeps its target: %s)" % [inf_on, squad.size() - 1, heavy.target == mark])
+	heavy.cmd_hold()
+	cmd.set_selection([heavy])
+	await frames(2)
+	await _tap(m.rig.to_screen(Vector3(flyer.p.x, w.height_at(flyer.p) + flyer.fly, flyer.p.y)))
+	check(heavy.order == Unit.O.HOLD and heavy.target == null, "units that can't hit a flyer don't chase it (order %d)" % heavy.order)
+	for u in [mark, flyer]:
+		if not u.dead:
+			w.kill(u, null)
+	# the bot: ground-only defenders ignore a flyer over their base
+	var ai := BotAI.new()
+	ai.world = w
+	ai.pid = 1
+	ai.difficulty = "hard"
+	add_child(ai)
+	var ehome: Vector2 = w.sites[w.players[1].start_site]["center"]
+	var guards: Array = []
+	for i in 3:
+		guards.append(w.spawn_unit(Defs.unit_id("void", "heavy"), 1, ehome + Vector2(-4 + i * 2, 9)))
+	var spy: Unit = w.spawn_unit(Defs.unit_id("ambron", "air_heavy"), 0, ehome + Vector2(0, -6))
+	spy.cmd_hold()
+	ai._army(guards)
+	var chasing := 0
+	for u in guards:
+		if u.order != Unit.O.IDLE:
+			chasing += 1
+	check(chasing == 0 and ai.state != "defend", "the bot doesn't send units that can't shoot up after a flyer (%d sent)" % chasing)
+	var aa: Unit = w.spawn_unit(Defs.unit_id("void", "infantry"), 1, ehome + Vector2(3, 10))
+	ai._army(guards + [aa])
+	check(aa.order == Unit.O.AMOVE and chasing == 0 and ai.state == "defend", "but its anti-air units do answer")
+	ai.queue_free()
+	w.fog.enabled = true
 
 
 ## A crystal line takes 14 collectors; the count floats over the main base; extra workers
@@ -1689,8 +1812,12 @@ func _combat() -> void:
 	w.fog.enabled = false
 	m.cmd.set_selection(mine)
 	await frames(2)
-	await _tap(m.rig.to_screen(Vector3(spot.x + 3, w.height_at(spot + Vector2(3, -7)), spot.y - 7)))
-	check(mine[0].order == Unit.O.AMOVE, "tap on ground with army attack-moves")
+	var gsp: Vector2 = m.rig.to_screen(Vector3(spot.x + 3, w.height_at(spot + Vector2(3, -7)), spot.y - 7))
+	await _tap(gsp)
+	check(mine[0].order == Unit.O.MOVE, "tap on ground with army moves without fighting")
+	m.cmd.action("attack")
+	await _tap(gsp)
+	check(mine[0].order == Unit.O.AMOVE, "Attack, then a tap on the ground, attack-moves")
 	for i in 40:
 		w.step(0.05)
 	await shot("20_combat")
