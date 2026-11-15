@@ -116,6 +116,8 @@ func _run() -> void:
 		await _supply_rule()
 	if want("quick"):
 		await _quick()
+	if want("grip"):
+		await _grip()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -832,6 +834,168 @@ func _quick() -> void:
 		msp.closed.emit()
 	Prefs.set_v("quick_buttons", [])
 	await frames(2)
+
+
+## Playing with a thumb resting on the screen, the way a phone is held. Godot drives buttons
+## from the first finger only, and a still finger used to turn every slide into a pinch.
+func _grip() -> void:
+	await start(["void", "ambron"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var cmd: Commander = m.cmd
+	var rig: CameraRig = m.rig
+	var pl: PlayerState = w.players[0]
+	pl.minerals += 2000
+	var home: Vector2 = w.sites[pl.start_site]["center"]
+	var bar_id := Defs.building_id("void", "barracks")
+	var bc = _free_cell(bar_id, home + Vector2(9, -4))
+	var bar: Building = w.spawn_building(bar_id, 0, bc, true) if bc != null else null
+	var fighters: Array = []
+	for i in 3:
+		fighters.append(w.spawn_unit(Defs.unit_id("void", "infantry"), 0, home + Vector2(-6 + i * 1.5, 8)))
+	rig.look_at_ground(home)
+	rig.dist = 40.0
+	await frames(4)
+	if bar == null:
+		check(false, "a barracks for the grip test")
+		return
+	# the thumb: the first finger down, on the battlefield, left resting there
+	var thumb := Vector2(hud.root.get_global_rect().position.x + 150, 300)
+	await _finger(0, thumb, true)
+	await get_tree().create_timer(0.5).timeout
+	var d0 := rig.dist
+	var f0 := rig.focus
+	await _finger_slide(1, Vector2(760, 330), Vector2(900, 400), 0.0)
+	check(absf(rig.dist - d0) < 0.01 and rig.focus.distance_to(f0) > 1.0, "thumb resting: a one-finger slide pans, it doesn't zoom (zoom %.2f -> %.2f, moved %.1f m)" % [d0, rig.dist, rig.focus.distance_to(f0)])
+	rig.look_at_ground(home)
+	await frames(4)
+	# a tap on the ground with the barracks selected sets its rally point
+	cmd.set_selection([bar])
+	await frames(2)
+	var sp := _empty_ground_spot(cmd, hud, Vector2(820, 260))
+	var g := rig.screen_to_ground(sp)
+	await _finger_tap(1, sp)
+	check(bar.rally_set and bar.rally.distance_to(g) < 1.5, "thumb resting: tapping the ground sets the barracks' rally point")
+	# the Rally button, pressed by the second finger
+	bar.rally_set = false
+	cmd.set_selection([bar])
+	await frames(3)
+	var rb := _button_titled(hud.card, "Rally")
+	var found := rb != null
+	if found:
+		await _finger_tap(1, rb.get_global_rect().get_center())
+	check(found and cmd.mode == Commander.M.RALLY, "thumb resting: a second finger presses Rally")
+	var sp2 := _empty_ground_spot(cmd, hud, Vector2(700, 200))
+	await _finger_tap(1, sp2)
+	check(bar.rally_set and cmd.mode == Commander.M.NONE, "thumb resting: the next tap places the rally point")
+	# a quick button, pressed by the second finger
+	cmd.set_selection([])
+	await _finger_tap(1, hud.army_btn.get_global_rect().get_center())
+	check(cmd.selection.size() == 3, "thumb resting: a second finger taps ARMY (%d selected)" % cmd.selection.size())
+	# hold and slide with the second finger: a box
+	cmd.set_selection([])
+	var lo := Vector2(INF, INF)
+	var hi := -lo
+	for u in fighters:
+		var s: Vector2 = rig.to_screen(Vector3(u.p.x, w.height_at(u.p) + 0.5, u.p.y))
+		lo = lo.min(s)
+		hi = hi.max(s)
+	await _finger_slide(1, lo - Vector2(50, 50), hi + Vector2(50, 50), 0.6)
+	var got := 0
+	for u in fighters:
+		if cmd.selection.has(u):
+			got += 1
+	check(got == 3, "thumb resting: hold and slide with a second finger box-selects (%d of 3)" % got)
+	# the thumb lifts: nothing happens (it was never a tap)
+	var before := cmd.selection.size()
+	await _finger(0, thumb, false)
+	check(cmd.selection.size() == before and cmd.touches.is_empty(), "lifting the resting thumb does nothing")
+	# a real pinch still zooms
+	var d1 := rig.dist
+	await _pinch(Vector2(640, 300), 120.0, 320.0)
+	check(rig.dist < d1 - 0.5, "a two-finger pinch still zooms (%.1f -> %.1f)" % [d1, rig.dist])
+	# the gap between two quick buttons and the edge outside the safe area catch a gripping hand
+	var bb: Rect2 = hud.bld_btn.get_global_rect()
+	var gap := Vector2(bb.get_center().x, bb.end.y + QuickButtons.GAP * 0.5)
+	await _finger(0, gap, true)
+	check(cmd.touches.is_empty(), "a finger in the gap between quick buttons doesn't reach the battlefield")
+	await _finger(0, gap, false)
+	UiKit.test_safe = Rect2(90, 0, 1100, 690)
+	await _finger(0, Vector2(40, 330), true)
+	check(cmd.touches.is_empty(), "a finger on the screen edge outside the safe area is ignored")
+	await _finger(0, Vector2(40, 330), false)
+	UiKit.test_safe = Rect2()
+
+
+func _finger(idx: int, sp: Vector2, down: bool) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = idx
+	e.position = sp
+	e.pressed = down
+	Input.parse_input_event(e)
+	await frames(2)
+
+
+func _finger_tap(idx: int, sp: Vector2) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = idx
+	e.position = sp
+	e.pressed = true
+	Input.parse_input_event(e)
+	await frames(1)
+	var e2 := InputEventScreenTouch.new()
+	e2.index = idx
+	e2.position = sp
+	e2.pressed = false
+	Input.parse_input_event(e2)
+	await frames(3)
+
+
+## Press, optionally hold still for `hold` seconds, slide, pause (no fling) and lift.
+func _finger_slide(idx: int, a: Vector2, b: Vector2, hold: float) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = idx
+	e.position = a
+	e.pressed = true
+	Input.parse_input_event(e)
+	await frames(1)
+	if hold > 0.0:
+		await get_tree().create_timer(hold).timeout
+	var prev := a
+	for i in 8:
+		var p := a.lerp(b, float(i + 1) / 8.0)
+		var d := InputEventScreenDrag.new()
+		d.index = idx
+		d.position = p
+		d.relative = p - prev
+		prev = p
+		Input.parse_input_event(d)
+		await frames(1)
+	await get_tree().create_timer(0.3).timeout
+	var e2 := InputEventScreenTouch.new()
+	e2.index = idx
+	e2.position = b
+	e2.pressed = false
+	Input.parse_input_event(e2)
+	await frames(3)
+
+
+## A spot near `near` with nothing to pick and no panel over it.
+func _empty_ground_spot(cmd: Commander, hud: Hud, near: Vector2) -> Vector2:
+	for r in 12:
+		for k in 8:
+			var p := near + Vector2(r * 22, 0).rotated(k * TAU / 8.0)
+			if cmd.pick(p) == null and not hud.blocks(p) and hud.root.get_global_rect().grow(-40).has_point(p):
+				return p
+	return near
+
+
+func _button_titled(n: Node, title: String) -> Button:
+	for c in n.find_children("*", "Button", true, false):
+		var t := (c as Node).find_child("Title", true, false)
+		if (c as Button).text == title or (t is Label and (t as Label).text == title):
+			return c
+	return null
 
 
 func _press(sp: Vector2) -> void:

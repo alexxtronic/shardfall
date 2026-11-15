@@ -9,6 +9,10 @@ extends Node
 ## tap an enemy to attack it, tap crystals or your Void Machine to harvest.
 ## With a production building selected: tap ground to set its rally point.
 ## One finger drags the map, two fingers pinch to zoom.
+##
+## Phones are held, so a thumb often rests on the screen. A finger that has sat still while
+## another lands is resting, not half of a pinch: it is forgotten and the new finger works
+## alone. Touches on the edges outside the safe area (where the hand grips) are ignored.
 
 signal selection_changed
 signal mode_changed
@@ -18,6 +22,7 @@ enum M { NONE, PLACE, ATTACK, MOVE, RALLY }
 const TAP_MOVE := 14.0
 const LONG_PRESS := 0.35
 const DOUBLE_TAP := 0.38
+const REST_LIFT := 1.0           # held still this long, a lift is a resting finger leaving, not a tap
 
 var world: World
 var rig: CameraRig
@@ -111,7 +116,11 @@ func _touch(ev: InputEventScreenTouch) -> void:
 	if ev.pressed:
 		if hud and hud.blocks(ev.position):
 			return
-		touches[ev.index] = {"start": ev.position, "pos": ev.position, "t": now(), "moved": false, "long": false}
+		if not UiKit.safe_rect(get_viewport()).has_point(ev.position):
+			return
+		_drop_resting()
+		touches[ev.index] = {"start": ev.position, "pos": ev.position, "t": now(), "moved": false, "long": false,
+			"still": ev.position, "still_t": now()}
 		if touches.size() >= 2:
 			multi = true
 			box_active = false
@@ -131,7 +140,7 @@ func _touch(ev: InputEventScreenTouch) -> void:
 			box_active = false
 			if t["moved"]:
 				_finish_box()
-			else:
+			elif now() - float(t["t"]) < REST_LIFT:
 				long_press(ev.position)
 			return
 		if not t["moved"]:
@@ -148,6 +157,9 @@ func _drag(ev: InputEventScreenDrag) -> void:
 		return
 	var t: Dictionary = touches[ev.index]
 	t["pos"] = ev.position
+	if (ev.position - (t["still"] as Vector2)).length() > TAP_MOVE * 0.5:
+		t["still"] = ev.position
+		t["still_t"] = now()
 	if not t["moved"] and (ev.position - (t["start"] as Vector2)).length() > TAP_MOVE:
 		t["moved"] = true
 	if touches.size() >= 2:
@@ -163,6 +175,20 @@ func _drag(ev: InputEventScreenDrag) -> void:
 		return
 	if t["moved"]:
 		rig.pan_pixels(ev.relative)
+
+
+## Forget fingers that have sat still (a resting thumb, or one whose lift never arrived) so
+## the finger landing now gets one-finger gestures instead of a pinch against them.
+func _drop_resting() -> void:
+	var dropped := false
+	for i in touches.keys():
+		if now() - float(touches[i]["still_t"]) >= LONG_PRESS:
+			touches.erase(i)
+			dropped = true
+	if dropped:
+		box_active = false
+		if touches.size() < 2:
+			multi = false
 
 
 func _key(ev: InputEventKey) -> void:

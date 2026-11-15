@@ -253,7 +253,12 @@ static func card_button(title: String, icon_id: String, cost: Array, hotkey: Str
 
 ## The phone's safe area (clear of the notch or Dynamic Island, rounded corners and home
 ## bar) in viewport coordinates. On a desktop it's the whole viewport.
+static var test_safe: Rect2 = Rect2()   # the autotest pretends to be a phone with this
+
+
 static func safe_rect(vp: Viewport) -> Rect2:
+	if test_safe.has_area():
+		return test_safe
 	var full := vp.get_visible_rect()
 	var win := Vector2(DisplayServer.window_get_size())
 	if not OS.has_feature("mobile") or win.x <= 0.0 or win.y <= 0.0:

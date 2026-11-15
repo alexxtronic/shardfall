@@ -110,6 +110,10 @@ func blocks(pos: Vector2) -> bool:
 	for c in blockers:
 		if is_instance_valid(c) and c.visible and c.is_visible_in_tree() and c.get_global_rect().has_point(pos):
 			return true
+	# the gaps between quick buttons and the strip to the screen edge: a thumb rests there
+	for b in quick_btns:
+		if is_instance_valid(b) and b.is_visible_in_tree() and b.get_global_rect().grow(QuickButtons.GAP).has_point(pos):
+			return true
 	return false
 
 

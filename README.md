@@ -60,6 +60,7 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
 - **Touch controls:**
   - Tap to select. Double-tap or hold a unit to select every unit of that type on screen.
   - **Box select.** Hold on the ground for a moment (a ring pulses and the phone gives a tap), then slide your finger to draw a box. Everything of yours inside is selected, workers included.
+  - **A resting thumb is fine.** A finger that sits still while another one lands is treated as resting, not as half of a pinch, so slides, taps, rally points and box select all work with the other finger. Touches on the screen edges outside the safe area, and in the gaps around the quick buttons, never reach the battlefield.
   - With an army selected, tap the ground to attack-move or tap an enemy to attack it. With workers selected, tapping the ground moves them and tapping crystals or an extractor sends them to harvest.
   - Drag to pan, pinch to zoom, and tap the minimap (top-right corner) to jump the camera.
   - The quick buttons start in the bottom-left corner, where the left thumb rests: BASE, BUILDINGS and ARMY, with ARMY at the bottom. ARMY selects every fighter. Each tap on BASE goes to your next base, in the order you built them. BUILDINGS opens the structures, and the nearest worker builds them. Idle workers are in the hold-ARMY menu (and on the `.` key).
@@ -159,6 +160,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
   - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), BASE cycling, and the selection card's text staying inside its panel.
   - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
+  - `grip`: playing with a thumb resting on the screen (slides pan, taps set rally points, Rally and ARMY work with a second finger, box select, a real pinch still zooms, edges and button gaps ignored).
   - `quick`: the button editor (add, free spot, drag to another corner, from the title and over a running match), GROUND selecting its units, Reset, and hold-and-slide box select taking workers too.
 
   `--only=previews` is not a test. It re-bakes the map previews (`assets/ui/maps/`), the app icon and the boot splash after a map or art change.
