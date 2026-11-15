@@ -19,7 +19,8 @@ Both races must have identical power per resource spent. Never give one race a u
 - **Pathing:** `PathGrid` is a 1 m grid. Buildings, rocks and resources mark cells solid.
   - Main bases may only go on the hand-placed site cells.
   - Other buildings use `World.suggest_spot` to keep a one-cell lane and stay off crystal lines.
-- **The bot:** `BotAI` uses the same costs and rules as the player, with no extra income. Run `-- --balance --game --seed=N` to read its game timeline when tuning it.
+- **The bot:** `BotAI` uses the same costs and rules as the player, with no extra income.
+  - Four levels in `BotAI.LEVELS`: easy, normal, hard, extreme. Alex found the old Normal far too hard (2026-11-15), so it became Hard, the old Hard became Extreme, and Normal is a much gentler bot that holds its first attack until minute 7 (Easy: minute 9) and caps its army near one wave's size (`hoard`), since a delayed bot otherwise arrives with a 50-supply first wave. Bot-vs-bot runs (the harness, the `full` autotest, the Bench) use hard, which is what the balance numbers were measured on. Run `-- --balance --game --seed=N` to read its game timeline when tuning it.
   - Add `--map=ID --races=a,b` to choose the matchup, and `--swap` to start each player on the other main. A swapped game should come out as the mirror image of the unswapped one.
   - Each bot rolls a little variety at the start (first wave size, wave growth, expansion timing, think phase), from the same range for both seats. Keep it: without it, both bots launch on the same second and the map's tiniest asymmetry decides every game.
 - **Mirror fairness (2026-11-14):** both seats must face exactly the same game.

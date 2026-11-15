@@ -5,8 +5,9 @@ extends PanelContainer
 ## one).
 ##   ARMY ("units"): all fighters, ground, air, workers, idle workers, then one entry per
 ##   unit type you have. Empty groups show greyed out and can't be picked.
-##   BUILDINGS ("buildings"): one entry per building type you have finished, so you can
-##   select every Assembly Bay at once and train from all of them.
+##   BUILDINGS ("buildings"): one entry per finished building type that trains units, so
+##   you can select every Assembly Bay at once and train from all of them. Supply
+##   buildings, extractors and towers are left out.
 
 signal picked(kind: String)
 
@@ -111,8 +112,10 @@ func build(w: World, p: int, m: String = "units") -> void:
 	var race: String = world.players[pid].race
 	if mode == "buildings":
 		var kinds: Array = []
+		# only buildings that train units: selecting those is for mass production
 		for bid in Defs.race_building_list(race):
-			if members(world, pid, "btype:" + bid).size() > 0:
+			var have := members(world, pid, "btype:" + bid)
+			if have.size() > 0 and (have[0] as Building).produces().size() > 0:
 				kinds.append(bid)
 		var g := _grid(kinds.size())
 		h.add_child(g)

@@ -74,7 +74,7 @@ func _run() -> void:
 	m = Match.new()
 	main.add_child(m)
 	main.match_node = m
-	m.start({"races": ["ambron", "void"], "ai": [true, true], "difficulty": "normal", "human": 0,
+	m.start({"races": ["ambron", "void"], "ai": [true, true], "difficulty": "hard", "human": 0,
 		"map": "shatterfield", "intro": false})
 	await _frames(5)
 	w = m.world

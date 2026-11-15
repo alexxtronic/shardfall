@@ -83,7 +83,7 @@ All three are exact 180-degree mirrors with five bases per side (8 crystals and 
 ## Leaderboard
 
 Your commander profile (`user://profile.json`) keeps the following:
-- **Rating.** An Elo rating against the bot's difficulty (easy 800, normal 1200, hard 1600). It starts at 1000.
+- **Rating.** An Elo rating against the bot's difficulty (easy 600, normal 900, hard 1200, extreme 1600). It starts at 1000.
 - **Tier.** Bronze to Master.
 - **Score.** A best score per map, and the last 40 games.
 
@@ -133,7 +133,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
     - `title.gd` and the overlays `settings_panel.gd`, `leaderboard_panel.gd` and `credits_panel.gd`;
     - `tutorial.gd`, the guided first match;
     - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads; `graphics.gd` (the quality levels behind the Graphics slider).
-  - **Opponent:** `bot_ai.gd`, the bot, which plays by the same rules (easy, normal, hard).
+  - **Opponent:** `bot_ai.gd`, the bot, which plays by the same rules at four levels: easy, normal, hard and extreme. Easy and normal build slowly, keep their army to about one wave's worth, and leave you alone for the first 9 and 7 minutes; hard and extreme are the full-strength bots. The balance harness and the bot-vs-bot tests play on hard.
   - **Look and sound:**
     - `models.gd` loads GLBs and animates them; `fx.gd` makes the effects.
     - `sfx.gd` plays the effects in `assets/sfx/`. It also runs the music in `assets/music/` (a calm track per map, crossfading to a battle track during fights), the ambience in `assets/ambience/` and the announcer in `assets/voice/`.
@@ -160,6 +160,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
   - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), BASE cycling, and the selection card's text staying inside its panel.
   - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
+  - `levels`: the four bot levels (first attack times, small first waves on easy and normal, economies in order).
   - `grip`: playing with a thumb resting on the screen (slides pan, taps set rally points, Rally and ARMY work with a second finger, box select, a real pinch still zooms, edges and button gaps ignored).
   - `quick`: the button editor (add, free spot, drag to another corner, from the title and over a running match), GROUND selecting its units, Reset, and hold-and-slide box select taking workers too.
 

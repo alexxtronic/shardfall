@@ -163,7 +163,7 @@ func _best() -> void:
 		var b := Profile.best(id)
 		body.add_child(_row([tr, UiKit.head(String(d["name"]).to_upper(), 18, d.get("accent", UiKit.TEXT)),
 			UiKit.head(UiKit.fmt_int(b) if b > 0 else "–", 22, UiKit.GOLD if b > 0 else UiKit.DIM)], [64, 0, 140]))
-	var note := UiKit.label("Score: 1,000 for a win (250 for a loss), plus damage dealt, resources gathered and a bonus for a quick win, times 0.75 / 1 / 1.5 for an easy / normal / hard bot.", 14, UiKit.DIM)
+	var note := UiKit.label("Score: 1,000 for a win (250 for a loss), plus damage dealt, resources gathered and a bonus for a quick win, times 0.6 / 0.8 / 1 / 1.5 for an easy / normal / hard / extreme bot.", 14, UiKit.DIM)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_child(note)
 

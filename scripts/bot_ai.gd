@@ -6,10 +6,16 @@ extends Node
 ## tree, expands, trains a mix that answers what it sees, defends, and attacks
 ## in waves that grow over time.
 
+## Four levels. `attack_after` is the earliest second of the game the first wave may leave;
+## the two gentle levels give a new player time to set up. `hoard` caps their army at the
+## next wave's size plus that much supply, so waiting never grows a huge first wave
+## (-1: no cap). Hard and Extreme are the old
+## Normal and Hard (2026-11-15: Alex found the old Normal far too hard).
 const LEVELS := {
-	"easy": {"towers": 0, "think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6},
-	"normal": {"towers": 1, "think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0},
-	"hard": {"towers": 2, "think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8},
+	"easy": {"towers": 0, "think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6, "attack_after": 540.0, "hoard": 2},
+	"normal": {"towers": 0, "think": 1.0, "worker_cap": 38, "first_wave": 18, "wave_step": 7, "max_barracks": 2, "max_factory": 1, "max_air": 1, "expand_at": 300.0, "max_mains": 2, "queue": 1, "tech_delay": 1.3, "attack_after": 420.0, "hoard": 4},
+	"hard": {"towers": 1, "think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0, "attack_after": 0.0},
+	"extreme": {"towers": 2, "think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8, "attack_after": 0.0},
 }
 
 var world
@@ -311,6 +317,9 @@ func _train_workers(pl: PlayerState, workers: Array, active: Array) -> void:
 
 func _train_army(pl: PlayerState) -> void:
 	var qmax: int = int(cfg["queue"])
+	var hoard := int(cfg.get("hoard", -1))
+	if hoard >= 0 and _army_supply() >= mini(wave_supply, 70) + hoard:
+		return
 	var enemy := _enemy_mix()
 	# expensive producers choose first
 	for slot in ["special", "airfield", "factory", "barracks"]:
@@ -325,6 +334,21 @@ func _train_army(pl: PlayerState) -> void:
 			elif slot == "special" and pl.slime >= 300:
 				# save crystals for the big unit
 				reserve[0] = maxi(int(reserve[0]), 400)
+
+
+## Supply of the fighters alive plus those in production.
+func _army_supply() -> int:
+	var n := 0
+	for u in world.units:
+		if u.owner_id == pid and not u.dead and not u.is_worker:
+			n += u.supply
+	var worker := uid("worker")
+	for b in world.buildings:
+		if b.owner_id == pid and not b.dead:
+			for q in b.queue:
+				if q != worker:
+					n += int(Defs.units[q]["supply"])
+	return n
 
 
 func _queued(id: String) -> int:
@@ -607,6 +631,8 @@ func _army(army: Array) -> void:
 		world.command_move(loose, rally, false)
 	var used: int = world.supply_committed(pid)
 	var cap: int = world.supply_cap(pid)
+	if world.time < float(cfg.get("attack_after", 0.0)):
+		return
 	if supply >= mini(wave_supply, 70) or used >= 180 or (used >= cap - 1 and supply >= 20):
 		state = "attack"
 		sent_supply = supply

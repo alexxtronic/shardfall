@@ -63,7 +63,7 @@ func start(races: Array, ai: bool = true, map_id: String = "shatterfield") -> vo
 		await frames(2)
 	m = Match.new()
 	main.add_child(m)
-	m.start({"races": races, "ai": [false, ai], "difficulty": "normal", "human": 0, "map": map_id, "intro": false})
+	m.start({"races": races, "ai": [false, ai], "difficulty": "hard", "human": 0, "map": map_id, "intro": false})
 	main.match_node = m
 	await frames(5)
 
@@ -118,6 +118,8 @@ func _run() -> void:
 		await _quick()
 	if want("grip"):
 		await _grip()
+	if want("levels"):
+		await _levels()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -629,6 +631,9 @@ func _buildings_hold() -> void:
 	check(hud.group_menu != null and hud.group_menu.mode == "buildings", "holding BUILDINGS opens the building types")
 	if hud.group_menu:
 		await frames(2)
+		var main_id := Defs.building_id("void", "main")
+		check(hud.group_menu.option_center("btype:" + sup_id).x < 0.0 and hud.group_menu.option_center("btype:" + main_id).x > 0.0
+			and hud.group_menu.opts.size() == 2, "the menu lists only buildings that train units (%d entries)" % hud.group_menu.opts.size())
 		var to: Vector2 = hud.group_menu.option_center("btype:" + bar_id)
 		await _slide(bc, to)
 		await shot("97_buildings_slide")
@@ -834,6 +839,40 @@ func _quick() -> void:
 		msp.closed.emit()
 	Prefs.set_v("quick_buttons", [])
 	await frames(2)
+
+
+## The four bot levels: the gentle ones hold their first attack and grow slower.
+func _levels() -> void:
+	var workers := {}
+	var first_wave := {}
+	var wave_size := {}
+	for lv in ["easy", "normal", "hard", "extreme"]:
+		seed(4242)
+		var w := World.new()
+		add_child(w)
+		w.setup({"map": "shatterfield", "visuals": false, "human": -1, "races": ["ambron", "void"], "ai": [true, true], "difficulty": lv})
+		first_wave[lv] = -1.0
+		while w.time < 660.0 and not w.over:
+			w.step(0.1)
+			if first_wave[lv] < 0.0:
+				for ai in w.ais:
+					if ai.state == "attack":
+						first_wave[lv] = w.time
+						wave_size[lv] = ai.sent_supply
+		var n := 0
+		for u in w.units:
+			if u.is_worker and u.owner_id == 0:
+				n += 1
+		workers[lv] = n
+		w.queue_free()
+		await frames(1)
+	check(first_wave["easy"] < 0.0 or first_wave["easy"] >= 540.0, "the easy bot leaves you alone for 9 minutes (first wave at %.0f s)" % first_wave["easy"])
+	check(first_wave["normal"] < 0.0 or first_wave["normal"] >= 420.0, "the normal bot leaves you alone for 7 minutes (first wave at %.0f s)" % first_wave["normal"])
+	check(first_wave["hard"] > 0.0 and first_wave["hard"] < 420.0, "the hard bot (the old normal) attacks within 7 minutes (first wave at %.0f s)" % first_wave["hard"])
+	check(workers["easy"] <= workers["normal"] and workers["normal"] < workers["hard"] and workers["hard"] <= workers["extreme"],
+		"each level grows a bigger economy by minute 11 (workers %s)" % str(workers))
+	check(int(wave_size.get("easy", 0)) <= 24 and int(wave_size.get("normal", 0)) <= 28, "the gentle bots' first waves stay small (easy %s, normal %s supply; hard %s)" % [wave_size.get("easy"), wave_size.get("normal"), wave_size.get("hard")])
+	check(Profile.BOT_RATING["normal"] < Profile.BOT_RATING["hard"] and Profile.BOT_RATING.has("extreme"), "ratings rank the four levels")
 
 
 ## Playing with a thumb resting on the screen, the way a phone is held. Godot drives buttons
@@ -1769,7 +1808,7 @@ func _full() -> void:
 		await frames(2)
 	m = Match.new()
 	main.add_child(m)
-	m.start({"races": ["ambron", "void"], "ai": [true, true], "difficulty": "normal", "human": 0})
+	m.start({"races": ["ambron", "void"], "ai": [true, true], "difficulty": "hard", "human": 0})
 	await frames(5)
 	var w: World = m.world
 	var shots_taken := 0

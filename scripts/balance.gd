@@ -290,7 +290,7 @@ func _full_game(races: Array, s: int, map_id: String = "shatterfield", swap: boo
 	seed(s * 31 + 5)
 	var w := World.new()
 	add_child(w)
-	w.setup({"map": map_id, "visuals": false, "human": -1, "races": races, "ai": [true, true], "difficulty": "normal", "swap_sites": swap})
+	w.setup({"map": map_id, "visuals": false, "human": -1, "races": races, "ai": [true, true], "difficulty": "hard", "swap_sites": swap})
 	var t := 0.0
 	var limit := 40.0 * 60.0
 	var next_log := 0.0

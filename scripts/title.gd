@@ -71,7 +71,7 @@ func _ready() -> void:
 	opts.alignment = BoxContainer.ALIGNMENT_CENTER
 	opts.add_theme_constant_override("separation", 36)
 	opts.add_child(_row("Opponent", ["random", "ambron", "void"], enemy_btns, func(x): _set_enemy(x)))
-	opts.add_child(_row("Bot", ["easy", "normal", "hard"], diff_btns, func(x): _set_diff(x)))
+	opts.add_child(_row("Bot", ["easy", "normal", "hard", "extreme"], diff_btns, func(x): _set_diff(x)))
 	v.add_child(opts)
 	var h := HBoxContainer.new()
 	h.alignment = BoxContainer.ALIGNMENT_CENTER

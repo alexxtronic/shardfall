@@ -2,7 +2,7 @@ extends Node
 ## The local player's profile, kept in user://profile.json: name, Elo rating, win record,
 ## best score per map and recent match history.
 ##
-## Rating: each bot difficulty has a fixed rating (easy 800, normal 1200, hard 1600) and a
+## Rating: each bot difficulty has a fixed rating (easy 600, normal 900, hard 1200, extreme 1600) and a
 ## result moves the player's rating by K * (result - expected), the usual Elo update. K is 40
 ## for the first 10 games so a new player finds their level quickly, then 24.
 ##
@@ -14,8 +14,8 @@ extends Node
 signal changed
 
 const PATH := "user://profile.json"
-const BOT_RATING := {"easy": 800, "normal": 1200, "hard": 1600}
-const DIFF_MULT := {"easy": 0.75, "normal": 1.0, "hard": 1.5}
+const BOT_RATING := {"easy": 600, "normal": 900, "hard": 1200, "extreme": 1600}
+const DIFF_MULT := {"easy": 0.6, "normal": 0.8, "hard": 1.0, "extreme": 1.5}
 const HISTORY_MAX := 40
 const NAME_MAX := 16
 const RIVALS := [
