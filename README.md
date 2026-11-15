@@ -9,7 +9,9 @@ Both races have the same power for the resources spent. Every unit fills a share
 
 ## Play
 
-On a Mac with Godot 4.7 in `/Applications`, double-click `Play.command`, or run:
+You need Godot 4.7 (the standard build, free from [godotengine.org/download](https://godotengine.org/download)). On any computer, open Godot, choose **Import**, pick this folder's `project.godot` and press Play (F5). The first open takes a minute while Godot imports the art.
+
+On a Mac with Godot 4.7 in `/Applications`, you can instead double-click `Play.command`, or run:
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --path . --resolution 1280x720
@@ -38,7 +40,7 @@ With the phone paired to this Mac (once, over USB in Xcode), unlocked, in Develo
 tools/ios.sh
 ```
 
-It exports a release build with Godot (`export_presets.cfg`, preset "iOS"), signs it automatically as Apple Development for team HFC498ZVXN, installs it over Wi-Fi or USB and launches it. `tools/ios.sh --no-build` reinstalls the last build, and `tools/ios.sh iPad` targets the iPad instead. The build lands in `build/ios/` (ignored by git). The HUD keeps clear of the Dynamic Island, rounded corners and home bar using the phone's safe area.
+It exports a release build with Godot (`export_presets.cfg`, preset "iOS"), signs it automatically as Apple Development for team HFC498ZVXN (put your own Apple team ID in `export_presets.cfg` to build it yourself), installs it over Wi-Fi or USB and launches it. `tools/ios.sh --no-build` reinstalls the last build, and `tools/ios.sh iPad` targets the iPad instead. The build lands in `build/ios/` (ignored by git). The HUD keeps clear of the Dynamic Island, rounded corners and home bar using the phone's safe area.
 
 ## How to play
 
