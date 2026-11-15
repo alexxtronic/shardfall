@@ -443,8 +443,19 @@ func _seats() -> void:
 				var l1 := _path_len(w.grid.find_path(from1, s0["center"]))
 				# A* breaks equal-cost ties its own way, so allow a couple of percent
 				check(absf(l0 - l1) <= maxf(l0, l1) * 0.02, "%s: the march to the enemy main is the same from both seats (%.1f vs %.1f m)" % [id, l0, l1])
+				# and so is a raider's run, jumping cliffs, from each main to the other's crystal line
+				var j0 := _path_len(w.grid.find_path(from0, _line_mid(w, 1), 0.4, true))
+				var j1 := _path_len(w.grid.find_path(from1, _line_mid(w, 0), 0.4, true))
+				check(absf(j0 - j1) <= maxf(j0, j1) * 0.02, "%s: a raider's cliff-jumping run to the enemy crystal line is the same from both seats (%.1f vs %.1f m)" % [id, j0, j1])
 			w.queue_free()
 			await frames(1)
+
+
+func _line_mid(w: World, si: int) -> Vector2:
+	var c := Vector2.ZERO
+	for r in w.sites[si]["minerals"]:
+		c += r.p
+	return (w.sites[si]["center"] as Vector2).lerp(c / maxf(w.sites[si]["minerals"].size(), 1), 0.6)
 
 
 ## The guided first match: each lesson waits for the player to do its thing, the bot waits
@@ -900,7 +911,54 @@ func _upgrades() -> void:
 	for slot in Defs.UNIT_SLOTS:
 		if slot != "raider" and not bool(Defs.UNIT_SLOTS[slot]["air"]):
 			fastest_ground = maxf(fastest_ground, float(Defs.UNIT_SLOTS[slot]["speed"]))
-	check(float(ra["speed"]) > fastest_ground and int(ra["cost"][0]) <= 75 and int(ra["cost"][1]) == 0, "the raider outruns every other ground unit (%.1f vs %.1f) and costs only crystals" % [float(ra["speed"]), fastest_ground])
+	check(float(ra["speed"]) > fastest_ground and int(ra["cost"][0]) == 100 and int(ra["cost"][1]) == 0, "the raider outruns every other ground unit (%.1f vs %.1f) and costs 100 crystals" % [float(ra["speed"]), fastest_ground])
+	check(float(ra["hp"]) <= float(Defs.UNIT_SLOTS["infantry"]["hp"]) and float(ra["weapon"]["dmg"]) / float(ra["weapon"]["cd"]) < float(Defs.UNIT_SLOTS["infantry"]["weapon"]["dmg"]) / float(Defs.UNIT_SLOTS["infantry"]["weapon"]["cd"]), "it is fragile and hits softer than infantry (hp %.0f, %.1f damage a second)" % [float(ra["hp"]), float(ra["weapon"]["dmg"]) / float(ra["weapon"]["cd"])])
+	# it jumps cliffs: find a cliff with open ground on both sides, on different levels
+	var gr: PathGrid = w.grid
+	var top := Vector2.ZERO
+	var low := Vector2.ZERO
+	var found_cliff := false
+	for y in range(8, gr.size - 8):
+		for x in range(8, gr.size - 8):
+			if found_cliff or gr.jump[gr.idx(Vector2i(x, y))] != 1:
+				continue
+			for dir: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+				var a2 := Vector2i(x, y) - dir * 3
+				var b2 := Vector2i(x, y) + dir * 3
+				if gr.walkable(a2) and gr.walkable(b2) and w.terrain.level_at(gr.center_of(a2)) != w.terrain.level_at(gr.center_of(b2)):
+					var pa := gr.center_of(a2)
+					var pb := gr.center_of(b2)
+					var walk_len := _path_len(gr.find_path(pa, pb, 0.4))
+					if walk_len > 25.0:       # a real detour, away from any ramp
+						top = pa
+						low = pb
+						found_cliff = true
+						break
+	check(found_cliff, "the map has a cliff with open ground above and below")
+	if found_cliff:
+		var walk_path := gr.find_path(top, low, 0.4)
+		var jump_path := gr.find_path(top, low, 0.4, true)
+		check(_path_len(jump_path) < 9.0 and _path_len(walk_path) > 25.0, "a jumper's path goes straight over the cliff (%.0f m) where walkers go round (%.0f m)" % [_path_len(jump_path), _path_len(walk_path)])
+		var jr: Unit = w.spawn_unit("void_ripper", 0, top)
+		var wk: Unit = w.spawn_unit(Defs.unit_id("void", "infantry"), 0, top + Vector2(0.6, 0.6))
+		jr.cmd_move(low)
+		wk.cmd_move(low)
+		var peak := 0.0
+		for i in 40:
+			w.step(0.1)
+			peak = maxf(peak, jr.hop)
+		check(jr.p.distance_to(low) < 1.5 and wk.p.distance_to(low) > 6.0 and peak > 0.5 and jr.hop < 0.05,
+			"a Ripper hops the cliff and arrives while the Spitter is still walking round (Ripper %.1f m away, Spitter %.1f m, hop %.2f)" % [jr.p.distance_to(low), wk.p.distance_to(low), peak])
+		check(w.terrain.level_at(jr.p) == w.terrain.level_at(low) and gr.walkable_p(jr.p), "and it lands on open ground on the other level")
+		w.kill(jr, null)
+		w.kill(wk, null)
+	var tw_id := Defs.building_id("ambron", "tower")
+	var tw_w: Dictionary = Defs.buildings[tw_id]["weapon"]
+	var probe: Unit = w.spawn_unit("void_ripper", 0, Vector2(72, 70))
+	var probe2: Unit = w.spawn_unit(Defs.unit_id("void", "infantry"), 0, Vector2(73, 70))
+	check(w.damage_vs(tw_w, probe) >= w.damage_vs(tw_w, probe2) + 10.0 and w.damage_vs(tw_w, probe) * 2.0 >= probe.max_hp, "towers hit raiders hard: two shots kill one (%.0f a shot, %.0f hp)" % [w.damage_vs(tw_w, probe), probe.max_hp])
+	w.kill(probe, null)
+	w.kill(probe2, null)
 	check(Defs.buildings[Defs.building_id("void", "barracks")]["produces"].has("void_ripper") and Defs.buildings[Defs.building_id("ambron", "barracks")]["produces"].has("ambron_strider"), "each race trains its raider in the infantry building")
 	var spot := Vector2(72, 80)
 	var rip: Unit = w.spawn_unit("void_ripper", 0, spot)
@@ -913,7 +971,7 @@ func _upgrades() -> void:
 	w.step(0.02)      # index the new units
 	check(w.find_target(rip, rip.sight) == e_work, "a raider goes for the worker before the soldier beside it")
 	check(not w.can_hit(rip, e_fly), "a raider can't hit flyers")
-	check(w.damage_vs(rip.weapon, e_work, rip) > w.damage_vs(rip.weapon, e_inf, rip) + 5.0, "it does extra damage to workers (%.0f vs %.0f)" % [w.damage_vs(rip.weapon, e_work, rip), w.damage_vs(rip.weapon, e_inf, rip)])
+	check(w.damage_vs(rip.weapon, e_work, rip) > w.damage_vs(rip.weapon, e_inf, rip) + 3.0, "it does extra damage to workers (%.0f vs %.0f)" % [w.damage_vs(rip.weapon, e_work, rip), w.damage_vs(rip.weapon, e_inf, rip)])
 	for u in [rip, e_inf, e_work, e_fly]:
 		w.kill(u, null)
 	# the upgrade buildings
@@ -975,7 +1033,12 @@ func _upgrades() -> void:
 	await shot("91_build_menu_ten")
 	hud.card_state = ""
 	hud._refresh_card(true)
-	check(not Defs.ART_PENDING.is_empty(), "stand-in models are still listed as pending art (%d)" % Defs.ART_PENDING.size())
+	var stale := []
+	for id in Defs.ART_PENDING:
+		if ResourceLoader.exists("res://assets/models/%s.glb" % id):
+			stale.append(id)
+	check(stale.is_empty(), "nothing with a finished model is still listed as pending art (%s)" % str(stale))
+	check(ResourceLoader.exists("res://assets/models/ambron_strider.glb") and ResourceLoader.exists("res://assets/models/void_ripper.glb"), "both raiders have their models")
 
 
 ## Move and attack orders: a tap (or a hold) on the ground moves without fighting; a tap on

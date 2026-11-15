@@ -1001,13 +1001,22 @@ func place_building(w: Unit, bid: String, c: Vector2i) -> bool:
 func command_move(list: Array, to: Vector2, attack_move: bool) -> void:
 	var ground: Array = []
 	var air: Array = []
+	var jumpers: Array = []
 	for u in list:
 		if u.dead:
 			continue
 		if u.is_air:
 			air.append(u)
+		elif u.jumper:
+			jumpers.append(u)
 		else:
 			ground.append(u)
+	# jumpers find their own way: over the cliffs the others must walk round
+	if jumpers.size() > 0:
+		var jslots := formation(jumpers, to)
+		for i in jumpers.size():
+			jumpers[i].cmd_move(jslots[i], attack_move)
+			jumpers[i].arrive_tol = 0.4
 	if ground.size() > 0:
 		var slots := formation(ground, to)
 		var c := Vector2.ZERO

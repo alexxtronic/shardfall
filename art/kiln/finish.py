@@ -8,7 +8,10 @@ keeps the nodes the game animates as their own small meshes:
 
 Usage:
     /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
-        --python-exit-code 1 --python art/kiln/finish.py -- IN.glb OUT.glb
+        --python-exit-code 1 --python art/kiln/finish.py -- IN.glb OUT.glb [HEIGHT_SCALE]
+
+HEIGHT_SCALE (optional) squashes or stretches the whole model's height, for a model that came
+out taller than its concept (the Evolution Pit uses 0.68).
 """
 import sys
 
@@ -49,6 +52,11 @@ def main():
     src, dst = argv[0], argv[1]
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=src)
+    if len(argv) > 2:
+        for o in bpy.context.scene.objects:
+            if o.parent is None:
+                o.scale.z *= float(argv[2])
+        bpy.context.view_layer.update()
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     groups = {}
     for m in meshes:

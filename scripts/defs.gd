@@ -57,14 +57,15 @@ const UNIT_SLOTS := {
 		"tags": ["light"], "model_h": 1.15, "model_w": 0.9,
 		"weapon": {"dmg": 6.0, "cd": 0.61, "range": 5.0, "ground": true, "air": true, "splash": 0.0, "bonus": {}, "proj": 34.0},
 	},
-	# a fast, cheap raider for hitting worker lines (Alex, 2026-11-15): outruns everything on
-	# the ground, shreds workers, runs down artillery (its target among fighters), loses to
-	# infantry, heavies and flame of equal value and can't shoot up
+	# a fast raider for keeping the enemy on edge (Alex, 2026-11-15): it jumps cliffs to get
+	# behind a crystal line, outruns everything on the ground and shreds workers, but it is
+	# fragile, hits softly, dies to towers (their "raider" bonus), loses to infantry, heavies
+	# and flame of equal value and can't shoot up. Artillery is its target among fighters.
 	"raider": {
-		"cost": [75, 0], "supply": 1, "time": 16.0, "hp": 55.0, "armor": 0.0,
-		"speed": 5.0, "radius": 0.4, "air": false, "sight": 10.0,
-		"tags": ["light"], "model_h": 1.1, "model_w": 0.9,
-		"weapon": {"dmg": 6.0, "cd": 0.7, "range": 3.0, "ground": true, "air": false, "splash": 0.0, "bonus": {"worker": 6.0, "mech": 4.0}, "proj": 30.0},
+		"cost": [100, 0], "supply": 1, "time": 18.0, "hp": 45.0, "armor": 0.0,
+		"speed": 5.0, "radius": 0.4, "air": false, "sight": 10.0, "jumper": true,
+		"tags": ["light", "raider"], "model_h": 1.1, "model_w": 0.9,
+		"weapon": {"dmg": 6.0, "cd": 0.7, "range": 3.0, "ground": true, "air": false, "splash": 0.0, "bonus": {"worker": 4.0, "mech": 5.0}, "proj": 30.0},
 	},
 	"heavy": {
 		"cost": [100, 25], "supply": 2, "time": 22.0, "hp": 160.0, "armor": 1.0,
@@ -119,7 +120,7 @@ const BUILDING_SLOTS := {
 	"aerolab": {"cost": [150, 100], "time": 34.0, "hp": 850.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 8.0, "produces": [], "requires": ["airfield"], "model_h": 3.0,
 		"research": ["air_attack", "air_armor"]},
 	"tower": {"cost": [125, 0], "time": 32.0, "hp": 450.0, "armor": 1.0, "size": 2, "supply": 0, "sight": 10.0, "produces": [], "requires": ["barracks"], "model_h": 3.2,
-		"weapon": {"dmg": 14.0, "cd": 1.0, "range": 7.0, "ground": true, "air": true, "splash": 0.0, "bonus": {}, "proj": 0.0}},
+		"weapon": {"dmg": 14.0, "cd": 1.0, "range": 7.0, "ground": true, "air": true, "splash": 0.0, "bonus": {"raider": 12.0}, "proj": 0.0}},
 }
 
 const BUILD_ORDER := ["main", "supply", "extractor", "barracks", "armory", "tower", "factory", "airfield", "aerolab", "special"]
@@ -135,14 +136,14 @@ const UPGRADES := {
 }
 
 ## New units and buildings playing with stand-in models until their art is made.
-const ART_PENDING := ["ambron_strider", "void_ripper", "ambron_armory", "ambron_aerolab", "void_evolution_pit", "void_sky_chrysalis"]
+const ART_PENDING := []
 
 ## Race-specific names and looks for each slot.
 const RACE_UNITS := {
 	"ambron": {
 		"worker": {"id": "ambron_worker", "name": "Harvester", "fx": "zap", "desc": "Gathers crystals and slime, builds structures."},
 		"infantry": {"id": "ambron_lancer", "name": "Lancer", "fx": "bolt", "desc": "Ranged infantry. Hits air and ground."},
-		"raider": {"id": "ambron_strider", "name": "Strider", "fx": "bolt", "desc": "Fast, cheap raider. Shreds workers and artillery; can't hit air."},
+		"raider": {"id": "ambron_strider", "name": "Strider", "fx": "bolt", "desc": "Fast raider that jumps cliffs. Hunts workers; fragile, weak to towers."},
 		"heavy": {"id": "ambron_bulwark", "name": "Bulwark", "fx": "shell", "desc": "Armoured frontline trooper. Strong against light units."},
 		"vehicle_flame": {"id": "ambron_scorcher", "name": "Scorcher", "fx": "flame", "desc": "Flame tank. Burns groups of light units."},
 		"vehicle_missile": {"id": "ambron_hailfire", "name": "Hailfire", "fx": "missile", "desc": "Long-range missile artillery. Shreds armour."},
@@ -153,7 +154,7 @@ const RACE_UNITS := {
 	"void": {
 		"worker": {"id": "void_drudge", "name": "Drudge", "fx": "bite", "desc": "Gathers crystals and slime, grows structures."},
 		"infantry": {"id": "void_spitter", "name": "Spitter", "fx": "glob", "desc": "Acid-spitting infantry. Hits air and ground."},
-		"raider": {"id": "void_ripper", "name": "Ripper", "fx": "shard", "desc": "Fast, cheap raider. Shreds workers and artillery; can't hit air."},
+		"raider": {"id": "void_ripper", "name": "Ripper", "fx": "shard", "desc": "Fast raider that jumps cliffs. Hunts workers; fragile, weak to towers."},
 		"heavy": {"id": "void_mauler", "name": "Mauler", "fx": "shard", "desc": "Armoured brute hurling bone shards. Strong against light units."},
 		"vehicle_flame": {"id": "void_acidback", "name": "Acidback", "fx": "acid", "desc": "Armoured beetle spraying acid. Melts groups of light units."},
 		"vehicle_missile": {"id": "void_spinefiend", "name": "Spinefiend", "fx": "spine", "desc": "Hurls bone spines from far away. Shreds armour."},

@@ -162,6 +162,7 @@ func finish(grid) -> void:
 			for x in size:
 				if cliff[idx(x, y)] == 1:
 					grid.set_cell(Vector2i(x, y), 1, null)
+					grid.mark_jump(Vector2i(x, y))      # raiders jump cliffs
 
 
 func _level_xy(q: Vector2) -> int:

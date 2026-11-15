@@ -8,6 +8,8 @@ var size: int
 var astar := AStarGrid2D.new()
 var solid := PackedByteArray()   # 0 free, 1 rock, 2 building, 3 resource
 var occupant: Array = []          # building or resource node per cell (or null)
+var jump := PackedByteArray()    # 1 on cliff cells: solid for everyone except jumpers (raiders)
+var astar_jump := AStarGrid2D.new()   # the same grid with the cliff cells open, for jumpers
 
 
 func _init(map_size: int) -> void:
@@ -22,6 +24,15 @@ func _init(map_size: int) -> void:
 	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	astar.update()
+	jump.resize(size * size)
+	jump.fill(0)
+	astar_jump.region = Rect2i(0, 0, size, size)
+	astar_jump.cell_size = Vector2(1, 1)
+	astar_jump.offset = Vector2(0.5, 0.5)
+	astar_jump.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	astar_jump.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
+	astar_jump.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
+	astar_jump.update()
 	# map border is rock
 	for i in size:
 		for c in [Vector2i(i, 0), Vector2i(i, size - 1), Vector2i(0, i), Vector2i(size - 1, i)]:
@@ -50,6 +61,20 @@ func set_cell(c: Vector2i, kind: int, who) -> void:
 	solid[idx(c)] = kind
 	occupant[idx(c)] = who
 	astar.set_point_solid(c, kind != 0)
+	astar_jump.set_point_solid(c, kind != 0 and not (kind == 1 and jump[idx(c)] == 1))
+
+
+## A cliff cell: it stays solid, but units that jump cliffs may cross it.
+func mark_jump(c: Vector2i) -> void:
+	if not inside(c):
+		return
+	jump[idx(c)] = 1
+	astar_jump.set_point_solid(c, solid[idx(c)] != 0 and solid[idx(c)] != 1)
+
+
+func jump_at(p: Vector2) -> bool:
+	var c := cell_of(p)
+	return inside(c) and jump[idx(c)] == 1 and solid[idx(c)] == 1
 
 
 func set_rect(origin: Vector2i, sz: Vector2i, kind: int, who) -> void:
@@ -58,22 +83,32 @@ func set_rect(origin: Vector2i, sz: Vector2i, kind: int, who) -> void:
 			set_cell(origin + Vector2i(x, y), kind, who)
 
 
-func walkable(c: Vector2i) -> bool:
-	return inside(c) and solid[idx(c)] == 0
+## `jumper`: the asker crosses cliffs, so cliff cells count as open for it.
+func walkable(c: Vector2i, jumper: bool = false) -> bool:
+	if not inside(c):
+		return false
+	var k := solid[idx(c)]
+	return k == 0 or (jumper and k == 1 and jump[idx(c)] == 1)
 
 
-func walkable_p(p: Vector2) -> bool:
-	return walkable(cell_of(p))
+func walkable_p(p: Vector2, jumper: bool = false) -> bool:
+	return walkable(cell_of(p), jumper)
+
+
+func _rock(c: Vector2i, jumper: bool) -> bool:
+	if not inside(c):
+		return true
+	return solid[idx(c)] == 1 and not (jumper and jump[idx(c)] == 1)
 
 
 ## True when a round body of radius r at p overlaps no rock cell.
-func clear_of_rock(p: Vector2, r: float) -> bool:
-	if kind_at(cell_of(p)) == 1:
+func clear_of_rock(p: Vector2, r: float, jumper: bool = false) -> bool:
+	if _rock(cell_of(p), jumper):
 		return false
 	if r <= 0.0:
 		return true
-	return kind_at(cell_of(p + Vector2(r, 0))) != 1 and kind_at(cell_of(p - Vector2(r, 0))) != 1 \
-		and kind_at(cell_of(p + Vector2(0, r))) != 1 and kind_at(cell_of(p - Vector2(0, r))) != 1
+	return not _rock(cell_of(p + Vector2(r, 0)), jumper) and not _rock(cell_of(p - Vector2(r, 0)), jumper) \
+		and not _rock(cell_of(p + Vector2(0, r)), jumper) and not _rock(cell_of(p - Vector2(0, r)), jumper)
 
 
 func kind_at(c: Vector2i) -> int:
@@ -100,9 +135,9 @@ func rect_free(origin: Vector2i, sz: Vector2i) -> bool:
 ## say) go to the one nearest `toward`, by default the map centre, never to whichever the
 ## scan meets first: a fixed scan order favours one corner, so the two mirrored seats
 ## would resolve the same order differently.
-func nearest_walkable(p: Vector2, max_r: int = 24, toward = null) -> Vector2:
+func nearest_walkable(p: Vector2, max_r: int = 24, toward = null, jumper: bool = false) -> Vector2:
 	var c := cell_of(p)
-	if walkable(c):
+	if walkable(c, jumper):
 		return p
 	var tw: Vector2 = toward if toward is Vector2 else Vector2(size, size) * 0.5
 	var best := p
@@ -114,7 +149,7 @@ func nearest_walkable(p: Vector2, max_r: int = 24, toward = null) -> Vector2:
 				if absi(dx) != r and absi(dy) != r:
 					continue
 				var cc := c + Vector2i(dx, dy)
-				if walkable(cc):
+				if walkable(cc, jumper):
 					var cp := center_of(cc)
 					var d := cp.distance_squared_to(p)
 					var t := cp.distance_squared_to(tw)
@@ -128,17 +163,18 @@ func nearest_walkable(p: Vector2, max_r: int = 24, toward = null) -> Vector2:
 
 
 ## A path from a to b as world points, pulled tight. The first point is a.
-func find_path(a: Vector2, b: Vector2, radius: float = 0.4) -> PackedVector2Array:
-	var start := nearest_walkable(a, 6, b)
+## A jumper's path may cross cliff cells, but it never ends on one.
+func find_path(a: Vector2, b: Vector2, radius: float = 0.4, jumper: bool = false) -> PackedVector2Array:
+	var start := nearest_walkable(a, 6, b, jumper)
 	var goal := nearest_walkable(b, 24, a)
 	var sc := cell_of(start)
 	var gc := cell_of(goal)
 	var out := PackedVector2Array()
 	out.append(a)
-	if line_clear(a, goal, radius):
+	if line_clear(a, goal, radius, jumper):
 		out.append(goal)
 		return out
-	var raw: PackedVector2Array = astar.get_point_path(sc, gc, true)
+	var raw: PackedVector2Array = (astar_jump if jumper else astar).get_point_path(sc, gc, true)
 	if raw.size() == 0:
 		out.append(goal)
 		return out
@@ -152,7 +188,7 @@ func find_path(a: Vector2, b: Vector2, radius: float = 0.4) -> PackedVector2Arra
 		var j := raw.size() - 1
 		var advanced := false
 		while j > i:
-			if line_clear(anchor, raw[j], radius):
+			if line_clear(anchor, raw[j], radius, jumper):
 				out.append(raw[j])
 				anchor = raw[j]
 				i = j + 1
@@ -167,16 +203,16 @@ func find_path(a: Vector2, b: Vector2, radius: float = 0.4) -> PackedVector2Arra
 
 
 ## True when a disc of `radius` can slide from a to b without touching solid cells.
-func line_clear(a: Vector2, b: Vector2, radius: float = 0.4) -> bool:
+func line_clear(a: Vector2, b: Vector2, radius: float = 0.4, jumper: bool = false) -> bool:
 	var d := b - a
 	var L := d.length()
 	if L < 0.001:
-		return walkable_p(a)
+		return walkable_p(a, jumper)
 	var dir := d / L
 	var perp := Vector2(-dir.y, dir.x) * (radius * 0.85)
 	var steps := int(ceil(L / 0.4))
 	for s in steps + 1:
 		var p := a + dir * (L * float(s) / float(steps))
-		if not walkable_p(p) or not walkable_p(p + perp) or not walkable_p(p - perp):
+		if not walkable_p(p, jumper) or not walkable_p(p + perp, jumper) or not walkable_p(p - perp, jumper):
 			return false
 	return true

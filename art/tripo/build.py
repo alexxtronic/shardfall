@@ -47,6 +47,9 @@ UNITS = {
                           crop=dict(x=(-0.49, -0.163), z=(0.0, 0.31))),
     "ambron_lancer": dict(race="ambron", rig="biped", h=1.15, tris=5000, yaw=0.0, hip=0.47,
                           arms=dict(C=dict(s=(0.0, 0.0, 0.8), e=(0.08, -0.24, 0.62), r=0.24, ymax=0.02, zmin=0.56))),
+    "ambron_strider": dict(race="ambron", rig="biped", h=1.1, tris=5000, yaw=0.0, hip=0.47,
+                           arms=dict(L=dict(s=(0.15, 0.0, 0.77), e=(0.31, -0.12, 0.54), r=0.12, xin=0.13, swing=26),
+                                     R=dict(s=(-0.14, 0.0, 0.77), e=(-0.33, -0.03, 0.54), r=0.12, xin=0.13, swing=26))),
     "ambron_bulwark": dict(race="ambron", rig="biped", h=1.6, tris=5000, yaw=0.0, hip=0.36,
                            arms=dict(L=dict(s=(0.5, 0.0, 1.16), e=(0.64, -0.1, 0.46), r=0.27, xin=0.44, swing=12),
                                      R=dict(s=(-0.5, 0.0, 1.16), e=(-0.63, -0.06, 0.6), r=0.22, xin=0.44, swing=20))),
@@ -60,6 +63,9 @@ UNITS = {
     "void_spitter": dict(race="void", rig="biped", h=1.15, tris=5000, yaw=-90.0, hip=0.45,
                          arms=dict(L=dict(s=(0.06, -0.28, 0.7), e=(0.03, -0.42, 0.47), r=0.085, swing=28),
                                    R=dict(s=(-0.14, -0.22, 0.7), e=(-0.26, -0.24, 0.45), r=0.085, swing=28))),
+    "void_ripper": dict(race="void", rig="biped", h=1.1, tris=5000, yaw=-90.0, hip=0.45,
+                        arms=dict(L=dict(s=(0.27, -0.32, 0.74), e=(0.29, -0.60, 0.22), r=0.10, swing=24),
+                                  R=dict(s=(-0.26, 0.06, 0.74), e=(-0.45, 0.16, 0.20), r=0.10, swing=24))),
     "void_mauler": dict(race="void", rig="biped", h=1.6, tris=5000, yaw=180.0, hip=0.36, attack="lunge",
                         arms=dict(L=dict(s=(0.52, 0.1, 1.0), e=(0.72, 0.28, 0.38), r=0.21, xin=0.5, swing=22),
                                   R=dict(s=(-0.52, 0.1, 1.0), e=(-0.74, 0.3, 0.38), r=0.21, xin=0.5, swing=22))),
@@ -550,6 +556,16 @@ def rig_biped(ob, lo, hi, cfg):
     r.bone("torso", (cx, 0, hz + 0.12 * H), (cx, 0, 0.85 * H), "hips")
     w = {}
     leg_sum = np.zeros(len(v), np.float32)
+    # arms first: a scythe or a shield hanging beside a leg belongs to the arm, not to the
+    # leg column it happens to pass through
+    arm_w = {}
+    arm_tot = np.zeros(len(v), np.float32)
+    for side, a in cfg.get("arms", {}).items():
+        name = "carry" if side == "C" else "arm_" + side
+        r.bone(name, a["s"], a["e"], "torso")
+        arm_w[name] = arm_weight(v, a)
+        arm_tot += arm_w[name]
+    arm_free = 1.0 - np.clip(arm_tot, 0.0, 1.0)
     for side in ("L", "R"):
         c, rad = cols[side]
         r.bone("thigh_" + side, (c[0], c[1], hz), (c[0], c[1], knee), "hips")
@@ -557,15 +573,12 @@ def rig_biped(ob, lo, hi, cfg):
         d = np.linalg.norm(v[:, :2] - c, axis=1)
         inside = smooth(rad * 1.25, rad * 0.85, d)
         sidew = smooth(-0.02 * H, 0.03 * H, (v[:, 0] - cx) * (1 if side == "L" else -1))
-        leg = inside * sidew * smooth(hz + 0.06 * H, hz - 0.08 * H, v[:, 2])
+        leg = inside * sidew * smooth(hz + 0.06 * H, hz - 0.08 * H, v[:, 2]) * arm_free
         shin = smooth(knee + 0.08 * H, knee - 0.08 * H, v[:, 2])
         w["thigh_" + side] = leg * (1 - shin)
         w["shin_" + side] = leg * shin
         leg_sum += leg
-    for side, a in cfg.get("arms", {}).items():
-        name = "carry" if side == "C" else "arm_" + side
-        r.bone(name, a["s"], a["e"], "torso")
-        aw = arm_weight(v, a) * (1 - np.clip(leg_sum, 0, 1))
+    for name, aw in arm_w.items():
         w[name] = aw
         leg_sum += aw
     rest = np.clip(1 - leg_sum, 0, 1)

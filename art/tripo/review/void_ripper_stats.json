@@ -1,0 +1,82 @@
+{
+ "id": "void_ripper",
+ "raw_tris": 9920,
+ "decimated": [
+  9920,
+  5000
+ ],
+ "size_m": [
+  0.862,
+  1.18,
+  1.098
+ ],
+ "faces_by_material": {
+  "body": 3955,
+  "team": 969,
+  "glow": 76
+ },
+ "images": [
+  [
+   "void_ripper_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_ripper_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "void_ripper_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "hips",
+  "torso",
+  "arm_L",
+  "arm_R",
+  "thigh_L",
+  "shin_L",
+  "thigh_R",
+  "shin_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 27
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 27
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.917,
+    "channels": 27
+   }
+  ],
+  "triangles": 5000,
+  "materials": [
+   "void_void_ripper_body",
+   "team",
+   "glow_acid"
+  ],
+  "images": 3,
+  "joints": [
+   9
+  ],
+  "bytes": 886540
+ }
+}

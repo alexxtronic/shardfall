@@ -35,6 +35,8 @@ var walk_phase: float = 0.0
 
 # worker
 var is_worker: bool = false
+var jumper: bool = false                # crosses cliff bands (raiders)
+var hop: float = 0.0                    # how high it is off the ground mid-jump
 var gstate: String = ""                 # to_node, mining, to_base, wait, inside
 var gnode = null                        # ResourceNode (mineral) or extractor Building (slime)
 var gtimer: float = 0.0
@@ -57,6 +59,7 @@ func setup(w, id: String, owner: int, at: Vector2) -> void:
 	fly = float(def.get("fly", 0.0))
 	supply = int(def["supply"])
 	is_worker = slot == "worker"
+	jumper = bool(def.get("jumper", false))
 	height = float(def.get("model_h", 1.0)) + fly
 	p = at
 	anchor = at
@@ -173,7 +176,7 @@ func set_goal(to: Vector2, shared_path: PackedVector2Array = PackedVector2Array(
 		path[0] = p
 		path[path.size() - 1] = to
 	else:
-		path = world.grid.find_path(p, to, radius)
+		path = world.grid.find_path(p, to, radius, jumper)
 
 
 # ---------------------------------------------------------------- step
@@ -183,6 +186,8 @@ func step(dt: float) -> void:
 		return
 	cd -= dt
 	attack_anim = maxf(0.0, attack_anim - dt)
+	if jumper:
+		hop = move_toward(hop, 0.9 if world.grid.jump_at(p) else 0.0, dt * 4.5)
 	match order:
 		O.IDLE:
 			_step_idle(dt)
@@ -290,10 +295,10 @@ func _engage(dt: float, auto: bool) -> void:
 		repath_t = 0.6
 		goal = tp
 		path_i = 1
-		if is_air or p.distance_to(tp) < 6.0 and world.grid.line_clear(p, tp, radius):
+		if is_air or p.distance_to(tp) < 6.0 and world.grid.line_clear(p, tp, radius, jumper):
 			path = PackedVector2Array([p, tp])
 		else:
-			path = world.grid.find_path(p, tp, radius)
+			path = world.grid.find_path(p, tp, radius, jumper)
 	moving = true
 	_follow(dt)
 
@@ -366,7 +371,7 @@ func _follow(dt: float) -> bool:
 				moving = false
 				return true
 			if not is_air:
-				path = world.grid.find_path(p, goal, radius)
+				path = world.grid.find_path(p, goal, radius, jumper)
 				path_i = 1
 		stuck_t = 0.0
 		last_prog_p = p
@@ -429,10 +434,10 @@ func _slide(delta: Vector2) -> void:
 ## A ground unit may stand at q: the cell is open and its body doesn't
 ## overlap a rock (unless it already does, so it can always work free).
 func ground_ok(q: Vector2) -> bool:
-	if not world.grid.walkable_p(q):
+	if not world.grid.walkable_p(q, jumper):
 		return false
 	var pr := minf(radius * 0.8, 0.45)
-	return world.grid.clear_of_rock(q, pr) or not world.grid.clear_of_rock(p, pr)
+	return world.grid.clear_of_rock(q, pr, jumper) or not world.grid.clear_of_rock(p, pr, jumper)
 
 
 # ---------------------------------------------------------------- workers

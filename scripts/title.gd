@@ -391,7 +391,7 @@ func _help(parent: Control) -> void:
 		["• Supply limits your army: build Power Relays (Ambron) or Brood Pods (Void).", 15, UiKit.TEXT],
 		["• Ambron structures must stand inside a Power Relay's field (the blue circle shown while placing).", 15, UiKit.TEXT],
 		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 15, UiKit.TEXT],
-		["• Upgrades: the Armory / Evolution Pit gives ground units +1 weapons and +1 armour; the Aero Lab / Sky Chrysalis does the same for flyers. Striders and Rippers are fast, cheap raiders for hitting worker lines.", 15, UiKit.TEXT],
+		["• Upgrades: the Armory / Evolution Pit gives ground units +1 weapons and +1 armour; the Aero Lab / Sky Chrysalis does the same for flyers. Striders and Rippers are fast raiders that jump cliffs to hit worker lines; towers stop them.", 15, UiKit.TEXT],
 		["• High ground: units can't see up a cliff until they climb a ramp, and shots fired uphill miss 30% of the time.", 15, UiKit.TEXT],
 		["• Expand: build a new main base at another crystal field to grow your economy.", 15, UiKit.TEXT],
 		["• Settings: Customize buttons adds quick buttons (ground, air, one unit or building type) and lets you drag them anywhere. A lower Graphics level keeps your phone cooler.", 15, UiKit.TEXT],

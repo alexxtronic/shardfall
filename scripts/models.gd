@@ -339,7 +339,7 @@ static func animate_unit(u, delta: float) -> void:
 	if u.dead:
 		return
 	var t: float = u.world.time
-	var y: float = u.fly + u.ground_h()
+	var y: float = u.fly + u.ground_h() + u.hop
 	if u.is_air:
 		y += sin(t * 2.0 + float(u.eid)) * 0.12
 	u.position = Vector3(u.p.x, y, u.p.y)

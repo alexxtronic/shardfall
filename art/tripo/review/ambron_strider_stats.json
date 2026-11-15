@@ -1,0 +1,80 @@
+{
+ "id": "ambron_strider",
+ "raw_tris": 9738,
+ "decimated": [
+  9738,
+  5000
+ ],
+ "size_m": [
+  0.749,
+  0.44,
+  1.099
+ ],
+ "faces_by_material": {
+  "body": 4755,
+  "team": 245
+ },
+ "images": [
+  [
+   "ambron_strider_basecolor",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_strider_normal",
+   [
+    1024,
+    1024
+   ]
+  ],
+  [
+   "ambron_strider_rm",
+   [
+    1024,
+    1024
+   ]
+  ]
+ ],
+ "bones": [
+  "root",
+  "hips",
+  "torso",
+  "arm_L",
+  "arm_R",
+  "thigh_L",
+  "shin_L",
+  "thigh_R",
+  "shin_R"
+ ],
+ "glb": {
+  "animations": [
+   {
+    "name": "attack",
+    "seconds": 0.583,
+    "channels": 27
+   },
+   {
+    "name": "idle_loop",
+    "seconds": 2,
+    "channels": 27
+   },
+   {
+    "name": "walk_loop",
+    "seconds": 0.917,
+    "channels": 27
+   }
+  ],
+  "triangles": 5000,
+  "materials": [
+   "ambron_ambron_strider_body",
+   "team"
+  ],
+  "images": 3,
+  "joints": [
+   9
+  ],
+  "bytes": 692944
+ }
+}
