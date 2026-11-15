@@ -351,20 +351,23 @@ func close_groups() -> void:
 	sliding = false
 
 
-func pick_group(kind: String, jump: bool = false) -> void:
+## Select a whole group. `jump` moves the camera to it; building types always jump, unless
+## `stay` (a double-tap on a building you are already looking at).
+func pick_group(kind: String, jump: bool = false, stay: bool = false) -> void:
 	var list := GroupMenu.members(world, pid, kind)
 	close_groups()
 	if list.is_empty():
 		return
 	cmd.set_selection(list)
-	if jump:
+	if jump and not stay:
 		rig.look_at_ground(GroupMenu.cluster_center(list))
 	Sfx.play("click")
 	Input.vibrate_handheld(12)
 	var line := "%s selected. Tap where to send them." % GroupMenu.describe(kind, list.size())
 	if kind.begins_with("btype:"):
 		# buildings: look at them, and say how to train from all of them at once
-		rig.look_at_ground(GroupMenu.cluster_center(list))
+		if not stay:
+			rig.look_at_ground(GroupMenu.cluster_center(list))
 		var trains: bool = (list[0] as Building).produces().size() > 0
 		line = "%s selected.%s" % [GroupMenu.describe(kind, list.size()), " Each tap on a unit trains it in the least busy one." if trains and list.size() > 1 else ""]
 	# one line for the latest pick, not a stack of them

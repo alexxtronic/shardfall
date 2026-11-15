@@ -94,6 +94,7 @@ Animated units carry an armature with `idle_loop`, `walk_loop` (or `fly_loop` fo
 
 - **Layout:** the minimap sits in the top-right corner. The quick buttons start in the bottom-left corner (BASE, BUILDINGS, ARMY, with ARMY at the bottom), where the left thumb rests.
 - **Quick buttons are the player's:** Settings > Customize buttons adds, removes and moves them, saved in Prefs `quick_buttons` (`QuickButtons.layout()`). Never hard-code their position; `QuickButtonsEditor.zones()` must keep matching the HUD's fixed panels.
+- **Double-tap:** on a unit it selects every unit of that type on screen; on a building it selects every finished building of that type anywhere, and the camera stays (`Commander.select_building_type`).
 - **Box select:** hold on the ground, then slide. It selects every unit of yours inside, workers included.
 - **Resting thumb (2026-11-15):** players hold the phone, so a thumb rests on the screen. `Commander._drop_resting` forgets a finger that has sat still for `LONG_PRESS` when another lands, and touches outside the safe area or in the quick buttons' gaps are ignored. Without this a resting thumb turned every slide into a pinch zoom and swallowed every tap, rally points included. The `grip` autotest guards it; keep it passing after any touch change.
 - **Graphics:** the Settings slider's levels live in `Graphics.LEVELS`. Phones default to Balanced (60 fps cap). Keep a frame cap on phones: uncapped, an iPhone runs at 120 fps and gets hot.

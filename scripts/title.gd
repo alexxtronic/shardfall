@@ -382,7 +382,7 @@ func _help(parent: Control) -> void:
 		["How to play", 30, UiKit.GOLD],
 		["Win by destroying every enemy building.", 18, UiKit.TEXT],
 		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 16, UiKit.TEXT],
-		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen.", 16, UiKit.TEXT],
+		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen. Double-tap a building to select every building of that type.", 16, UiKit.TEXT],
 		["• Hold on the ground, then slide, to draw a box: everything of yours inside is selected. ARMY selects every fighter; hold ARMY and slide to pick ground, air, workers, idle workers or one unit type.", 16, UiKit.TEXT],
 		["• With units selected, tap the ground to attack-move, tap an enemy to attack. Use Move to retreat.", 16, UiKit.TEXT],
 		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 16, UiKit.TEXT],

@@ -656,6 +656,35 @@ func _buildings_hold() -> void:
 		if b.queue.size() != 1:
 			spread = false
 	check(spread, "three taps on a unit train one in each selected building")
+	# double-tap one barracks: all three, and the camera stays put
+	m.cmd.set_selection([])
+	m.rig.look_at_ground(bars[0].p)
+	m.rig.apply()
+	await frames(3)
+	var f1: Vector2 = m.rig.focus
+	var bsp: Vector2 = m.rig.to_screen(Vector3(bars[0].p.x, w.height_at(bars[0].p) + 1.0, bars[0].p.y))
+	await _tap(bsp)
+	var one: bool = m.cmd.selection.size() == 1 and m.cmd.selection[0] == bars[0]
+	await _tap(bsp)
+	var three: bool = m.cmd.selection.size() == bars.size()
+	for e in m.cmd.selection:
+		if not (e is Building and e.def_id == bar_id):
+			three = false
+	check(one and three and m.rig.focus.distance_to(f1) < 0.5, "a tap selects one barracks, a double-tap selects all three, and the camera stays (%d selected)" % m.cmd.selection.size())
+	# a lone building type: a double-tap just keeps it selected
+	var hive: Building = null
+	for b in w.buildings:
+		if b.owner_id == 0 and b.slot == "main":
+			hive = b
+	m.rig.look_at_ground(hive.p)
+	m.rig.apply()
+	await frames(3)
+	var hsp: Vector2 = m.rig.to_screen(Vector3(hive.p.x, w.height_at(hive.p) + 1.5, hive.p.y))
+	await _tap(hsp)
+	await _tap(hsp)
+	check(m.cmd.selection.size() == 1 and m.cmd.selection[0] == hive, "double-tapping your only main base keeps it selected")
+	for b in bars:
+		b.queue.clear()
 	# BASE: each tap goes to the next base
 	var main_id := Defs.building_id("void", "main")
 	var nat: Dictionary = {}

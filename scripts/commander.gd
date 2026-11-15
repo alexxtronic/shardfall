@@ -3,7 +3,8 @@ extends Node
 ## Turns touches into selections and orders.
 ##
 ## Tap your unit/building: select it. Double-tap (or long-press) a unit: select
-## every one of that type on screen. Press and hold, then slide: box select (every one of
+## every one of that type on screen. Double-tap (or long-press) a building: select every
+## finished building of that type, wherever it is, to train from all of them at once. Press and hold, then slide: box select (every one of
 ## your units inside it, workers too).
 ## With units selected: tap ground to attack-move there (workers just move),
 ## tap an enemy to attack it, tap crystals or your Void Machine to harvest.
@@ -262,6 +263,8 @@ func long_press(sp: Vector2) -> void:
 	var e = pick(sp)
 	if e and e is Unit and e.owner_id == pid:
 		select_type_on_screen(e.def_id)
+	elif e and e is Building and e.owner_id == pid:
+		select_building_type(e)
 	else:
 		tap(sp)
 
@@ -362,6 +365,10 @@ func _select_tap(e) -> void:
 		select_type_on_screen(e.def_id)
 		last_tap_e = null
 		return
+	if e is Building and e.owner_id == pid and last_tap_e == e and t - last_tap_t < DOUBLE_TAP:
+		select_building_type(e)
+		last_tap_e = null
+		return
 	last_tap_e = e
 	last_tap_t = t
 	set_selection([e])
@@ -422,6 +429,21 @@ func select_type_on_screen(def_id: String) -> void:
 			list.append(u)
 	set_selection(list)
 	Sfx.play("click")
+
+
+## Every finished building of yours of the same type as `b`, wherever it stands. The camera
+## stays where it is: you are looking at the one you tapped.
+func select_building_type(b: Building) -> void:
+	var kind := "btype:" + b.def_id
+	var list := GroupMenu.members(world, pid, kind)
+	if list.size() < 2 or not list.has(b):
+		set_selection([b])       # the only one, or still under construction
+		Sfx.play("click")
+		return
+	if hud:
+		hud.pick_group(kind, false, true)
+	else:
+		set_selection(list)
 
 
 func _finish_box() -> void:

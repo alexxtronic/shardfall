@@ -58,7 +58,7 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
 - **Defence towers.** Once you have an infantry building you can build a tower: the Ambron Arc Tower throws lightning, the Void Slime Spire lobs slime. Both hit ground and air, with the same numbers apart from the usual Void health and fire-rate difference.
 - **Expanding.** Build another main base on any of the 8 open sites. Every site has 8 crystal nodes and 2 slime piles.
 - **Touch controls:**
-  - Tap to select. Double-tap or hold a unit to select every unit of that type on screen.
+  - Tap to select. Double-tap or hold a unit to select every unit of that type on screen. Double-tap or hold a building to select every finished building of that type, wherever it is, without moving the camera.
   - **Box select.** Hold on the ground for a moment (a ring pulses and the phone gives a tap), then slide your finger to draw a box. Everything of yours inside is selected, workers included.
   - **A resting thumb is fine.** A finger that sits still while another one lands is treated as resting, not as half of a pinch, so slides, taps, rally points and box select all work with the other finger. Touches on the screen edges outside the safe area, and in the gaps around the quick buttons, never reach the battlefield.
   - With an army selected, tap the ground to attack-move or tap an enemy to attack it. With workers selected, tapping the ground moves them and tapping crystals or an extractor sends them to harvest.
@@ -169,7 +169,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `seats`: neither seat starts ahead (mirrored grid, equal harvest, equal march to the enemy);
   - `tutorial`: every lesson passes on the player's action, the bot waits, Skip works, and the leaderboard is untouched;
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
-  - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), BASE cycling, and the selection card's text staying inside its panel.
+  - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), double-tapping a building to select its whole type, BASE cycling, and the selection card's text staying inside its panel.
   - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
   - `levels`: the four bot levels (first attack times, small first waves on easy and normal, economies in order).
   - `grip`: playing with a thumb resting on the screen (slides pan, taps set rally points, Rally and ARMY work with a second finger, box select, a real pinch still zooms, edges and button gaps ignored).
