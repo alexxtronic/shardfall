@@ -26,6 +26,7 @@ The core units are generated in Tripo from concept art. `build.py` turns each on
      - Void's pale bone becomes a textured `team` material. `bone_sat` widens this for peach-toned bone.
      - Void's acid green becomes `glow_acid`.
    - Rigs it (`hover`, `biped`, `legs` or `wings`) and keys `idle_loop`, `walk_loop` or `fly_loop`, and `attack`.
+   - Bipeds with arms get an arm bone each from the `arms` capsules in `UNITS` (shoulder, hand, radius, in metres). The arms swing opposite the legs in `walk_loop`: Bulwark (its shield arm swings less), Spitter and Mauler. The Lancer holds its rifle in both hands, so its arms and rifle share one `carry` bone that bobs with each step. Hailfire and the walkers have no arms.
    - Exports `assets/models/<id>.glb` and `assets/icons/<id>.png`, plus a review sheet in `review/roundN/`.
 5. **Reimport.** Run `Godot --headless --path . --import`, then check the `models` autotest section.
 

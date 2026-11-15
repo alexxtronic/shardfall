@@ -11,6 +11,12 @@ var last_cfg: Dictionary = {}
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
+	if Bench.requested() != -9:
+		var bench := Bench.new()
+		bench.main = self
+		bench.level = Bench.requested()
+		add_child(bench)
+		return
 	for a in args:
 		if a.begins_with("--autotest="):
 			var t := Autotest.new()

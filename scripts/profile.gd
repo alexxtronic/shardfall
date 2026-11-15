@@ -41,6 +41,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--autotest") or a == "--balance":
 			persist = false
+	if Bench.requested() != -9:
+		persist = false
 	data = defaults()
 	if persist and FileAccess.file_exists(PATH):
 		var f := FileAccess.open(PATH, FileAccess.READ)

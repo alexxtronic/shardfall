@@ -30,6 +30,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--autotest") or a == "--balance":
 			persist = false
+	if Bench.requested() != -9:
+		persist = false
 	for b in ["Music", "Effects"]:
 		if AudioServer.get_bus_index(b) == -1:
 			AudioServer.add_bus()

@@ -16,21 +16,21 @@
  },
  "images": [
   [
-   "ambron_lancer_basecolor.jpg",
+   "ambron_lancer_basecolor",
    [
     1024,
     1024
    ]
   ],
   [
-   "ambron_lancer_normal.png",
+   "ambron_lancer_normal",
    [
     1024,
     1024
    ]
   ],
   [
-   "ambron_lancer_rm.jpg",
+   "ambron_lancer_rm",
    [
     1024,
     1024
@@ -41,6 +41,7 @@
   "root",
   "hips",
   "torso",
+  "carry",
   "thigh_L",
   "shin_L",
   "thigh_R",
@@ -51,17 +52,17 @@
    {
     "name": "attack",
     "seconds": 0.583,
-    "channels": 21
+    "channels": 24
    },
    {
     "name": "idle_loop",
     "seconds": 2,
-    "channels": 21
+    "channels": 24
    },
    {
     "name": "walk_loop",
     "seconds": 0.917,
-    "channels": 21
+    "channels": 24
    }
   ],
   "triangles": 5000,
@@ -71,8 +72,8 @@
   ],
   "images": 3,
   "joints": [
-   7
+   8
   ],
-  "bytes": 669708
+  "bytes": 672072
  }
 }

@@ -38,11 +38,18 @@ FPS = 24
 # yaw: degrees to turn the raw model about Z so its front faces -Y (found with --inspect).
 # h: model height in metres (ART_SPEC sizes). tris: triangle budget.
 # rig: hover | biped | legs | wings. Rig parameters are fractions of the model's height (H) or half-width.
+# arms (bipeds with arms): capsules in metres, from the shoulder `s` to the hand `e` with radius `r`, that
+# pick the arm's vertices; `xin`, `ymax` and `zmin` trim them off the torso. L is +X (the unit's left). L and
+# R swing opposite their legs as it walks; C is a two-handed carry (the Lancer's rifle) that bobs and sways
+# instead, since arms holding one weapon can't swing apart. Found by plotting the fitted vertices.
 UNITS = {
     "ambron_worker": dict(race="ambron", rig="hover", h=0.95, tris=4000, yaw=90.0, bake=True, cargo=True,
                           crop=dict(x=(-0.49, -0.163), z=(0.0, 0.31))),
-    "ambron_lancer": dict(race="ambron", rig="biped", h=1.15, tris=5000, yaw=0.0, hip=0.47),
-    "ambron_bulwark": dict(race="ambron", rig="biped", h=1.6, tris=5000, yaw=0.0, hip=0.36),
+    "ambron_lancer": dict(race="ambron", rig="biped", h=1.15, tris=5000, yaw=0.0, hip=0.47,
+                          arms=dict(C=dict(s=(0.0, 0.0, 0.8), e=(0.08, -0.24, 0.62), r=0.24, ymax=0.02, zmin=0.56))),
+    "ambron_bulwark": dict(race="ambron", rig="biped", h=1.6, tris=5000, yaw=0.0, hip=0.36,
+                           arms=dict(L=dict(s=(0.5, 0.0, 1.16), e=(0.64, -0.1, 0.46), r=0.27, xin=0.44, swing=12),
+                                     R=dict(s=(-0.5, 0.0, 1.16), e=(-0.63, -0.06, 0.6), r=0.22, xin=0.44, swing=20))),
     "ambron_sovereign": dict(race="ambron", rig="legs", h=4.6, tris=14000, yaw=0.0, legs=2, leg_top=0.42, core=0.38,
                              attack="recoil"),
     "ambron_scorcher": dict(race="ambron", rig="hover", h=1.3, tris=7000, yaw=0.0),
@@ -50,8 +57,12 @@ UNITS = {
     "ambron_dart": dict(race="ambron", rig="hover", h=0.6, tris=6000, yaw=0.0, air=3.5),
     "ambron_monolith": dict(race="ambron", rig="hover", h=1.2, tris=8000, yaw=0.0, air=3.5),
     "void_drudge": dict(race="void", rig="legs", h=0.7, tris=4000, yaw=0.0, legs=3, leg_top=0.45, core=0.42),
-    "void_spitter": dict(race="void", rig="biped", h=1.15, tris=5000, yaw=-90.0, hip=0.45),
-    "void_mauler": dict(race="void", rig="biped", h=1.6, tris=5000, yaw=180.0, hip=0.36, attack="lunge"),
+    "void_spitter": dict(race="void", rig="biped", h=1.15, tris=5000, yaw=-90.0, hip=0.45,
+                         arms=dict(L=dict(s=(0.06, -0.28, 0.7), e=(0.03, -0.42, 0.47), r=0.085, swing=28),
+                                   R=dict(s=(-0.14, -0.22, 0.7), e=(-0.26, -0.24, 0.45), r=0.085, swing=28))),
+    "void_mauler": dict(race="void", rig="biped", h=1.6, tris=5000, yaw=180.0, hip=0.36, attack="lunge",
+                        arms=dict(L=dict(s=(0.52, 0.1, 1.0), e=(0.72, 0.28, 0.38), r=0.21, xin=0.5, swing=22),
+                                  R=dict(s=(-0.52, 0.1, 1.0), e=(-0.74, 0.3, 0.38), r=0.21, xin=0.5, swing=22))),
     "void_acidback": dict(race="void", rig="legs", h=1.35, tris=8000, yaw=0.0, legs=3, leg_top=0.4, core=0.45),
     "void_spinefiend": dict(race="void", rig="legs", h=1.5, tris=8000, yaw=0.0, legs=2, leg_top=0.42, core=0.4,
                             attack="recoil", bone_sat=0.62),
@@ -507,6 +518,25 @@ def leg_columns(v, hip_z, cx):
     return out
 
 
+def arm_weight(v, a):
+    """How much each vertex belongs to an arm capsule (see UNITS): full inside, fading out over the last
+    fifth of the radius, and fading in from the shoulder so the joint blends into the torso."""
+    s, e = np.array(a["s"], np.float32), np.array(a["e"], np.float32)
+    se = e - s
+    t = np.clip(((v - s) @ se) / float(se @ se), -1.0, 1.0)
+    q = s + np.clip(t, 0.0, 1.0)[:, None] * se
+    d = np.linalg.norm(v - q, axis=1)
+    r = float(a["r"])
+    w = smooth(r * 1.2, r * 0.8, d) * smooth(-0.1, 0.15, t)
+    if "xin" in a:
+        w = w * smooth(a["xin"] - 0.04, a["xin"] + 0.04, np.abs(v[:, 0]))
+    if "ymax" in a:
+        w = w * smooth(a["ymax"] + 0.07, a["ymax"] - 0.07, v[:, 1])
+    if "zmin" in a:
+        w = w * smooth(a["zmin"] - 0.05, a["zmin"] + 0.05, v[:, 2])
+    return w.astype(np.float32)
+
+
 def rig_biped(ob, lo, hi, cfg):
     H = hi[2] - lo[2]
     v = verts_np(ob)
@@ -532,6 +562,12 @@ def rig_biped(ob, lo, hi, cfg):
         w["thigh_" + side] = leg * (1 - shin)
         w["shin_" + side] = leg * shin
         leg_sum += leg
+    for side, a in cfg.get("arms", {}).items():
+        name = "carry" if side == "C" else "arm_" + side
+        r.bone(name, a["s"], a["e"], "torso")
+        aw = arm_weight(v, a) * (1 - np.clip(leg_sum, 0, 1))
+        w[name] = aw
+        leg_sum += aw
     rest = np.clip(1 - leg_sum, 0, 1)
     up = smooth(hz, hz + 0.2 * H, v[:, 2])
     w["torso"] = rest * up
@@ -679,6 +715,9 @@ def anim_hover(arm, clip, t, P):
 def anim_biped(arm, clip, t, P, cfg):
     H = P["H"]
     pb = arm.pose.bones
+    arms = cfg.get("arms", {})
+    for side in arms:                                  # arms hang still unless the walk swings them
+        pose(pb["carry" if side == "C" else "arm_" + side])
     if clip == "walk_loop":
         a = 2 * math.pi * t
         for side, ph in (("L", 0.0), ("R", math.pi)):
@@ -686,9 +725,14 @@ def anim_biped(arm, clip, t, P, cfg):
             lift = max(0.0, math.cos(a + ph))          # recovery half: knee bends
             pose(pb["thigh_" + side], rx(-30 * sw - 10 * lift))
             pose(pb["shin_" + side], rx(38 * lift))
+            if side in arms:                           # the arm swings back as its leg goes forward
+                pose(pb["arm_" + side], rx(arms[side].get("swing", 20) * sw))
+        if "C" in arms:                                # a two-handed weapon bobs with each step
+            pose(pb["carry"], rx(5 * math.sin(2 * a)) @ rz(-3 * math.sin(a)))
         bob = abs(math.cos(a)) * 0.03 * H
-        pose(pb["hips"], rz(5 * math.sin(a)), Vector((0, 0, bob - 0.015 * H)))
-        pose(pb["torso"], rz(-7 * math.sin(a)) @ rx(-4))
+        # the hips turn with the stepping leg and the shoulders turn against them (+Z turns +X back)
+        pose(pb["hips"], rz(-5 * math.sin(a)), Vector((0, 0, bob - 0.015 * H)))
+        pose(pb["torso"], rz(11 * math.sin(a)) @ rx(-4))
     elif clip == "idle_loop":
         s = math.sin(2 * math.pi * t)
         pose(pb["hips"], None, Vector((0, 0, -0.006 * H * (1 + s))))
@@ -991,13 +1035,14 @@ def review(uid, ob, arm, acts, cfg, rnd):
     render(shots[-1], (512, 512), False)
     # animation frames, side-on: walk at two phases and the attack's peak
     move = "fly_loop" if "fly_loop" in acts else "walk_loop"
-    for clip, frac in ((move, 0.25), (move, 0.75), ("attack", 0.3)):
+    for clip, frac, az, tag in ((move, 0.25, 70, ""), (move, 0.75, 70, ""), ("attack", 0.3, 70, ""),
+                                (move, 0.25, 35, "_front")):
         act, frames = acts[clip]
         arm.animation_data.action = act
         bpy.context.scene.frame_set(int(round(frac * frames)))
         bpy.context.view_layer.update()
-        frame_cam(cam, world_pts(ob), 70, 12, 0.08)
-        shots.append(os.path.join(out, "%s_%s_%02d.png" % (uid, clip, int(frac * 100))))
+        frame_cam(cam, world_pts(ob), az, 20 if tag else 12, 0.08)
+        shots.append(os.path.join(out, "%s_%s_%02d%s.png" % (uid, clip, int(frac * 100), tag)))
         render(shots[-1], (512, 512), False)
     arm.animation_data.action = None
     clear_pose(arm)

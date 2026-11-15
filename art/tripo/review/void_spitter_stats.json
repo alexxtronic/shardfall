@@ -17,21 +17,21 @@
  },
  "images": [
   [
-   "void_spitter_basecolor.jpg",
+   "void_spitter_basecolor",
    [
     1024,
     1024
    ]
   ],
   [
-   "void_spitter_normal.png",
+   "void_spitter_normal",
    [
     1024,
     1024
    ]
   ],
   [
-   "void_spitter_rm.jpg",
+   "void_spitter_rm",
    [
     1024,
     1024
@@ -42,6 +42,8 @@
   "root",
   "hips",
   "torso",
+  "arm_L",
+  "arm_R",
   "thigh_L",
   "shin_L",
   "thigh_R",
@@ -52,17 +54,17 @@
    {
     "name": "attack",
     "seconds": 0.583,
-    "channels": 21
+    "channels": 27
    },
    {
     "name": "idle_loop",
     "seconds": 2,
-    "channels": 21
+    "channels": 27
    },
    {
     "name": "walk_loop",
     "seconds": 0.917,
-    "channels": 21
+    "channels": 27
    }
   ],
   "triangles": 4998,
@@ -73,8 +75,8 @@
   ],
   "images": 3,
   "joints": [
-   7
+   9
   ],
-  "bytes": 774032
+  "bytes": 779508
  }
 }

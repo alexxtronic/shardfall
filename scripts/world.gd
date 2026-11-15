@@ -13,6 +13,8 @@ const HASH := 4.0
 
 var visuals: bool = true
 var running: bool = true
+var prof_step_us: int = 0          # time spent stepping and syncing, for the Bench
+var prof_sync_us: int = 0
 var time: float = 0.0
 var players: Array = []          # PlayerState
 var human: int = 0               # -1 when nobody plays (balance runs)
@@ -186,10 +188,14 @@ func _process(delta: float) -> void:
 	var dt := minf(delta, 0.05) * speed_mult
 	# fast speeds take several small steps so nothing tunnels
 	var n := int(ceil(dt / 0.05))
+	var t0 := Time.get_ticks_usec()
 	for i in n:
 		step(dt / float(n))
+	var t1 := Time.get_ticks_usec()
+	prof_step_us += t1 - t0
 	if visuals:
 		_sync_visuals(delta)
+		prof_sync_us += Time.get_ticks_usec() - t1
 
 
 func step(dt: float) -> void:
