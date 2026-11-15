@@ -9,13 +9,14 @@ extends Node
 ## Four levels. `attack_after` is the earliest second of the game the first wave may leave;
 ## the two gentle levels give a new player time to set up. `hoard` caps their army at the
 ## next wave's size plus that much supply, so waiting never grows a huge first wave
-## (-1: no cap). Hard and Extreme are the old
+## (-1: no cap). `raiders` is how many worker-hunting raiders the bot keeps out; `upgrades`
+## says whether it builds the upgrade buildings and researches. Hard and Extreme are the old
 ## Normal and Hard (2026-11-15: Alex found the old Normal far too hard).
 const LEVELS := {
-	"easy": {"towers": 0, "think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6, "attack_after": 540.0, "hoard": 2},
-	"normal": {"towers": 0, "think": 1.0, "worker_cap": 38, "first_wave": 18, "wave_step": 7, "max_barracks": 2, "max_factory": 1, "max_air": 1, "expand_at": 300.0, "max_mains": 2, "queue": 1, "tech_delay": 1.3, "attack_after": 420.0, "hoard": 4},
-	"hard": {"towers": 1, "think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0, "attack_after": 0.0},
-	"extreme": {"towers": 2, "think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8, "attack_after": 0.0},
+	"easy": {"towers": 0, "think": 1.4, "worker_cap": 28, "first_wave": 16, "wave_step": 6, "max_barracks": 1, "max_factory": 1, "max_air": 1, "expand_at": 420.0, "max_mains": 2, "queue": 1, "tech_delay": 1.6, "attack_after": 540.0, "hoard": 2, "raiders": 0, "upgrades": false},
+	"normal": {"towers": 0, "think": 1.0, "worker_cap": 38, "first_wave": 18, "wave_step": 7, "max_barracks": 2, "max_factory": 1, "max_air": 1, "expand_at": 300.0, "max_mains": 2, "queue": 1, "tech_delay": 1.3, "attack_after": 420.0, "hoard": 4, "raiders": 0, "upgrades": false},
+	"hard": {"towers": 1, "think": 0.7, "worker_cap": 52, "first_wave": 22, "wave_step": 10, "max_barracks": 3, "max_factory": 2, "max_air": 1, "expand_at": 210.0, "max_mains": 3, "queue": 1, "tech_delay": 1.0, "attack_after": 0.0, "raiders": 2, "upgrades": true},
+	"extreme": {"towers": 2, "think": 0.35, "worker_cap": 66, "first_wave": 26, "wave_step": 14, "max_barracks": 4, "max_factory": 2, "max_air": 2, "expand_at": 150.0, "max_mains": 4, "queue": 2, "tech_delay": 0.8, "attack_after": 0.0, "raiders": 4, "upgrades": true},
 }
 
 var world
@@ -87,11 +88,14 @@ func _think() -> void:
 	var pl: PlayerState = world.players[pid]
 	var workers: Array = []
 	var army: Array = []
+	var raiders: Array = []
 	for u in world.units:
 		if u.owner_id != pid or u.dead:
 			continue
 		if u.is_worker:
 			workers.append(u)
+		elif u.slot == "raider":
+			raiders.append(u)
 		else:
 			army.append(u)
 	var mains := _mine("main", true)
@@ -103,8 +107,10 @@ func _think() -> void:
 	_supply(pl)
 	_train_workers(pl, workers, active)
 	_tech(pl, workers, mains, active)
+	_research(pl)
 	_train_army(pl)
 	_army(army)
+	_raid(raiders)
 
 
 ## Mains that still have a fair amount of crystals around them.
@@ -264,6 +270,10 @@ func _tech(pl: PlayerState, workers: Array, mains: Array, active: Array) -> void
 		want = "special"
 	elif _free_slime_near_mains() > 0 and _live_extractors() < active.size() * 2 and t > 240.0 * td and pl.slime < 600:
 		want = "extractor"
+	elif bool(cfg.get("upgrades", false)) and _count("armory") == 0 and n_factory > 0 and t > 330.0 * td:
+		want = "armory"
+	elif bool(cfg.get("upgrades", false)) and _count("aerolab") == 0 and world.has_built(pid, bid("airfield")) and t > 540.0 * td and _air_units() >= 3:
+		want = "aerolab"
 	elif world.has_built(pid, bid("barracks")) and t > 200.0 * td and _count("tower") < int(cfg["towers"]) * maxi(1, mains.size()) and pl.minerals >= 200:
 		want = "tower"
 	else:
@@ -389,6 +399,9 @@ func _pick_unit(b: Building, enemy: Dictionary, pl: PlayerState) -> String:
 				pref = [uid("infantry"), uid("heavy")]
 			else:
 				pref = [uid("heavy"), uid("infantry")]
+			# a few raiders for the enemy's worker lines, once the first fighters are out
+			if _raiders_out() < int(cfg.get("raiders", 0)) and world.time > 150.0 and stats.get("army", 0) >= 4:
+				pref = [uid("raider")] + pref
 		"factory":
 			if armored > light or slime_rich:
 				pref = [uid("vehicle_missile"), uid("vehicle_flame")]
@@ -412,6 +425,84 @@ func _pick_unit(b: Building, enemy: Dictionary, pl: PlayerState) -> String:
 			if pl.minerals - int(ud["cost"][0]) >= int(reserve[0]) and pl.slime - int(ud["cost"][1]) >= int(reserve[1]):
 				return id
 	return ""
+
+
+func _raiders_out() -> int:
+	var n := _queued(uid("raider"))
+	for u in world.units:
+		if u.owner_id == pid and not u.dead and u.slot == "raider":
+			n += 1
+	return n
+
+
+func _air_units() -> int:
+	var n := 0
+	for u in world.units:
+		if u.owner_id == pid and not u.dead and u.is_air:
+			n += 1
+	return n
+
+
+## Research in the upgrade buildings: weapons before armour, one per building at a time,
+## when it can be paid for without touching what is being saved up.
+func _research(pl: PlayerState) -> void:
+	if not bool(cfg.get("upgrades", false)):
+		return
+	for b in world.buildings:
+		if b.owner_id != pid or b.dead or not b.built or b.research != "" or b.researches().is_empty():
+			continue
+		for key in b.researches():
+			if int(pl.upgrades.get(key, 0)) >= 1:
+				continue
+			var cost: Array = Defs.UPGRADES[key]["cost"]
+			if pl.minerals - int(cost[0]) >= int(reserve[0]) and pl.slime - int(cost[1]) >= int(reserve[1]):
+				world.start_research(b, key)
+			break
+
+
+## Raiders hunt workers: two or more waiting at the rally run to the nearest enemy crystal
+## line; one left standing somewhere with nothing to shoot comes home to regroup.
+func _raid(raiders: Array) -> void:
+	if raiders.is_empty():
+		return
+	var ready: Array = []
+	for u in raiders:
+		if u.order != Unit.O.IDLE or u.target != null:
+			continue
+		if u.p.distance_to(rally) < 12.0:
+			ready.append(u)
+		else:
+			u.cmd_move(rally, false)
+	if ready.size() >= 2:
+		var t = _raid_target(ready[0].p)
+		if t != null:
+			world.command_move(ready, t, true)
+
+
+## The middle of the nearest enemy crystal line that still has a main base beside it.
+func _raid_target(from: Vector2):
+	var best = null
+	var bd := INF
+	for b in world.buildings:
+		if b.dead or b.owner_id == pid or b.owner_id < 0 or b.slot != "main" or not b.built:
+			continue
+		var si: int = world.site_of_main(b)
+		if si < 0:
+			continue
+		var c := Vector2.ZERO
+		var n := 0
+		for r in world.sites[si]["minerals"]:
+			if is_instance_valid(r) and not r.dead:
+				c += r.p
+				n += 1
+		if n == 0:
+			continue
+		var at: Vector2 = world.grid.nearest_walkable(b.p.lerp(c / n, 0.6))
+		var d := from.distance_to(at)
+		if d < bd:
+			bd = d
+			best = at
+	return best
 
 
 # ---------------------------------------------------------------- placing buildings

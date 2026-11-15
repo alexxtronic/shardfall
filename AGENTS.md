@@ -49,6 +49,9 @@ Both races must have identical power per resource spent. Never give one race a u
 - **Crystal lines (Alex, 2026-11-15):** one base's crystals take at most 14 of a player's workers (`Defs.LINE_MAX`), for both races and the bot.
   - `Unit.cmd_gather` and `Unit._find_new_node` ask `World.mineral_with_room`: the same crystal, a crystal at the player's nearest other base with room, or none. A worker with nowhere to collect goes idle; never leave it in another order with its job cleared.
   - The overlay draws the count over each of the player's main bases ("9/14", gold when full).
+- **Raiders (Alex, 2026-11-15):** the `raider` slot is a fast, cheap worker-hunter for each race (Strider, Ripper), "like the Reaper in StarCraft 2". It shares one stat line like every slot. It does not jump cliffs: that would need a second path grid.
+- **Upgrades (Alex, 2026-11-15):** the `armory` and `aerolab` slots are buildings "only for upgrades": +1 attack and +1 armour, one building for ground units and one for air. `Defs.UPGRADES` holds the four; `World.damage_vs` and `World.armor_of` apply them to units only. Both races share the numbers.
+- **Stand-in art:** ids in `Defs.ART_PENDING` have no model yet and show the primitive stand-in. Take an id off the list when its model lands.
 - **Final building (Alex, 2026-11-15):** the special building costs 350 crystals and 250 slime.
 - **Ambron power:** every Ambron structure except the main base, relays and extractors must stand inside a finished Power Relay's field (`Defs.POWER_RADIUS`, like a Protoss pylon).
   - An unpowered building stops training, and an unpowered tower stops firing.
@@ -99,6 +102,7 @@ Animated units carry an armature with `idle_loop`, `walk_loop` (or `fly_loop` fo
 - **Layout:** the minimap sits in the top-right corner. The quick buttons start in the bottom-left corner (BASE, BUILDINGS, ARMY, with ARMY at the bottom), where the left thumb rests.
 - **Quick buttons are the player's:** Settings > Customize buttons adds, removes and moves them, saved in Prefs `quick_buttons` (`QuickButtons.layout()`). Never hard-code their position; `QuickButtonsEditor.zones()` must keep matching the HUD's fixed panels.
 - **Orders (Alex, 2026-11-15):** a tap or a hold on the ground is a plain move: units don't fight on the way and fight again once they stop. Attack-move is the Attack button, then a tap. A tap on an enemy focuses it, and the overlay rings every enemy the player's units were told to attack in red.
+- **Hold to choose (Alex, 2026-11-15):** with units selected, a hold on the ground shows a green MOVE and a red ATTACK target beside the finger (`Commander.order_spot`); letting go on one gives that order at the held spot. Anywhere else the hold is still a box select.
 - **Never chase what you can't hit:** `World.command_attack` only orders units that `World.can_hit` the target, and the bot's defenders each answer the nearest threat they can hit (`BotAI._threats`). Alex saw the bot run ground-only units out under his flyers.
 - **Double-tap:** on a unit it selects every unit of that type on screen; on a building it selects every finished building of that type anywhere, and the camera stays (`Commander.select_building_type`).
 - **Box select:** hold on the ground, then slide. It selects every unit of yours inside, workers included.

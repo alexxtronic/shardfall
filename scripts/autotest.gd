@@ -124,6 +124,8 @@ func _run() -> void:
 		await _lines()
 	if want("orders"):
 		await _orders()
+	if want("upgrades"):
+		await _upgrades()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -874,6 +876,100 @@ func _quick() -> void:
 	await frames(2)
 
 
+## The raider and the upgrade buildings.
+func _upgrades() -> void:
+	await start(["void", "ambron"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var cmd: Commander = m.cmd
+	var pl: PlayerState = w.players[0]
+	var home: Vector2 = w.sites[pl.start_site]["center"]
+	# the raider: the same for both races, fast, cheap, bad news for workers, blind to flyers
+	var ra: Dictionary = Defs.units[Defs.unit_id("ambron", "raider")]
+	var rv: Dictionary = Defs.units[Defs.unit_id("void", "raider")]
+	check(ra["cost"] == rv["cost"] and float(ra["speed"]) == float(rv["speed"]) and float(ra["weapon"]["dmg"]) == float(rv["weapon"]["dmg"]), "Strider and Ripper share cost, speed and damage")
+	var fastest_ground := 0.0
+	for slot in Defs.UNIT_SLOTS:
+		if slot != "raider" and not bool(Defs.UNIT_SLOTS[slot]["air"]):
+			fastest_ground = maxf(fastest_ground, float(Defs.UNIT_SLOTS[slot]["speed"]))
+	check(float(ra["speed"]) > fastest_ground and int(ra["cost"][0]) <= 75 and int(ra["cost"][1]) == 0, "the raider outruns every other ground unit (%.1f vs %.1f) and costs only crystals" % [float(ra["speed"]), fastest_ground])
+	check(Defs.buildings[Defs.building_id("void", "barracks")]["produces"].has("void_ripper") and Defs.buildings[Defs.building_id("ambron", "barracks")]["produces"].has("ambron_strider"), "each race trains its raider in the infantry building")
+	var spot := Vector2(72, 80)
+	var rip: Unit = w.spawn_unit("void_ripper", 0, spot)
+	var e_inf: Unit = w.spawn_unit(Defs.unit_id("ambron", "infantry"), 1, spot + Vector2(3.0, 0))
+	var e_work: Unit = w.spawn_unit(Defs.unit_id("ambron", "worker"), 1, spot + Vector2(-5.0, 0))
+	var e_fly: Unit = w.spawn_unit(Defs.unit_id("ambron", "air_light"), 1, spot + Vector2(0, 2.0))
+	for u in [e_inf, e_work, e_fly]:
+		u.cmd_hold()
+	rip.cmd_hold()
+	w.step(0.02)      # index the new units
+	check(w.find_target(rip, rip.sight) == e_work, "a raider goes for the worker before the soldier beside it")
+	check(not w.can_hit(rip, e_fly), "a raider can't hit flyers")
+	check(w.damage_vs(rip.weapon, e_work, rip) > w.damage_vs(rip.weapon, e_inf, rip) + 5.0, "it does extra damage to workers (%.0f vs %.0f)" % [w.damage_vs(rip.weapon, e_work, rip), w.damage_vs(rip.weapon, e_inf, rip)])
+	for u in [rip, e_inf, e_work, e_fly]:
+		w.kill(u, null)
+	# the upgrade buildings
+	var arm_id := Defs.building_id("void", "armory")
+	var lab_id := Defs.building_id("void", "aerolab")
+	check(w.missing_requirement(0, arm_id) != "" and w.missing_requirement(0, lab_id) != "", "the upgrade buildings need the infantry building and the air building first")
+	var c1 = _free_cell(arm_id, home + Vector2(9, -6))
+	var c2 = _free_cell(arm_id, home + Vector2(9, 0))
+	var c3 = _free_cell(lab_id, home + Vector2(-9, -6))
+	var arm: Building = w.spawn_building(arm_id, 0, c1, true)
+	var arm2: Building = w.spawn_building(arm_id, 0, c2, true)
+	var lab: Building = w.spawn_building(lab_id, 0, c3, true)
+	check(arm.produces().is_empty() and arm.researches() == ["ground_attack", "ground_armor"] and lab.researches() == ["air_attack", "air_armor"], "one building researches for ground units, the other for flyers, and neither trains anything")
+	var gi: Unit = w.spawn_unit(Defs.unit_id("void", "infantry"), 0, spot)
+	var gf: Unit = w.spawn_unit(Defs.unit_id("void", "air_light"), 0, spot + Vector2(0, 3))
+	var foe: Unit = w.spawn_unit(Defs.unit_id("ambron", "heavy"), 1, spot + Vector2(30, 0))
+	foe.cmd_hold()
+	gi.cmd_hold()
+	gf.cmd_hold()
+	var d_g0: float = w.damage_vs(gi.weapon, foe, gi)
+	var d_f0: float = w.damage_vs(gf.weapon, foe, gf)
+	var in_g0: float = w.damage_vs(foe.weapon, gi, foe)
+	pl.minerals = 1000
+	pl.slime = 1000
+	# through the HUD: select the building, tap the research
+	m.rig.look_at_ground(arm.p)
+	m.rig.apply()
+	cmd.set_selection([arm])
+	await frames(4)
+	var rb := hud.card.find_child("Research_ground_attack", true, false) as Button
+	var had := rb != null
+	if had:
+		await _tap(rb.get_global_rect().get_center())
+	check(had and arm.research == "ground_attack" and pl.minerals == 900 and pl.slime == 900, "tapping Weapons +1 starts the research and takes its cost (%s, %d / %d)" % [arm.research, pl.minerals, pl.slime])
+	await frames(3)
+	check(hud.card.get_child_count() == 1 and arm.status_text().begins_with("Researching"), "while it runs the card offers Cancel and the status shows progress (%s)" % arm.status_text())
+	await shot("91_research")
+	check(w.start_research(arm2, "ground_attack") != "" and w.start_research(arm, "ground_armor") != "", "one research at a time in a building, and never the same one twice at once")
+	cmd.action("cancel_research")
+	check(arm.research == "" and pl.minerals == 1000 and pl.slime == 1000, "Cancel gives the cost back")
+	check(w.start_research(arm, "ground_attack") == "" and w.start_research(arm2, "ground_armor") == "" and w.start_research(lab, "air_attack") == "", "two buildings can research different upgrades at once")
+	for i in 750:
+		w.step(0.1)
+	check(int(pl.upgrades.get("ground_attack", 0)) == 1 and int(pl.upgrades.get("ground_armor", 0)) == 1 and int(pl.upgrades.get("air_attack", 0)) == 1 and arm.research == "", "the upgrades finish (%s)" % str(pl.upgrades))
+	check(is_equal_approx(w.damage_vs(gi.weapon, foe, gi), d_g0 + 1.0), "Ground Weapons: +1 damage for a ground unit (%.1f -> %.1f)" % [d_g0, w.damage_vs(gi.weapon, foe, gi)])
+	check(is_equal_approx(w.damage_vs(gf.weapon, foe, gf), d_f0 + 1.0), "Air Weapons: +1 damage for a flyer (%.1f -> %.1f)" % [d_f0, w.damage_vs(gf.weapon, foe, gf)])
+	check(is_equal_approx(w.damage_vs(foe.weapon, gi, foe), in_g0 - 1.0), "Ground Armour: a ground unit takes 1 less (%.1f -> %.1f)" % [in_g0, w.damage_vs(foe.weapon, gi, foe)])
+	check(is_equal_approx(w.armor_of(gf), gf.armor) and is_equal_approx(w.armor_of(arm), arm.armor), "flyers without Air Armour and buildings keep their own armour")
+	check(w.start_research(arm, "ground_attack") == "Already researched", "an upgrade can't be bought twice")
+	check(is_equal_approx(w.damage_vs(foe.weapon, gi, foe) , in_g0 - 1.0) and w.players[1].upgrades.is_empty(), "the enemy gains nothing from your upgrades")
+	# the build menu still fits with ten buildings
+	cmd.set_selection([])
+	hud.card_state = "build_free"
+	hud._refresh_card(true)
+	await frames(3)
+	var cp: Rect2 = hud.card.get_parent().get_global_rect() if hud.card.get_parent() is Control else Rect2()
+	var screen: Rect2 = hud.root.get_global_rect()
+	check(hud.card.get_child_count() == 11 and screen.encloses(hud.card.get_global_rect()), "the build menu lists all ten buildings plus Back and stays on screen (%d buttons, %s)" % [hud.card.get_child_count(), hud.card.get_global_rect()])
+	await shot("91_build_menu_ten")
+	hud.card_state = ""
+	hud._refresh_card(true)
+	check(not Defs.ART_PENDING.is_empty(), "stand-in models are still listed as pending art (%d)" % Defs.ART_PENDING.size())
+
+
 ## Move and attack orders: a tap (or a hold) on the ground moves without fighting; a tap on
 ## an enemy focuses it, with a red circle; nothing is sent after a target it can't hit.
 func _orders() -> void:
@@ -941,6 +1037,65 @@ func _orders() -> void:
 	for i in squad.size():
 		squad[i].p = spot + Vector2(-12, i - 2)
 		squad[i].cmd_hold()
+	# hold, then slide onto the red ATTACK target: attack-move to the spot that was held
+	var hold_g := spot + Vector2(0, 2)
+	var hsp: Vector2 = m.rig.to_screen(Vector3(hold_g.x, w.height_at(hold_g), hold_g.y))
+	await _press(hsp)
+	await get_tree().create_timer(0.45).timeout
+	check(cmd.order_menu, "holding on the ground with units selected shows the MOVE and ATTACK targets")
+	var asp: Vector2 = cmd.order_spot("attack")
+	await _slide(hsp, asp)
+	check(cmd.order_hot == "attack", "sliding onto the red target lights it (%s)" % cmd.order_hot)
+	await shot("92_order_targets")
+	await _release(asp)
+	var amoves := 0
+	for u in squad:
+		if u.order == Unit.O.AMOVE and u.goal.distance_to(hold_g) < 4.0:
+			amoves += 1
+	check(amoves == squad.size() and not cmd.order_menu, "letting go on ATTACK attack-moves to the held spot (%d of %d)" % [amoves, squad.size()])
+	# and onto the green MOVE target
+	for i in squad.size():
+		squad[i].p = spot + Vector2(-12, i - 2)
+		squad[i].cmd_hold()
+	await _press(hsp)
+	await get_tree().create_timer(0.45).timeout
+	var msp: Vector2 = cmd.order_spot("move")
+	await _slide(hsp, msp)
+	await _release(msp)
+	var moves := 0
+	for u in squad:
+		if u.order == Unit.O.MOVE and u.goal.distance_to(hold_g) < 4.0:
+			moves += 1
+	check(moves == squad.size(), "letting go on MOVE moves to the held spot (%d of %d)" % [moves, squad.size()])
+	# sliding anywhere else is still a selection box
+	for i in squad.size():
+		squad[i].p = spot + Vector2(-12, i - 2)
+		squad[i].cmd_hold()
+	cmd.set_selection([heavy])
+	await frames(3)
+	var lo := Vector2(INF, INF)
+	var hi := -lo
+	for u in squad:
+		var s2: Vector2 = m.rig.to_screen(Vector3(u.p.x, w.height_at(u.p) + 0.5, u.p.y))
+		lo = lo.min(s2)
+		hi = hi.max(s2)
+	await _finger_slide(0, lo - Vector2(40, 40), hi + Vector2(40, 40), 0.5)
+	var boxed := 0
+	for u in squad:
+		if cmd.selection.has(u):
+			boxed += 1
+	var still_holding := true
+	for u in squad:
+		if u.order != Unit.O.HOLD:
+			still_holding = false
+	check(boxed == squad.size() and still_holding, "with units selected, hold and slide elsewhere still box-selects (%d of %d) and gives no order" % [boxed, squad.size()])
+	cmd.set_selection([])
+	await _press(hsp)
+	await get_tree().create_timer(0.45).timeout
+	check(not cmd.order_menu and cmd.box_active, "with nothing selected a hold only arms the box")
+	await _release(hsp)
+	cmd.set_selection(squad)
+	await frames(2)
 	# a tap on an enemy: every selected unit that can hit it attacks that one, and it gets a ring
 	var mark: Unit = w.spawn_unit(Defs.unit_id("void", "heavy"), 1, spot + Vector2(2, -8))
 	mark.cmd_hold()

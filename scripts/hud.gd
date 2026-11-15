@@ -726,8 +726,8 @@ func _refresh_card(force: bool) -> void:
 	for e in sel:
 		sig += ":%d" % e.eid
 		if e is Building:
-			sig += "b%d%d" % [int(e.built), e.queue.size()]
-	sig += "|%d" % world.buildings.size()
+			sig += "b%d%d%s" % [int(e.built), e.queue.size(), e.research]
+	sig += "|%d|%d" % [world.buildings.size(), pl.upgrades.size()]
 	if not force and sig == card_sig:
 		return
 	card_sig = sig
@@ -783,6 +783,25 @@ func _refresh_card(force: bool) -> void:
 				if not ok:
 					b.modulate = Color(1, 0.75, 0.75, 0.8)
 			_cmd_button("Rally", "ui:rally", [], "rally")
+		elif b0.researches().size() > 0:
+			# an upgrade building: one research at a time, each upgrade once
+			if b0.research != "":
+				_cmd_button("Cancel", "ui:cancel", [], "cancel_research")
+				return
+			for key in b0.researches():
+				var up: Dictionary = Defs.UPGRADES[key]
+				var done: bool = int(pl.upgrades.get(key, 0)) >= 1
+				var busy := false
+				for o in world.buildings:
+					if o.owner_id == pid and not o.dead and o.research == key:
+						busy = true
+				var rb := _cmd_button(String(up["short"]) if not done else "Done", String(up["icon"]), [] if done else up["cost"], "research:%s" % key, not done and not busy)
+				rb.name = "Research_" + key
+				rb.tooltip_text = String(up["desc"])
+				if done:
+					rb.modulate = Color(0.6, 1.0, 0.7, 0.75)
+				elif not pl.can_afford(up["cost"]):
+					rb.modulate = Color(1, 0.75, 0.75, 0.8)
 
 
 # ---------------------------------------------------------------- selection panel
@@ -876,14 +895,15 @@ func _single(e) -> void:
 		bar.position = Vector2(x0, 30)
 		bar.size = Vector2(250 * f, 12)
 		sel_content.add_child(bar)
-		var hpl := UiKit.label("%d / %d   armour %d" % [int(ceil(e.hp)), int(e.max_hp), int(e.armor)], 13, UiKit.DIM)
+		var hpl := UiKit.label("%d / %d   armour %d" % [int(ceil(e.hp)), int(e.max_hp), int(world.armor_of(e))], 13, UiKit.DIM)
 		hpl.position = Vector2(x0, 44)
 		sel_content.add_child(hpl)
 	var st: String = e.status_text()
 	if e is Unit and not e.weapon.is_empty() and not e.is_worker:
 		var w: Dictionary = e.weapon
 		var hits := "air & ground" if bool(w["air"]) and bool(w["ground"]) else ("air" if bool(w["air"]) else "ground")
-		st += "\n%s dmg, range %s, hits %s" % [str(w["dmg"]), str(w["range"]), hits]
+		var dmg: float = float(w["dmg"]) + world.players[e.owner_id].bonus("attack", e.is_air)
+		st += "\n%s dmg, range %s, hits %s" % [str(int(dmg)) if is_equal_approx(dmg, roundf(dmg)) else str(dmg), str(w["range"]), hits]
 	var desc: String = e.def.get("desc", "")
 	var queued: bool = e is Building and e.owner_id == pid and e.queue.size() > 0
 	var s := UiKit.label(st if st != "" else desc, 14, UiKit.TEXT)

@@ -12,6 +12,7 @@ var slime: int = 0
 var supply_cap: int = 0
 var alive: bool = true
 var start_site: int = 0
+var upgrades: Dictionary = {}     # Defs.UPGRADES key -> level researched (1 once done)
 
 # match stats
 var gathered_m: int = 0
@@ -21,6 +22,11 @@ var units_lost: int = 0
 var kills: int = 0
 var value_killed: float = 0.0
 var value_lost: float = 0.0
+
+
+## +1 per finished upgrade of `stat` ("attack" or "armor") for a unit that flies or walks.
+func bonus(stat: String, air: bool) -> float:
+	return float(upgrades.get(("air_" if air else "ground_") + stat, 0))
 
 
 func can_afford(cost: Array) -> bool:

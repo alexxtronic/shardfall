@@ -28,6 +28,8 @@ var cd: float = 0.0
 var target = null
 var facing: float = 0.0
 var supply_blocked: bool = false  # the next unit is trained and waits for supply
+var research: String = ""         # the Defs.UPGRADES key being researched here, if any
+var research_t: float = 0.0
 
 
 func setup(w, id: String, owner: int, c: Vector2i) -> void:
@@ -53,6 +55,17 @@ func is_main() -> bool:
 
 func produces() -> Array:
 	return def.get("produces", [])
+
+
+## The upgrades this building can research (upgrade buildings only).
+func researches() -> Array:
+	return def.get("research", [])
+
+
+func research_progress() -> float:
+	if research == "":
+		return 0.0
+	return clampf(research_t / float(Defs.UPGRADES[research]["time"]), 0.0, 1.0)
 
 
 func start_construction() -> void:
@@ -82,6 +95,13 @@ func step(dt: float) -> void:
 		return
 	if not weapon.is_empty():
 		_defend(dt)
+	if research != "":
+		research_t += dt
+		if research_t >= float(Defs.UPGRADES[research]["time"]):
+			var key := research
+			research = ""
+			research_t = 0.0
+			world.on_research_done(self, key)
 	if queue.size() > 0:
 		var ud: Dictionary = Defs.units[queue[0]]
 		var t := float(ud["time"])
@@ -155,6 +175,8 @@ func status_text() -> String:
 		if supply_blocked:
 			return "%s ready: needs supply" % Defs.units[queue[0]]["name"]
 		return "Training %s %d%%" % [Defs.units[queue[0]]["name"], int(queue_progress() * 100.0)]
+	if research != "":
+		return "Researching %s %d%%" % [Defs.UPGRADES[research]["name"], int(research_progress() * 100.0)]
 	if needs_power and world and not world.is_powered(self):
 		return "Unpowered: build a Power Relay nearby"
 	if slot == "extractor" and slime_node:

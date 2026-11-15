@@ -29,6 +29,22 @@ func _process(d: float) -> void:
 	queue_redraw()
 
 
+## One of the two targets shown while holding on the ground with units selected.
+func _order_target(kind: String, title: String, icon_id: String, col: Color) -> void:
+	var c: Vector2 = cmd.order_spot(kind)
+	var hot: bool = cmd.order_hot == kind
+	var r := Commander.ORDER_R * (1.0 if hot else 0.82)
+	draw_line(cmd.order_at, c, Color(col, 0.35), 2.0, true)
+	draw_circle(c, r, Color(col.r * 0.35, col.g * 0.35, col.b * 0.35, 0.92) if hot else Color(0.04, 0.05, 0.08, 0.86))
+	draw_arc(c, r, 0.0, TAU, 40, Color(col, 1.0 if hot else 0.8), 3.5 if hot else 2.0, true)
+	var icon := UiKit.icon(icon_id)
+	if icon:
+		draw_texture_rect(icon, Rect2(c - Vector2(15, 22), Vector2(30, 30)), false, col.lerp(Color.WHITE, 0.25 if hot else 0.0))
+	var font: Font = UiKit.font_bold if UiKit.font_bold != null else ThemeDB.fallback_font
+	var tw := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+	draw_string(font, c + Vector2(-tw * 0.5, 22.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col.lerp(Color.WHITE, 0.4))
+
+
 ## A red ring on the ground round `t` (at its height if it flies), with a soft pulse.
 func _focus_ring(t) -> void:
 	var fly: float = t.fly if t is Unit else 0.0
@@ -115,7 +131,7 @@ func _draw() -> void:
 		if b.dead or not b.shown:
 			continue
 		var show_hp: bool = b.selected or b.hp < b.max_hp - 0.5
-		var show_prog: bool = (not b.built) or (b.queue.size() > 0 and b.owner_id == cmd.pid)
+		var show_prog: bool = (not b.built) or ((b.queue.size() > 0 or b.research != "") and b.owner_id == cmd.pid)
 		var unpowered: bool = b.built and b.needs_power and b.owner_id == cmd.pid and not world.is_powered(b)
 		if not show_hp and not show_prog and not unpowered:
 			continue
@@ -135,6 +151,8 @@ func _draw() -> void:
 			_bar(sp + Vector2(0, 9), w, b.progress, Color(0.4, 0.85, 1.0))
 		elif b.queue.size() > 0 and b.owner_id == cmd.pid:
 			_bar(sp + Vector2(0, 9), w, b.queue_progress(), Color(0.95, 0.95, 1.0))
+		elif b.research != "" and b.owner_id == cmd.pid:
+			_bar(sp + Vector2(0, 9), w, b.research_progress(), Color(1.0, 0.8, 0.3))
 	# a red circle round every enemy your units have been told to attack
 	focus.clear()
 	for u in world.units:
@@ -161,7 +179,10 @@ func _draw() -> void:
 			var b2 := rig.to_screen(Vector3(e.rally.x, 0.2 + e.world.height_at(e.rally), e.rally.y))
 			draw_dashed_line(a, b2, Color(0.4, 0.85, 1.0, 0.8), 2.0, 8.0)
 			draw_circle(b2, 6.0, Color(0.4, 0.85, 1.0, 0.8))
-	if cmd.box_active:
+	if cmd.box_active and cmd.order_menu:
+		_order_target("move", "MOVE", "ui:move", Color(0.3, 1.0, 0.45))
+		_order_target("attack", "ATTACK", "ui:attack", Color(1.0, 0.3, 0.22))
+	if cmd.box_active and not (cmd.order_menu and cmd.order_hot != ""):
 		var r := Rect2(cmd.box_start, Vector2.ZERO).expand(cmd.box_end)
 		draw_rect(r, Color(0.35, 1.0, 0.5, 0.12))
 		draw_rect(r, Color(0.35, 1.0, 0.5, 0.9), false, 2.0)

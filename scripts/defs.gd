@@ -57,6 +57,15 @@ const UNIT_SLOTS := {
 		"tags": ["light"], "model_h": 1.15, "model_w": 0.9,
 		"weapon": {"dmg": 6.0, "cd": 0.61, "range": 5.0, "ground": true, "air": true, "splash": 0.0, "bonus": {}, "proj": 34.0},
 	},
+	# a fast, cheap raider for hitting worker lines (Alex, 2026-11-15): outruns everything on
+	# the ground, shreds workers, runs down artillery (its target among fighters), loses to
+	# infantry, heavies and flame of equal value and can't shoot up
+	"raider": {
+		"cost": [75, 0], "supply": 1, "time": 16.0, "hp": 55.0, "armor": 0.0,
+		"speed": 5.0, "radius": 0.4, "air": false, "sight": 10.0,
+		"tags": ["light"], "model_h": 1.1, "model_w": 0.9,
+		"weapon": {"dmg": 6.0, "cd": 0.7, "range": 3.0, "ground": true, "air": false, "splash": 0.0, "bonus": {"worker": 6.0, "mech": 4.0}, "proj": 30.0},
+	},
 	"heavy": {
 		"cost": [100, 25], "supply": 2, "time": 22.0, "hp": 160.0, "armor": 1.0,
 		"speed": 2.8, "radius": 0.55, "air": false, "sight": 9.0,
@@ -100,21 +109,40 @@ const BUILDING_SLOTS := {
 	"main": {"cost": [400, 0], "time": 71.0, "hp": 1500.0, "armor": 1.0, "size": 5, "supply": 15, "sight": 11.0, "produces": ["worker"], "requires": [], "model_h": 4.6},
 	"supply": {"cost": [100, 0], "time": 18.0, "hp": 400.0, "armor": 1.0, "size": 2, "supply": 8, "sight": 7.0, "produces": [], "requires": [], "model_h": 2.4},
 	"extractor": {"cost": [75, 0], "time": 21.0, "hp": 500.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 7.0, "produces": [], "requires": [], "model_h": 2.6},
-	"barracks": {"cost": [150, 0], "time": 46.0, "hp": 1000.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["infantry", "heavy"], "requires": ["main"], "model_h": 3.0},
+	"barracks": {"cost": [150, 0], "time": 46.0, "hp": 1000.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["infantry", "raider", "heavy"], "requires": ["main"], "model_h": 3.0},
 	"factory": {"cost": [150, 100], "time": 43.0, "hp": 1250.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["vehicle_flame", "vehicle_missile"], "requires": ["barracks"], "model_h": 3.2},
 	"airfield": {"cost": [150, 100], "time": 36.0, "hp": 1300.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["air_light", "air_heavy"], "requires": ["factory"], "model_h": 3.4},
 	"special": {"cost": [350, 250], "time": 50.0, "hp": 1000.0, "armor": 1.0, "size": 4, "supply": 0, "sight": 9.0, "produces": ["special"], "requires": ["airfield"], "model_h": 5.0},
+	# upgrade buildings (Alex, 2026-11-15): they train nothing and research +1 attack and +1 armour
+	"armory": {"cost": [125, 0], "time": 30.0, "hp": 850.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 8.0, "produces": [], "requires": ["barracks"], "model_h": 2.8,
+		"research": ["ground_attack", "ground_armor"]},
+	"aerolab": {"cost": [150, 100], "time": 34.0, "hp": 850.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 8.0, "produces": [], "requires": ["airfield"], "model_h": 3.0,
+		"research": ["air_attack", "air_armor"]},
 	"tower": {"cost": [125, 0], "time": 32.0, "hp": 450.0, "armor": 1.0, "size": 2, "supply": 0, "sight": 10.0, "produces": [], "requires": ["barracks"], "model_h": 3.2,
 		"weapon": {"dmg": 14.0, "cd": 1.0, "range": 7.0, "ground": true, "air": true, "splash": 0.0, "bonus": {}, "proj": 0.0}},
 }
 
-const BUILD_ORDER := ["main", "supply", "extractor", "barracks", "tower", "factory", "airfield", "special"]
+const BUILD_ORDER := ["main", "supply", "extractor", "barracks", "armory", "tower", "factory", "airfield", "aerolab", "special"]
+
+## Upgrades, researched one at a time in an upgrade building. Each is a single level: +1 damage
+## or +1 armour for every unit of the player's that walks (ground) or flies (air). Buildings
+## and towers are not units and gain nothing. Both races share these numbers.
+const UPGRADES := {
+	"ground_attack": {"name": "Ground Weapons", "short": "Weapons +1", "desc": "+1 damage for all your ground units.", "cost": [100, 100], "time": 60.0, "air": false, "stat": "attack", "icon": "ui:up_attack"},
+	"ground_armor": {"name": "Ground Armour", "short": "Armour +1", "desc": "+1 armour for all your ground units.", "cost": [100, 100], "time": 60.0, "air": false, "stat": "armor", "icon": "ui:up_armor"},
+	"air_attack": {"name": "Air Weapons", "short": "Weapons +1", "desc": "+1 damage for all your flyers.", "cost": [150, 150], "time": 70.0, "air": true, "stat": "attack", "icon": "ui:up_attack"},
+	"air_armor": {"name": "Air Armour", "short": "Armour +1", "desc": "+1 armour for all your flyers.", "cost": [150, 150], "time": 70.0, "air": true, "stat": "armor", "icon": "ui:up_armor"},
+}
+
+## New units and buildings playing with stand-in models until their art is made.
+const ART_PENDING := ["ambron_strider", "void_ripper", "ambron_armory", "ambron_aerolab", "void_evolution_pit", "void_sky_chrysalis"]
 
 ## Race-specific names and looks for each slot.
 const RACE_UNITS := {
 	"ambron": {
 		"worker": {"id": "ambron_worker", "name": "Harvester", "fx": "zap", "desc": "Gathers crystals and slime, builds structures."},
 		"infantry": {"id": "ambron_lancer", "name": "Lancer", "fx": "bolt", "desc": "Ranged infantry. Hits air and ground."},
+		"raider": {"id": "ambron_strider", "name": "Strider", "fx": "bolt", "desc": "Fast, cheap raider. Shreds workers and artillery; can't hit air."},
 		"heavy": {"id": "ambron_bulwark", "name": "Bulwark", "fx": "shell", "desc": "Armoured frontline trooper. Strong against light units."},
 		"vehicle_flame": {"id": "ambron_scorcher", "name": "Scorcher", "fx": "flame", "desc": "Flame tank. Burns groups of light units."},
 		"vehicle_missile": {"id": "ambron_hailfire", "name": "Hailfire", "fx": "missile", "desc": "Long-range missile artillery. Shreds armour."},
@@ -125,6 +153,7 @@ const RACE_UNITS := {
 	"void": {
 		"worker": {"id": "void_drudge", "name": "Drudge", "fx": "bite", "desc": "Gathers crystals and slime, grows structures."},
 		"infantry": {"id": "void_spitter", "name": "Spitter", "fx": "glob", "desc": "Acid-spitting infantry. Hits air and ground."},
+		"raider": {"id": "void_ripper", "name": "Ripper", "fx": "shard", "desc": "Fast, cheap raider. Shreds workers and artillery; can't hit air."},
 		"heavy": {"id": "void_mauler", "name": "Mauler", "fx": "shard", "desc": "Armoured brute hurling bone shards. Strong against light units."},
 		"vehicle_flame": {"id": "void_acidback", "name": "Acidback", "fx": "acid", "desc": "Armoured beetle spraying acid. Melts groups of light units."},
 		"vehicle_missile": {"id": "void_spinefiend", "name": "Spinefiend", "fx": "spine", "desc": "Hurls bone spines from far away. Shreds armour."},
@@ -139,7 +168,9 @@ const RACE_BUILDINGS := {
 		"main": {"id": "ambron_citadel", "name": "Citadel", "desc": "Main base. Trains Harvesters, takes in resources."},
 		"supply": {"id": "ambron_relay", "name": "Power Relay", "desc": "+8 supply."},
 		"extractor": {"id": "ambron_void_machine", "name": "Void Machine", "desc": "Build on a slime pile to harvest Void Slime."},
-		"barracks": {"id": "ambron_assembly", "name": "Assembly Bay", "desc": "Trains Lancers and Bulwarks."},
+		"barracks": {"id": "ambron_assembly", "name": "Assembly Bay", "desc": "Trains Lancers, Striders and Bulwarks."},
+		"armory": {"id": "ambron_armory", "name": "Armory", "desc": "Researches +1 weapons and +1 armour for ground units."},
+		"aerolab": {"id": "ambron_aerolab", "name": "Aero Lab", "desc": "Researches +1 weapons and +1 armour for flyers."},
 		"factory": {"id": "ambron_forge", "name": "Mech Forge", "desc": "Builds Scorchers and Hailfires."},
 		"airfield": {"id": "ambron_skyport", "name": "Skyport", "desc": "Builds Darts and Monoliths."},
 		"special": {"id": "ambron_spire", "name": "Apex Spire", "desc": "Builds the Sovereign."},
@@ -149,7 +180,9 @@ const RACE_BUILDINGS := {
 		"main": {"id": "void_hive", "name": "Hive Heart", "desc": "Main base. Spawns Drudges, takes in resources."},
 		"supply": {"id": "void_pod", "name": "Brood Pod", "desc": "+8 supply."},
 		"extractor": {"id": "void_maw", "name": "Void Maw", "desc": "Grow on a slime pile to harvest Void Slime."},
-		"barracks": {"id": "void_nest", "name": "Spawning Nest", "desc": "Spawns Spitters and Maulers."},
+		"barracks": {"id": "void_nest", "name": "Spawning Nest", "desc": "Spawns Spitters, Rippers and Maulers."},
+		"armory": {"id": "void_evolution_pit", "name": "Evolution Pit", "desc": "Evolves +1 weapons and +1 armour for ground units."},
+		"aerolab": {"id": "void_sky_chrysalis", "name": "Sky Chrysalis", "desc": "Evolves +1 weapons and +1 armour for flyers."},
 		"factory": {"id": "void_warren", "name": "Beast Warren", "desc": "Grows Acidbacks and Spinefiends."},
 		"airfield": {"id": "void_aerie", "name": "Aerie", "desc": "Grows Skitters and Gorgons."},
 		"special": {"id": "void_abyss", "name": "Abyssal Lair", "desc": "Grows the Leviathan."},

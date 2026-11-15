@@ -8,7 +8,9 @@ extends Node
 ## your units inside it, workers too).
 ## With units selected: tap (or hold on) the ground to move there. They don't stop to fight
 ## on the way, and fight again once they arrive; the Attack button is for fighting your way
-## there. Tap an enemy to focus it: every selected unit that can hit it attacks that one
+## there. Hold on the ground with units selected and two targets appear beside the finger,
+## a green MOVE and a red ATTACK: slide onto one to give that order at the spot you held
+## (slide anywhere else and it is a selection box). Tap an enemy to focus it: every selected unit that can hit it attacks that one
 ## (the overlay circles it in red). Tap crystals or your Void Machine to harvest.
 ## With a production building selected: tap ground to set its rally point.
 ## One finger drags the map, two fingers pinch to zoom.
@@ -26,6 +28,8 @@ const TAP_MOVE := 14.0
 const LONG_PRESS := 0.35
 const DOUBLE_TAP := 0.38
 const REST_LIFT := 1.0           # held still this long, a lift is a resting finger leaving, not a tap
+const ORDER_OFF := Vector2(86.0, -72.0)   # the MOVE and ATTACK targets sit this far up and to each side of the finger
+const ORDER_R := 42.0                     # and are this big to the touch
 
 var world: World
 var rig: CameraRig
@@ -48,6 +52,10 @@ var pinch_d: float = 0.0
 var box_active: bool = false
 var box_start: Vector2 = Vector2.ZERO
 var box_end: Vector2 = Vector2.ZERO
+var order_menu: bool = false     # holding on the ground with units selected: slide to MOVE or ATTACK
+var order_at: Vector2 = Vector2.ZERO      # where the finger went down
+var order_g: Vector2 = Vector2.ZERO       # the ground under it: where the order will go
+var order_hot: String = ""                # "move", "attack" or "" (under the finger now)
 var last_tap_t: float = -10.0
 var last_tap_e = null
 var groups: Dictionary = {}
@@ -81,8 +89,13 @@ func _process(_delta: float) -> void:
 			box_start = t["start"]
 			box_end = t["start"]
 			Input.vibrate_handheld(20)
+			order_menu = own_units(true).size() > 0
+			order_at = t["start"]
+			order_g = rig.screen_to_ground(t["start"])
+			order_hot = ""
 			if hud:
-				hud.haptic_hint("Slide to draw a box: everything of yours inside is selected")
+				hud.haptic_hint("Slide to MOVE or ATTACK, or drag a box to select" if order_menu
+					else "Slide to draw a box: everything of yours inside is selected")
 	if mode == M.PLACE:
 		_update_ghost()
 
@@ -127,6 +140,8 @@ func _touch(ev: InputEventScreenTouch) -> void:
 		if touches.size() >= 2:
 			multi = true
 			box_active = false
+			order_menu = false
+			order_hot = ""
 			var ps: Array = touches.values()
 			pinch_d = (ps[0]["pos"] as Vector2).distance_to(ps[1]["pos"])
 		return
@@ -141,7 +156,12 @@ func _touch(ev: InputEventScreenTouch) -> void:
 			return
 		if box_active:
 			box_active = false
-			if t["moved"]:
+			var hot := order_hot if order_menu else ""
+			order_menu = false
+			order_hot = ""
+			if hot != "":
+				_order_here(hot)
+			elif t["moved"]:
 				_finish_box()
 			elif now() - float(t["t"]) < REST_LIFT:
 				long_press(ev.position)
@@ -175,9 +195,50 @@ func _drag(ev: InputEventScreenDrag) -> void:
 		return
 	if box_active:
 		box_end = ev.position
+		if order_menu:
+			var was := order_hot
+			order_hot = order_hit(ev.position)
+			if order_hot != "" and order_hot != was:
+				Input.vibrate_handheld(8)
 		return
 	if t["moved"]:
 		rig.pan_pixels(ev.relative)
+
+
+## Where the MOVE (left) or ATTACK (right) target sits for the current hold: beside and above
+## the finger, or below it when the hold is near the top of the screen, and kept on screen.
+func order_spot(kind: String) -> Vector2:
+	var vr := get_viewport().get_visible_rect()
+	var off := ORDER_OFF
+	if order_at.y + off.y < vr.position.y + 90.0:
+		off.y = -off.y
+	var q := order_at + Vector2(-off.x if kind == "move" else off.x, off.y)
+	q.x = clampf(q.x, vr.position.x + ORDER_R + 6.0, vr.end.x - ORDER_R - 6.0)
+	return q
+
+
+## Which target, if any, is under `pos`.
+func order_hit(pos: Vector2) -> String:
+	for kind in ["move", "attack"]:
+		if pos.distance_to(order_spot(kind)) <= ORDER_R:
+			return kind
+	return ""
+
+
+## The order picked from the hold: everything selected goes to the spot that was held.
+func _order_here(kind: String) -> void:
+	var army := own_units(false)
+	var workers := own_workers()
+	if kind == "attack":
+		if army.size() > 0:
+			world.command_move(army, order_g, true)
+		if workers.size() > 0:
+			world.command_move(workers, order_g, army.is_empty())
+		_ack(order_g, Color(1, 0.3, 0.2))
+	else:
+		world.command_move(army + workers, order_g, false)
+		_ack(order_g, Color(0.3, 1, 0.45))
+	Input.vibrate_handheld(14)
 
 
 ## Forget fingers that have sat still (a resting thumb, or one whose lift never arrived) so
@@ -190,6 +251,8 @@ func _drop_resting() -> void:
 			dropped = true
 	if dropped:
 		box_active = false
+		order_menu = false
+		order_hot = ""
 		if touches.size() < 2:
 			multi = false
 
@@ -532,6 +595,23 @@ func action(a: String) -> void:
 			for e in selection:
 				if e is Building and not e.built:
 					world.cancel_construction(e)
+		"research":
+			# in the first selected upgrade building that is free
+			var err := "Select an upgrade building"
+			for e in selection:
+				if e is Building and e.owner_id == pid and e.researches().has(parts[1]):
+					err = world.start_research(e, parts[1])
+					if err == "":
+						break
+			if err != "":
+				_say(err, "error")
+			else:
+				Sfx.play("click")
+		"cancel_research":
+			for e in selection:
+				if e is Building and e.owner_id == pid and e.research != "":
+					world.cancel_research(e)
+			Sfx.play("click")
 		"build":
 			start_place(parts[1])
 		"army":

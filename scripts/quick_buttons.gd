@@ -15,7 +15,7 @@ extends RefCounted
 const SIZE := Vector2(100, 72)
 const GAP := 8.0
 const MARGIN := 8.0
-const UNIT_SLOTS := ["infantry", "heavy", "vehicle_flame", "vehicle_missile", "air_light", "air_heavy", "special"]
+const UNIT_SLOTS := ["infantry", "raider", "heavy", "vehicle_flame", "vehicle_missile", "air_light", "air_heavy", "special"]
 const BUILDING_SLOTS := ["barracks", "factory", "airfield", "special", "tower"]
 
 

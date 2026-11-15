@@ -376,25 +376,26 @@ func _help(parent: Control) -> void:
 	p.offset_bottom = 330
 	help.add_child(p)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
+	v.add_theme_constant_override("separation", 3)
 	p.add_child(v)
 	var lines := [
-		["How to play", 30, UiKit.GOLD],
-		["Win by destroying every enemy building.", 18, UiKit.TEXT],
-		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 16, UiKit.TEXT],
-		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen. Double-tap a building to select every building of that type.", 16, UiKit.TEXT],
-		["• Hold on the ground, then slide, to draw a box: everything of yours inside is selected. ARMY selects every fighter; hold ARMY and slide to pick ground, air, workers, idle workers or one unit type.", 16, UiKit.TEXT],
-		["• With units selected, tap the ground to move there: they don't stop to fight on the way. Tap an enemy to focus it (a red circle marks it). Tap Attack, then the ground, to fight your way there.", 16, UiKit.TEXT],
-		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 16, UiKit.TEXT],
-		["• BUILDINGS (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm. Hold BUILDINGS and slide to select every building of one type; BASE taps go through your bases.", 16, UiKit.TEXT],
-		["• Void Slime needs an extractor built on a black slime pile first.", 16, UiKit.TEXT],
-		["• Supply limits your army: build Power Relays (Ambron) or Brood Pods (Void).", 16, UiKit.TEXT],
-		["• Ambron structures must stand inside a Power Relay's field (the blue circle shown while placing).", 16, UiKit.TEXT],
-		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 16, UiKit.TEXT],
-		["• High ground: units can't see up a cliff until they climb a ramp, and shots fired uphill miss 30% of the time.", 16, UiKit.TEXT],
-		["• Expand: build a new main base at another crystal field to grow your economy.", 16, UiKit.TEXT],
-		["• Settings: Customize buttons adds quick buttons (ground, air, one unit or building type) and lets you drag them anywhere. A lower Graphics level keeps your phone cooler.", 16, UiKit.TEXT],
-		["Tech: main base → infantry → vehicles/beasts → air → special.", 16, UiKit.DIM],
+		["How to play", 26, UiKit.GOLD],
+		["Win by destroying every enemy building.", 16, UiKit.TEXT],
+		["• Drag one finger to look around, pinch to zoom. Tap the minimap to jump.", 15, UiKit.TEXT],
+		["• Tap a unit or building to select it. Double-tap a unit (or hold on it) to select all of that type on screen. Double-tap a building to select every building of that type.", 15, UiKit.TEXT],
+		["• Hold on the ground, then slide, to draw a box: everything of yours inside is selected. ARMY selects every fighter; hold ARMY and slide to pick ground, air, workers, idle workers or one unit type.", 15, UiKit.TEXT],
+		["• With units selected, tap the ground to move there: they don't stop to fight on the way. Tap an enemy to focus it (a red circle marks it). Hold on the ground and slide to the green MOVE or the red ATTACK target to choose.", 15, UiKit.TEXT],
+		["• Workers harvest on their own. Tap crystals (or your Void Machine / Void Maw) to send selected workers.", 15, UiKit.TEXT],
+		["• BUILDINGS (or a worker's Build button) opens the structures. Tap to place, tap again or ✓ to confirm. Hold BUILDINGS and slide to select every building of one type; BASE taps go through your bases.", 15, UiKit.TEXT],
+		["• Void Slime needs an extractor built on a black slime pile first.", 15, UiKit.TEXT],
+		["• Supply limits your army: build Power Relays (Ambron) or Brood Pods (Void).", 15, UiKit.TEXT],
+		["• Ambron structures must stand inside a Power Relay's field (the blue circle shown while placing).", 15, UiKit.TEXT],
+		["• Towers defend your base: the Ambron Arc Tower throws lightning, the Void Slime Spire spits slime.", 15, UiKit.TEXT],
+		["• Upgrades: the Armory / Evolution Pit gives ground units +1 weapons and +1 armour; the Aero Lab / Sky Chrysalis does the same for flyers. Striders and Rippers are fast, cheap raiders for hitting worker lines.", 15, UiKit.TEXT],
+		["• High ground: units can't see up a cliff until they climb a ramp, and shots fired uphill miss 30% of the time.", 15, UiKit.TEXT],
+		["• Expand: build a new main base at another crystal field to grow your economy.", 15, UiKit.TEXT],
+		["• Settings: Customize buttons adds quick buttons (ground, air, one unit or building type) and lets you drag them anywhere. A lower Graphics level keeps your phone cooler.", 15, UiKit.TEXT],
+		["Tech: main base → infantry → vehicles/beasts → air → special.", 14, UiKit.DIM],
 	]
 	for l in lines:
 		var lab := UiKit.label(l[0], l[1], l[2])

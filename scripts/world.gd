@@ -330,7 +330,8 @@ func find_target(u: Unit, r: float):
 			continue
 		var s := d
 		if v.is_worker or v.weapon.is_empty():
-			s += 5.0
+			# harmless targets come last, unless hunting workers is this unit's job
+			s += -3.0 if (v.is_worker and (w.get("bonus", {}) as Dictionary).has("worker")) else 5.0
 		if s < best_s:
 			best_s = s
 			best = v
@@ -397,13 +398,25 @@ func miss_point(t: Entity) -> Vector2:
 	return t.p + Vector2(cos(a), sin(a)) * (t.radius + randf_range(0.6, 1.2))
 
 
-func damage_vs(w: Dictionary, t: Entity) -> float:
+## Damage of one hit of weapon `w` on `t`. Upgrades count for units only: +1 damage when the
+## shooter `src` is a unit whose owner has the weapons upgrade for its kind (ground or air),
+## and +1 armour when the target is a unit whose owner has the armour upgrade.
+func damage_vs(w: Dictionary, t: Entity, src = null) -> float:
 	var dmg: float = float(w["dmg"])
 	var bonus: Dictionary = w.get("bonus", {})
 	for tag in bonus:
 		if t.tags.has(tag):
 			dmg += float(bonus[tag])
-	return maxf(0.5, dmg - t.armor)
+	if src != null and is_instance_valid(src) and src is Unit and src.owner_id >= 0:
+		dmg += players[src.owner_id].bonus("attack", src.is_air)
+	return maxf(0.5, dmg - armor_of(t))
+
+
+## A target's armour with its owner's armour upgrade.
+func armor_of(t: Entity) -> float:
+	if t is Unit and t.owner_id >= 0:
+		return t.armor + players[t.owner_id].bonus("armor", t.is_air)
+	return t.armor
 
 
 func fire(u: Unit, t: Entity) -> void:
@@ -426,7 +439,7 @@ func hit(owner: int, src: Entity, t: Entity, at: Vector2, w: Dictionary, kind: S
 	# a small random spread on every hit, so hits-to-kill breakpoints average out
 	var roll := randf_range(0.8, 1.2)
 	if t and is_instance_valid(t) and not t.dead:
-		t.apply_damage(damage_vs(w, t) * roll, src if src and is_instance_valid(src) else null)
+		t.apply_damage(damage_vs(w, t, src) * roll, src if src and is_instance_valid(src) else null)
 		_credit(owner, t)
 	if splash > 0.0:
 		var air: bool = t.is_air if (t and is_instance_valid(t)) else false
@@ -434,7 +447,7 @@ func hit(owner: int, src: Entity, t: Entity, at: Vector2, w: Dictionary, kind: S
 			if v == t or v.dead or v.owner_id == owner or v.owner_id < 0 or v.is_air != air:
 				continue
 			if v.p.distance_to(at) - v.radius <= splash:
-				v.apply_damage(damage_vs(w, v) * 0.6 * roll, src if src and is_instance_valid(src) else null)
+				v.apply_damage(damage_vs(w, v, src) * 0.6 * roll, src if src and is_instance_valid(src) else null)
 				_credit(owner, v)
 	if visuals:
 		fx.impact(at, t, kind, splash)
@@ -707,6 +720,49 @@ func queue_unit(b: Building, uid: String) -> String:
 	pl.pay(ud["cost"])
 	b.queue.append(uid)
 	return ""
+
+
+## Start researching an upgrade in an upgrade building. Returns "" or why it couldn't.
+func start_research(b: Building, key: String) -> String:
+	if b.dead or not b.built:
+		return "Still under construction"
+	if not b.researches().has(key):
+		return "Can't research that here"
+	if b.needs_power and not is_powered(b):
+		return "No power: build a Power Relay nearby"
+	var pl: PlayerState = players[b.owner_id]
+	if int(pl.upgrades.get(key, 0)) >= 1:
+		return "Already researched"
+	if b.research != "":
+		return "Already researching"
+	for o in buildings:
+		if o != b and o.owner_id == b.owner_id and not o.dead and o.research == key:
+			return "Already being researched"
+	var ud: Dictionary = Defs.UPGRADES[key]
+	if pl.minerals < int(ud["cost"][0]):
+		return "Not enough crystals"
+	if pl.slime < int(ud["cost"][1]):
+		return "Not enough Void Slime"
+	pl.pay(ud["cost"])
+	b.research = key
+	b.research_t = 0.0
+	return ""
+
+
+func cancel_research(b: Building) -> void:
+	if b.research == "":
+		return
+	players[b.owner_id].refund(Defs.UPGRADES[b.research]["cost"])
+	b.research = ""
+	b.research_t = 0.0
+
+
+func on_research_done(b: Building, key: String) -> void:
+	var pl: PlayerState = players[b.owner_id]
+	pl.upgrades[key] = 1
+	var ud: Dictionary = Defs.UPGRADES[key]
+	if b.owner_id == human:
+		message.emit("%s complete: %s" % [ud["name"], ud["desc"]], "done")
 
 
 func cancel_queue(b: Building, index: int) -> void:

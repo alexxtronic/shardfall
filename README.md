@@ -54,6 +54,8 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
   - vehicle building, or beast building for Void (flame and missile units);
   - air building (light and heavy flyers);
   - special building (one huge late-game unit); it costs 350 crystals and 250 slime.
+- **Raiders.** Each race trains a fast, cheap raider in its infantry building: the Ambron Strider and the Void Ripper (75 crystals). It outruns every other ground unit, does extra damage to workers and goes for them first, loses to infantry of equal value and can't hit flyers.
+- **Upgrades.** Two buildings train nothing and research instead. The Armory (Ambron) or Evolution Pit (Void) researches Ground Weapons and Ground Armour; the Aero Lab or Sky Chrysalis researches Air Weapons and Air Armour. Each upgrade is bought once and gives every unit of that kind +1 damage or +1 armour. Ground upgrades cost 100 crystals and 100 slime and take 60 s; air upgrades cost 150 and 150 and take 70 s. Buildings and towers gain nothing.
 - **Ambron power.** Every Ambron structure except the main base, Power Relays and the Void Machine must stand inside a finished Power Relay's field, which shows as a cyan circle while you place a building. An unpowered building stops training and an unpowered tower stops firing until a relay covers it again. Void can build anywhere.
 - **Defence towers.** Once you have an infantry building you can build a tower: the Ambron Arc Tower throws lightning, the Void Slime Spire lobs slime. Both hit ground and air, with the same numbers apart from the usual Void health and fire-rate difference.
 - **Expanding.** Build another main base on any of the 8 open sites. Every site has 8 crystal nodes and 2 slime piles.
@@ -63,6 +65,7 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
   - **Box select.** Hold on the ground for a moment (a ring pulses and the phone gives a tap), then slide your finger to draw a box. Everything of yours inside is selected, workers included.
   - **A resting thumb is fine.** A finger that sits still while another one lands is treated as resting, not as half of a pinch, so slides, taps, rally points and box select all work with the other finger. Touches on the screen edges outside the safe area, and in the gaps around the quick buttons, never reach the battlefield.
   - With an army selected, tap (or hold on) the ground to move there. Units on the move don't stop to fight; they fight again once they arrive. Tap Attack, then the ground, to fight your way there instead.
+  - **Hold to choose.** Hold on the ground with units selected and two targets appear beside your finger: a green MOVE and a red ATTACK. Slide onto one and let go to give that order at the spot you held. Let go without sliding and it is a move; slide anywhere else and it is a selection box.
   - Tap an enemy to focus it: every selected unit that can hit it attacks that one, and a red circle marks it. Units that can't hit it (a ground-only weapon and a flyer) keep doing what they were doing. With workers selected, tapping crystals or an extractor sends them to harvest.
   - Drag to pan, pinch to zoom, and tap the minimap (top-right corner) to jump the camera.
   - The quick buttons start in the bottom-left corner, where the left thumb rests: BASE, BUILDINGS and ARMY, with ARMY at the bottom. ARMY selects every fighter. Each tap on BASE goes to your next base, in the order you built them. BUILDINGS opens the structures, and the nearest worker builds them. Idle workers are in the hold-ARMY menu (and on the `.` key).
@@ -173,7 +176,8 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
   - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), double-tapping a building to select its whole type, BASE cycling, and the selection card's text staying inside its panel.
   - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
-  - `orders`: a tap or hold on the ground moves without fighting, a tap on an enemy focuses it with a red circle, and neither the player's units nor the bot's are sent after targets they can't hit.
+  - `orders`: a tap or hold on the ground moves without fighting, the hold's MOVE and ATTACK targets, a tap on an enemy focuses it with a red circle, and neither the player's units nor the bot's are sent after targets they can't hit.
+  - `upgrades`: the raider (speed, cost, worker hunting, no anti-air) and the upgrade buildings (research through the HUD, cost and refund, +1 damage and +1 armour for the right units only, the ten-building menu staying on screen).
   - `lines`: 14 collectors a crystal field, the count over the main base, overflow to another base, and the final building's price.
   - `levels`: the four bot levels (first attack times, small first waves on easy and normal, economies in order).
   - `grip`: playing with a thumb resting on the screen (slides pan, taps set rally points, Rally and ARMY work with a second finger, box select, a real pinch still zooms, edges and button gaps ignored).

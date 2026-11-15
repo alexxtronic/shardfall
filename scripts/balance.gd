@@ -9,7 +9,7 @@ extends Node
 ## Writes docs/BALANCE.md and prints a summary.
 
 const BUDGET := 1500.0
-const SLOTS := ["infantry", "heavy", "vehicle_flame", "vehicle_missile", "air_light", "air_heavy", "special"]
+const SLOTS := ["infantry", "raider", "heavy", "vehicle_flame", "vehicle_missile", "air_light", "air_heavy", "special"]
 
 var args: PackedStringArray
 var report: Array = []
