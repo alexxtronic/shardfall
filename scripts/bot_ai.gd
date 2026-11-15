@@ -306,7 +306,7 @@ func _free_slime_near_mains() -> int:
 
 func _train_workers(pl: PlayerState, workers: Array, active: Array) -> void:
 	var exts := _live_extractors()
-	var want_workers: int = mini(int(cfg["worker_cap"]), maxi(1, active.size()) * 16 + exts * 3 + 2)
+	var want_workers: int = mini(int(cfg["worker_cap"]), maxi(1, active.size()) * Defs.LINE_MAX + exts * 3 + 2)
 	var queued := _queued(uid("worker"))
 	for m in _mine("main", false):
 		if m.queue.size() < 1 and workers.size() + queued < want_workers and pl.minerals >= 50 \

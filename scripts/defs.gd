@@ -15,6 +15,7 @@ const SUPPLY_MAX := 200
 const MINERAL_PER_TRIP := 5
 const SLIME_PER_TRIP := 4
 const MINE_TIME := 2.0
+const LINE_MAX := 14     # the most workers one player can have collecting from one base's crystals
 const SLIME_TIME := 1.4
 const MINERAL_AMOUNT := 1500
 const SLIME_AMOUNT := 2250
@@ -102,7 +103,7 @@ const BUILDING_SLOTS := {
 	"barracks": {"cost": [150, 0], "time": 46.0, "hp": 1000.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["infantry", "heavy"], "requires": ["main"], "model_h": 3.0},
 	"factory": {"cost": [150, 100], "time": 43.0, "hp": 1250.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["vehicle_flame", "vehicle_missile"], "requires": ["barracks"], "model_h": 3.2},
 	"airfield": {"cost": [150, 100], "time": 36.0, "hp": 1300.0, "armor": 1.0, "size": 3, "supply": 0, "sight": 9.0, "produces": ["air_light", "air_heavy"], "requires": ["factory"], "model_h": 3.4},
-	"special": {"cost": [150, 150], "time": 50.0, "hp": 1000.0, "armor": 1.0, "size": 4, "supply": 0, "sight": 9.0, "produces": ["special"], "requires": ["airfield"], "model_h": 5.0},
+	"special": {"cost": [350, 250], "time": 50.0, "hp": 1000.0, "armor": 1.0, "size": 4, "supply": 0, "sight": 9.0, "produces": ["special"], "requires": ["airfield"], "model_h": 5.0},
 	"tower": {"cost": [125, 0], "time": 32.0, "hp": 450.0, "armor": 1.0, "size": 2, "supply": 0, "sight": 10.0, "produces": [], "requires": ["barracks"], "model_h": 3.2,
 		"weapon": {"dmg": 14.0, "cd": 1.0, "range": 7.0, "ground": true, "air": true, "splash": 0.0, "bonus": {}, "proj": 0.0}},
 }

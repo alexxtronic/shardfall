@@ -560,6 +560,62 @@ func nearest_resource(pid: int, from: Vector2, kind: String):
 	return best
 
 
+## How many of `pid`'s workers are collecting from the crystals of base site `site`
+## (leaving `skip` out, so a worker can ask about a line it is already on).
+func line_collectors(pid: int, site: int, skip = null) -> int:
+	var n := 0
+	for u in units:
+		if u != skip and u.owner_id == pid and u.is_worker and not u.dead and u.order == Unit.O.GATHER \
+				and is_instance_valid(u.gnode) and u.gnode is ResourceNode and u.gnode.kind == "mineral" \
+				and u.gnode.site_index == site:
+			n += 1
+	return n
+
+
+## The base site a main building stands on, or -1.
+func site_of_main(b: Building) -> int:
+	for s in sites:
+		if Vector2i(s["cell"]) == b.cell:
+			return int(s["index"])
+	return -1
+
+
+## A crystal worker `u` may collect from. Each line takes Defs.LINE_MAX collectors a player:
+## `node` if its line has room, else a crystal on the nearest of the player's other bases
+## with room, else null (the worker has nowhere to collect).
+func mineral_with_room(u: Unit, node: ResourceNode):
+	if node.site_index < 0 or line_collectors(u.owner_id, node.site_index, u) < Defs.LINE_MAX:
+		return node
+	var best = null
+	var bd := INF
+	for s in sites:
+		var si := int(s["index"])
+		if si == node.site_index or int(s["taken_by"]) != u.owner_id:
+			continue
+		if line_collectors(u.owner_id, si, u) >= Defs.LINE_MAX:
+			continue
+		for r in s["minerals"]:
+			if not is_instance_valid(r) or r.dead or r.amount <= 0:
+				continue
+			var d: float = r.p.distance_to(u.p) + (2.0 if r.miner != null else 0.0)
+			if d < bd:
+				bd = d
+				best = r
+	return best
+
+
+var line_full_msg_t: float = -99.0
+
+
+## Tell the player (not more than every few seconds) that a line is at its limit.
+func on_line_full(pid: int, moved: bool) -> void:
+	if pid != human or time - line_full_msg_t < 6.0:
+		return
+	line_full_msg_t = time
+	message.emit("Crystal field full (%d of %d): %s" % [Defs.LINE_MAX, Defs.LINE_MAX,
+		"extra workers go to your other base" if moved else "extra workers wait. Expand to a new field"], "hint")
+
+
 func free_mineral_near(n: ResourceNode, pid: int, r: float):
 	var best = null
 	var bd := INF

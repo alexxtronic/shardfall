@@ -46,6 +46,10 @@ Both races must have identical power per resource spent. Never give one race a u
 ## Gameplay rules (Alex, 2026-11-14)
 
 - **Start:** each player begins with 6 workers (`Defs.START_WORKERS`).
+- **Crystal lines (Alex, 2026-11-15):** one base's crystals take at most 14 of a player's workers (`Defs.LINE_MAX`), for both races and the bot.
+  - `Unit.cmd_gather` and `Unit._find_new_node` ask `World.mineral_with_room`: the same crystal, a crystal at the player's nearest other base with room, or none. A worker with nowhere to collect goes idle; never leave it in another order with its job cleared.
+  - The overlay draws the count over each of the player's main bases ("9/14", gold when full).
+- **Final building (Alex, 2026-11-15):** the special building costs 350 crystals and 250 slime.
 - **Ambron power:** every Ambron structure except the main base, relays and extractors must stand inside a finished Power Relay's field (`Defs.POWER_RADIUS`, like a Protoss pylon).
   - An unpowered building stops training, and an unpowered tower stops firing.
   - Void has no placement limit.

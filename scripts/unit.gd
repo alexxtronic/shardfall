@@ -115,6 +115,22 @@ func cmd_hold() -> void:
 func cmd_gather(node) -> void:
 	if not is_worker:
 		return
+	# a crystal line takes only so many collectors: go to another base's, or don't start
+	if node is ResourceNode and node.kind == "mineral":
+		var ok = world.mineral_with_room(self, node)
+		if ok == null:
+			world.on_line_full(owner_id, false)
+			if order != O.GATHER:
+				# nowhere to collect: wait here (a worker already collecting elsewhere carries on)
+				clear_job()
+				if build_id != "":
+					world.refund_build(self)
+				order = O.IDLE
+				anchor = p
+			return
+		if ok != node:
+			world.on_line_full(owner_id, true)
+		node = ok
 	clear_job()
 	if build_id != "":
 		world.refund_build(self)
@@ -557,6 +573,8 @@ func _find_new_node(hint: String = "") -> void:
 	var n = world.nearest_resource(owner_id, p, kind)
 	if n == null and kind == "slime":
 		n = world.nearest_resource(owner_id, p, "mineral")
+	if n is ResourceNode and n.kind == "mineral":
+		n = world.mineral_with_room(self, n)     # the nearest line may be full
 	if n == null:
 		gnode = null
 		order = O.IDLE

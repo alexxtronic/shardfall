@@ -53,10 +53,11 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
   - infantry building (ranged and heavy infantry);
   - vehicle building, or beast building for Void (flame and missile units);
   - air building (light and heavy flyers);
-  - special building (one huge late-game unit).
+  - special building (one huge late-game unit); it costs 350 crystals and 250 slime.
 - **Ambron power.** Every Ambron structure except the main base, Power Relays and the Void Machine must stand inside a finished Power Relay's field, which shows as a cyan circle while you place a building. An unpowered building stops training and an unpowered tower stops firing until a relay covers it again. Void can build anywhere.
 - **Defence towers.** Once you have an infantry building you can build a tower: the Ambron Arc Tower throws lightning, the Void Slime Spire lobs slime. Both hit ground and air, with the same numbers apart from the usual Void health and fire-rate difference.
 - **Expanding.** Build another main base on any of the 8 open sites. Every site has 8 crystal nodes and 2 slime piles.
+- **14 collectors a field.** One base's crystals take at most 14 of your workers. A number floats over each of your main bases (for example 9/14) showing how many are collecting there, and it turns gold at 14/14. Workers sent to a full field go to your nearest other base with room; with nowhere to go they wait, which is the cue to expand.
 - **Touch controls:**
   - Tap to select. Double-tap or hold a unit to select every unit of that type on screen. Double-tap or hold a building to select every finished building of that type, wherever it is, without moving the camera.
   - **Box select.** Hold on the ground for a moment (a ring pulses and the phone gives a tap), then slide your finger to draw a box. Everything of yours inside is selected, workers included.
@@ -171,6 +172,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
   - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), double-tapping a building to select its whole type, BASE cycling, and the selection card's text staying inside its panel.
   - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
+  - `lines`: 14 collectors a crystal field, the count over the main base, overflow to another base, and the final building's price.
   - `levels`: the four bot levels (first attack times, small first waves on easy and normal, economies in order).
   - `grip`: playing with a thumb resting on the screen (slides pan, taps set rally points, Rally and ARMY work with a second finger, box select, a real pinch still zooms, edges and button gaps ignored).
   - `quick`: the button editor (add, free spot, drag to another corner, from the title and over a running match), GROUND selecting its units, Reset, and hold-and-slide box select taking workers too.

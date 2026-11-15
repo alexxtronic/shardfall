@@ -120,6 +120,8 @@ func _run() -> void:
 		await _grip()
 	if want("levels"):
 		await _levels()
+	if want("lines"):
+		await _lines()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -868,6 +870,81 @@ func _quick() -> void:
 		msp.closed.emit()
 	Prefs.set_v("quick_buttons", [])
 	await frames(2)
+
+
+## A crystal line takes 14 collectors; the count floats over the main base; extra workers
+## go to another base's line, or wait. And the final building's price.
+func _lines() -> void:
+	await start(["ambron", "void"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var pl: PlayerState = w.players[0]
+	var site: Dictionary = w.sites[pl.start_site]
+	var home: Vector2 = site["center"]
+	var main_b: Building = null
+	for b in w.buildings:
+		if b.owner_id == 0 and b.slot == "main":
+			main_b = b
+	check(w.line_collectors(0, pl.start_site) == Defs.START_WORKERS, "the starting workers are all collecting (%d)" % w.line_collectors(0, pl.start_site))
+	m.rig.look_at_ground(home)
+	m.rig.apply()
+	await get_tree().create_timer(0.4).timeout
+	check(hud.overlay.line_labels.get(main_b, "") == "%d/%d" % [Defs.START_WORKERS, Defs.LINE_MAX], "the main base shows %d/%d over it (%s)" % [Defs.START_WORKERS, Defs.LINE_MAX, hud.overlay.line_labels.get(main_b, "nothing")])
+	# twelve more workers, all sent to a crystal: fourteen collect, the rest wait
+	var wid := Defs.unit_id("ambron", "worker")
+	var extra: Array = []
+	for i in 12:
+		extra.append(w.spawn_unit(wid, 0, w.grid.nearest_walkable(home + Vector2(-3 + i * 0.6, 6))))
+	w.command_gather(extra, site["minerals"][0])
+	var idle := 0
+	for u in extra:
+		if u.order == Unit.O.IDLE:
+			idle += 1
+	check(w.line_collectors(0, pl.start_site) == Defs.LINE_MAX and idle == Defs.START_WORKERS + 12 - Defs.LINE_MAX,
+		"a line takes %d collectors and the other %d wait (%d collecting, %d idle)" % [Defs.LINE_MAX, Defs.START_WORKERS + 12 - Defs.LINE_MAX, w.line_collectors(0, pl.start_site), idle])
+	await get_tree().create_timer(0.4).timeout
+	check(hud.overlay.line_labels.get(main_b, "") == "%d/%d" % [Defs.LINE_MAX, Defs.LINE_MAX], "the main base shows the line is full (%s)" % hud.overlay.line_labels.get(main_b, "nothing"))
+	await shot("93_line_full")
+	# a second base: the waiting workers are sent to its crystals
+	var nat: Dictionary = {}
+	for st in w.sites:
+		if int(st["taken_by"]) < 0 and (nat.is_empty() or (st["center"] as Vector2).distance_to(home) < (nat["center"] as Vector2).distance_to(home)):
+			nat = st
+	var m2 := w.spawn_building(Defs.building_id("ambron", "main"), 0, nat["cell"], true)
+	nat["taken_by"] = 0
+	var waiting: Array = []
+	for u in extra:
+		if u.order == Unit.O.IDLE:
+			waiting.append(u)
+	w.command_gather(waiting, site["minerals"][1])
+	check(w.line_collectors(0, int(nat["index"])) == waiting.size() and w.line_collectors(0, pl.start_site) == Defs.LINE_MAX,
+		"with a second base, workers sent to a full line go to the other one (%d there)" % w.line_collectors(0, int(nat["index"])))
+	check(m2 != null and w.site_of_main(m2) == int(nat["index"]), "each main base knows its own crystal line")
+	# a worker that leaves a full line to build, and finds its place taken, waits instead
+	var builder: Unit = null
+	for u in w.units:
+		if u.owner_id == 0 and u.is_worker and u.order == Unit.O.GATHER and u.gnode is ResourceNode and u.gnode.site_index == pl.start_site and u.carry == 0:
+			builder = u
+			break
+	var spare := w.spawn_unit(wid, 0, w.grid.nearest_walkable(home + Vector2(2, 6)))
+	builder.order = Unit.O.BUILD          # as it is the moment after placing a building
+	builder.build_id = ""
+	spare.cmd_gather(site["minerals"][2])
+	for u in w.units:                     # fill the second line too, so there is nowhere left
+		if u.owner_id == 0 and u.is_worker and u.order == Unit.O.IDLE:
+			u.cmd_gather(nat["minerals"][0])
+	for i in 12:
+		w.spawn_unit(wid, 0, w.grid.nearest_walkable((nat["center"] as Vector2) + Vector2(-3 + i * 0.5, 5))).cmd_gather(nat["minerals"][0])
+	builder.cmd_gather(site["minerals"][0])
+	check(builder.order == Unit.O.IDLE and w.line_collectors(0, pl.start_site) == Defs.LINE_MAX and w.line_collectors(0, int(nat["index"])) == Defs.LINE_MAX,
+		"a builder coming back to full lines waits (order %d, lines %d and %d)" % [builder.order, w.line_collectors(0, pl.start_site), w.line_collectors(0, int(nat["index"]))])
+	w.step(0.1)
+	check(builder.order == Unit.O.IDLE, "and it stays a healthy idle worker")
+	# the bot keeps to it too
+	check(Defs.LINE_MAX == 14, "the limit is 14 collectors a line")
+	for race in ["ambron", "void"]:
+		var c: Array = Defs.buildings[Defs.building_id(race, "special")]["cost"]
+		check(int(c[0]) == 350 and int(c[1]) == 250, "%s: the final building costs 350 crystals and 250 slime (%s)" % [race, str(c)])
 
 
 ## The four bot levels: the gentle ones hold their first attack and grow slower.

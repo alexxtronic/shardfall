@@ -1,11 +1,15 @@
 class_name Overlay
 extends Control
-## Drawn over the 3D view: health bars, construction and training progress,
-## the box-select rectangle and rally lines.
+## Drawn over the 3D view: health bars, construction and training progress, how many
+## workers are collecting at each of your main bases, the box-select rectangle and rally
+## lines.
 
 var world: World
 var rig: CameraRig
 var cmd: Commander
+var line_t: float = 0.0
+var line_n: Dictionary = {}        # your main bases -> collectors on their crystals (counted 4 times a second)
+var line_labels: Dictionary = {}   # main base -> the text drawn over it this frame
 
 
 func _ready() -> void:
@@ -13,8 +17,36 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-func _process(_d: float) -> void:
+func _process(d: float) -> void:
+	line_t -= d
+	if line_t <= 0.0 and world != null and cmd != null:
+		line_t = 0.25
+		line_n.clear()
+		for b in world.buildings:
+			if b.owner_id == cmd.pid and b.slot == "main" and b.built and not b.dead:
+				line_n[b] = world.line_collectors(cmd.pid, world.site_of_main(b))
 	queue_redraw()
+
+
+## "12/14" beside a crystal: the workers collecting on a base's crystal line and the most
+## it takes. It turns gold when the line is full.
+func _collectors(c: Vector2, n: int) -> String:
+	var full := n >= Defs.LINE_MAX
+	var text := "%d/%d" % [n, Defs.LINE_MAX]
+	var font: Font = UiKit.font_bold if UiKit.font_bold != null else ThemeDB.fallback_font
+	var fs := 18
+	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var iw := 18.0
+	var w := 8.0 + iw + 5.0 + tw + 9.0
+	var r := Rect2(c - Vector2(w * 0.5, 13.0), Vector2(w, 26.0))
+	var col := UiKit.GOLD if full else UiKit.TEXT
+	draw_rect(r, Color(0.04, 0.05, 0.08, 0.84))
+	draw_rect(r, Color(col, 0.9 if full else 0.35), false, 2.0 if full else 1.0)
+	var icon := UiKit.icon("ui:crystal")
+	if icon:
+		draw_texture_rect(icon, Rect2(r.position + Vector2(8.0, 4.0), Vector2(iw, iw)), false, UiKit.GOLD)
+	draw_string(font, r.position + Vector2(8.0 + iw + 5.0, 19.5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	return text
 
 
 func _bar(center: Vector2, w: float, frac: float, col: Color, back: Color = Color(0, 0, 0, 0.7)) -> void:
@@ -85,6 +117,17 @@ func _draw() -> void:
 			_bar(sp + Vector2(0, 9), w, b.progress, Color(0.4, 0.85, 1.0))
 		elif b.queue.size() > 0 and b.owner_id == cmd.pid:
 			_bar(sp + Vector2(0, 9), w, b.queue_progress(), Color(0.95, 0.95, 1.0))
+	# collectors on each of your crystal lines, over its main base
+	line_labels.clear()
+	for b in line_n:
+		if not is_instance_valid(b) or b.dead:
+			continue
+		var ltop := Vector3(b.p.x, float(b.def.get("model_h", 3.0)) + 0.6 + b.ground_h(), b.p.y)
+		if not rig.in_front(ltop):
+			continue
+		var lsp := rig.to_screen(ltop) + Vector2(0, -30)
+		if vr.grow(60).has_point(lsp):
+			line_labels[b] = _collectors(lsp, int(line_n[b]))
 	# rally lines of the selected building
 	for e in cmd.selection:
 		if e is Building and e.rally_set and not e.dead and e.owner_id == cmd.pid:
