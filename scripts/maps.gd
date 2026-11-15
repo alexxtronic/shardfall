@@ -135,7 +135,7 @@ const THEMES := {
 		"ground_bottom": Color(0.05, 0.04, 0.07), "ground_horizon": Color(0.3, 0.26, 0.34),
 		"sun": Color(1.0, 0.92, 0.82), "sun_energy": 1.5, "sun_rot": Vector3(-52, -38, 0),
 		"fill": Color(0.55, 0.6, 1.0), "fill_energy": 0.35, "ambient": 0.9, "exposure": 1.05,
-		"rock_tint": Color(1, 1, 1), "weather": "motes", "music": "theme_alien", "battle": "battle_a", "ambience": "amb_alien",
+		"rock_tint": Color(1, 1, 1), "weather": "motes", "music": "theme_pulse", "battle": "battle_a", "ambience": "amb_alien",
 		"minimap_low": Color(0.22, 0.21, 0.26), "minimap_step": Color(0.07, 0.065, 0.08),
 	},
 	"frost": {
@@ -147,7 +147,7 @@ const THEMES := {
 		"ground_bottom": Color(0.1, 0.13, 0.18), "ground_horizon": Color(0.6, 0.68, 0.78),
 		"sun": Color(0.92, 0.96, 1.0), "sun_energy": 1.1, "sun_rot": Vector3(-46, -32, 0),
 		"fill": Color(0.6, 0.75, 1.0), "fill_energy": 0.4, "ambient": 0.65, "exposure": 0.82,
-		"rock_tint": Color(0.75, 0.85, 1.0), "weather": "snow", "music": "theme_frost", "battle": "battle_a", "ambience": "amb_frost",
+		"rock_tint": Color(0.75, 0.85, 1.0), "weather": "snow", "music": "theme_pulse", "battle": "battle_a", "ambience": "amb_frost",
 		"minimap_low": Color(0.6, 0.66, 0.74), "minimap_step": Color(0.1, 0.11, 0.13),
 	},
 	"ember": {
@@ -159,7 +159,7 @@ const THEMES := {
 		"ground_bottom": Color(0.05, 0.02, 0.02), "ground_horizon": Color(0.36, 0.14, 0.07),
 		"sun": Color(1.0, 0.72, 0.5), "sun_energy": 1.35, "sun_rot": Vector3(-58, -44, 0),
 		"fill": Color(1.0, 0.45, 0.25), "fill_energy": 0.4, "ambient": 0.7, "exposure": 1.0,
-		"rock_tint": Color(0.55, 0.47, 0.45), "weather": "embers", "music": "theme_ember", "battle": "battle_ember", "ambience": "amb_ember",
+		"rock_tint": Color(0.55, 0.47, 0.45), "weather": "embers", "music": "theme_pulse", "battle": "battle_ember", "ambience": "amb_ember",
 		"minimap_low": Color(0.2, 0.15, 0.14), "minimap_step": Color(0.08, 0.06, 0.06),
 	},
 }

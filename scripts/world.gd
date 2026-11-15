@@ -16,6 +16,7 @@ var running: bool = true
 var time: float = 0.0
 var players: Array = []          # PlayerState
 var human: int = 0               # -1 when nobody plays (balance runs)
+var supply_msg_t: float = -99.0   # when "supply blocked" was last said
 var grid: PathGrid
 var units: Array = []
 var buildings: Array = []
@@ -566,16 +567,34 @@ func free_mineral_near(n: ResourceNode, pid: int, r: float):
 	return best
 
 
+## Supply taken by units that exist. Queued units don't count: when one finishes and
+## there's no room, its building holds it at the door until there is.
 func supply_used(pid: int) -> int:
 	var s := 0
 	for u in units:
 		if u.owner_id == pid and not u.dead:
 			s += u.supply
+	return s
+
+
+## Supply in use plus everything waiting in queues: what the bot plans with, so it
+## doesn't pay for units it has no room for.
+func supply_committed(pid: int) -> int:
+	var s := supply_used(pid)
 	for b in buildings:
 		if b.owner_id == pid and not b.dead:
 			for q in b.queue:
 				s += int(Defs.units[q]["supply"])
 	return s
+
+
+## A finished unit is waiting for supply (said once every few seconds, to the human).
+func on_supply_blocked(b: Building) -> void:
+	if b.owner_id != human or time - supply_msg_t < 8.0:
+		return
+	supply_msg_t = time
+	var sname: String = Defs.buildings[Defs.building_id(players[b.owner_id].race, "supply")]["name"]
+	message.emit("Supply blocked: build a %s" % sname, "error")
 
 
 func supply_cap(pid: int) -> int:
@@ -623,8 +642,6 @@ func queue_unit(b: Building, uid: String) -> String:
 		return "Not enough crystals"
 	if pl.slime < int(ud["cost"][1]):
 		return "Not enough Void Slime"
-	if supply_used(b.owner_id) + int(ud["supply"]) > supply_cap(b.owner_id):
-		return "supply"
 	pl.pay(ud["cost"])
 	b.queue.append(uid)
 	return ""

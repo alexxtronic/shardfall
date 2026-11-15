@@ -8,6 +8,7 @@ const LINES := [
 	["SHARDFALL", "h"],
 	["Design, code and 3D: made for this project with Godot 4, Kiln, Tripo and Blender.", ""],
 	["MUSIC", "h"],
+	["Creeping Pulse — Alex D'Amore, made with Suno (match music)", ""],
 	["Loading screen loop — Brandon Morris (menu)", ""],
 	["Hunter-class Lifeform — vitalezzz (Shatterfield)", ""],
 	["Icy Realm 7 and 8 — cynicmusic (Frostspire Pass)", ""],
@@ -21,7 +22,7 @@ const LINES := [
 	["Fleshy Bone Breaks — Zane Little Music  ·  Electricity — BMacZero", ""],
 	["Insect or alien scream — qubodup", ""],
 	["Space Winds — aquinn  ·  Wind whoosh loop — SketchMan3  ·  Deep rumble — gmason", ""],
-	["All audio is CC0 (public domain), found on OpenGameArt.org and kenney.nl. Thank you!", "d"],
+	["All other audio is CC0 (public domain), found on OpenGameArt.org and kenney.nl. Thank you!", "d"],
 	["FONTS", "h"],
 	["Chakra Petch — Cadson Demak  ·  Orbitron — Matt McInerney (SIL Open Font License)", ""],
 ]

@@ -206,7 +206,7 @@ func _supply(pl: PlayerState) -> void:
 	var cap: int = world.supply_cap(pid)
 	if cap >= Defs.SUPPLY_MAX:
 		return
-	var used: int = world.supply_used(pid)
+	var used: int = world.supply_committed(pid)
 	# Ambron: production needs a finished relay's field, so the first relay goes up a
 	# little before the barracks is wanted (at 13 supply), as a player would build it
 	if Defs.needs_power(bid("barracks")) and used >= 10 and pl.minerals >= 100 \
@@ -233,7 +233,7 @@ func _supply(pl: PlayerState) -> void:
 func _tech(pl: PlayerState, workers: Array, mains: Array, active: Array) -> void:
 	var t: float = world.time
 	var td: float = float(cfg["tech_delay"])
-	var used: int = world.supply_used(pid)
+	var used: int = world.supply_committed(pid)
 	var n_barracks := _count("barracks")
 	var n_ext := _count("extractor")
 	var n_factory := _count("factory")
@@ -303,7 +303,8 @@ func _train_workers(pl: PlayerState, workers: Array, active: Array) -> void:
 	var want_workers: int = mini(int(cfg["worker_cap"]), maxi(1, active.size()) * 16 + exts * 3 + 2)
 	var queued := _queued(uid("worker"))
 	for m in _mine("main", false):
-		if m.queue.size() < 1 and workers.size() + queued < want_workers and pl.minerals >= 50:
+		if m.queue.size() < 1 and workers.size() + queued < want_workers and pl.minerals >= 50 \
+				and world.supply_committed(pid) + int(Defs.units[uid("worker")]["supply"]) <= world.supply_cap(pid):
 			if world.queue_unit(m, uid("worker")) == "":
 				queued += 1
 
@@ -382,7 +383,7 @@ func _pick_unit(b: Building, enemy: Dictionary, pl: PlayerState) -> String:
 		if not opts.has(id):
 			continue
 		var ud: Dictionary = Defs.units[id]
-		if pl.can_afford(ud["cost"]) and world.supply_used(pid) + int(ud["supply"]) <= world.supply_cap(pid):
+		if pl.can_afford(ud["cost"]) and world.supply_committed(pid) + int(ud["supply"]) <= world.supply_cap(pid):
 			# leave what we are saving for
 			if pl.minerals - int(ud["cost"][0]) >= int(reserve[0]) and pl.slime - int(ud["cost"][1]) >= int(reserve[1]):
 				return id
@@ -604,7 +605,7 @@ func _army(army: Array) -> void:
 			loose.append(u)
 	if loose.size() > 0:
 		world.command_move(loose, rally, false)
-	var used: int = world.supply_used(pid)
+	var used: int = world.supply_committed(pid)
 	var cap: int = world.supply_cap(pid)
 	if supply >= mini(wave_supply, 70) or used >= 180 or (used >= cap - 1 and supply >= 20):
 		state = "attack"

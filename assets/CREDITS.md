@@ -1,7 +1,8 @@
 # Asset credits
 
 Everything below is free for commercial use. All the audio is **CC0 1.0** (public domain),
-so credit is optional, but we give it anyway. Fonts are under the SIL Open Font License
+so credit is optional, but we give it anyway, except Creeping Pulse, the match music, which
+Alex made with Suno for the game. Fonts are under the SIL Open Font License
 (see `fonts/*-OFL.txt`). Models, icons and map previews were made for this project.
 
 The conversion scripts trim, level and loop the source files (mono effects at 44.1 kHz,
@@ -31,9 +32,10 @@ Ambron announcer uses the female voice; the Void uses the male voice, pitched do
 | File | Track | Author | Licence |
 |---|---|---|---|
 | menu | [Loading screen loop](https://opengameart.org/content/loading-screen-loop) | Brandon Morris | CC0 |
-| theme_alien (Shatterfield) | [Hunter-class Lifeform](https://opengameart.org/content/hunter-class-lifeform) | vitalezzz | CC0 |
-| theme_frost (Frostspire Pass) | [Icy Realm 7 and 8](https://opengameart.org/content/icy-realm-seven-and-eight) | cynicmusic | CC0 |
-| theme_ember (Ember Rift) | Entering the Volcano, from [Ambience of a Fallen Age](https://opengameart.org/content/ambience-of-a-fallen-age) | Umplix | CC0 |
+| theme_pulse (match background, all maps) | Creeping Pulse | Alex D'Amore, made with Suno | the game's own track |
+| theme_alien (Shatterfield, not in use) | [Hunter-class Lifeform](https://opengameart.org/content/hunter-class-lifeform) | vitalezzz | CC0 |
+| theme_frost (Frostspire Pass, not in use) | [Icy Realm 7 and 8](https://opengameart.org/content/icy-realm-seven-and-eight) | cynicmusic | CC0 |
+| theme_ember (Ember Rift, not in use) | Entering the Volcano, from [Ambience of a Fallen Age](https://opengameart.org/content/ambience-of-a-fallen-age) | Umplix | CC0 |
 | battle_a (battle layer) | [Battle Theme A](https://opengameart.org/content/battle-theme-a) | cynicmusic | CC0 |
 | battle_ember (Ember Rift battle layer) | [Epic Boss Battle, seamless loop](https://opengameart.org/content/boss-battle-music) | Juhani Junkala | CC0 |
 | win | [Victory Fanfare Short](https://opengameart.org/content/victory-fanfare-short) | cynicmusic | CC0 |

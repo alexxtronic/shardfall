@@ -24,6 +24,7 @@ done
 
 if [ $build = 1 ]; then
 	rm -rf build/ios && mkdir -p build/ios
+	touch build/.gdignore   # keep Godot from importing the Xcode output as game assets
 	"$GODOT" --headless --path . --export-release "iOS" "$IPA" 2>&1 | grep -E "ARCHIVE|EXPORT SUCCEEDED|error:|ERROR" || true
 	[ -f "$IPA" ] || { echo "Build failed: no $IPA"; exit 1; }
 fi

@@ -17,6 +17,7 @@ const DEFAULTS := {
 	"map": "shatterfield",
 	"tutorial_done": false,
 	"army_tip": 0,
+	"bld_tip": 0,
 }
 
 var data: Dictionary = DEFAULTS.duplicate()

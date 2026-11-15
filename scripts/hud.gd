@@ -30,14 +30,15 @@ var menu: Control
 var blockers: Array = []
 var refresh_t: float = 0.0
 var sel_sig: String = ""
-var idle_btn: Button
 var army_btn: Button
-var group_menu: GroupMenu       # open while ARMY is held (or after a hold, until a tap)
-var hold_t: float = -1.0        # when the current ARMY press began, -1 when not pressed
+var bld_btn: Button             # BUILDINGS: tap for the build menu, hold to select a type
+var group_menu: GroupMenu       # open while ARMY or BUILDINGS is held (or after a hold, until a tap)
+var hold_kind: String = ""      # "army" or "buildings": the button being held
+var hold_t: float = -1.0        # when the current press began, -1 when not pressed
 var sliding: bool = false       # the menu follows the finger until it lifts
-var eat_tap: bool = false       # the ARMY release that ends a hold is not a tap
+var eat_tap: bool = false       # the release that ends a hold is not a tap
 var close_frame: int = -1
-const HOLD_OPEN := 0.3          # seconds of holding ARMY before the group menu opens
+const HOLD_OPEN := 0.3          # seconds of holding before the group menu opens
 
 
 ## On a phone, pull every panel in from the notch or Dynamic Island, the rounded corners
@@ -191,14 +192,24 @@ func _res_chip(parent: Control, icon_id: String, col: Color, tint: Color, icon_s
 	return l
 
 
+## BASE, BUILDINGS and ARMY, stacked just above the minimap where the left thumb rests.
 func _left_buttons() -> void:
 	var v := VBoxContainer.new()
-	v.position = Vector2(10, 64)
+	v.name = "LeftButtons"
 	v.add_theme_constant_override("separation", 8)
+	v.anchor_top = 1.0
+	v.anchor_bottom = 1.0
+	v.offset_left = 8
+	v.offset_right = 8 + 100
+	v.offset_bottom = -226
+	v.offset_top = -226 - (3 * 72 + 2 * 8)
+	v.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	root.add_child(v)
-	for spec in [["ARMY", "army", "ui:army"], ["IDLE", "idle", "ui:idle"], ["BASE", "base", "ui:base"], ["BUILD", "build_menu", "ui:build"]]:
+	# top to bottom: BASE, BUILDINGS, then ARMY (the most used) right above the minimap
+	for spec in [["BASE", "base", "ui:base"], ["BUILDINGS", "build_menu", "ui:build"], ["ARMY", "army", "ui:army"]]:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(86, 70)
+		b.name = String(spec[0]).capitalize()
+		b.custom_minimum_size = Vector2(100, 72)
 		b.focus_mode = Control.FOCUS_NONE
 		var col := VBoxContainer.new()
 		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -207,7 +218,7 @@ func _left_buttons() -> void:
 		col.add_theme_constant_override("separation", 2)
 		b.add_child(col)
 		col.add_child(UiKit.tex_rect(UiKit.icon(spec[2]), Vector2(70, 32), UiKit.accent.lerp(Color.WHITE, 0.35)))
-		var t := UiKit.head(spec[0], 12, UiKit.TEXT)
+		var t := UiKit.head(spec[0], 12 if String(spec[0]).length() <= 6 else 10, UiKit.TEXT)
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		t.name = "Title"
 		col.add_child(t)
@@ -215,42 +226,27 @@ func _left_buttons() -> void:
 		b.pressed.connect(func(): _left_action(a))
 		v.add_child(b)
 		blockers.append(b)
-		if a == "army":
-			army_btn = b
-			b.button_down.connect(_army_down)
+		if a == "army" or a == "build_menu":
+			var kind := "army" if a == "army" else "buildings"
+			if a == "army":
+				army_btn = b
+			else:
+				bld_btn = b
+			b.button_down.connect(_hold_down.bind(kind))
 			# a small corner mark: there's more behind a hold
 			var more := UiKit.head("›", 18, UiKit.accent.lerp(Color.WHITE, 0.2))
-			more.position = Vector2(72, 20)
+			more.position = Vector2(84, 20)
 			more.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			b.add_child(more)
-		if a == "idle":
-			idle_btn = b
-			# a count badge in the corner
-			var badge := UiKit.head("", 12, Color(0.1, 0.07, 0.02))
-			badge.name = "Badge"
-			badge.add_theme_constant_override("outline_size", 0)
-			var bb := PanelContainer.new()
-			var st := UiKit.box(UiKit.GOLD, UiKit.GOLD, 6, 1)
-			st.content_margin_left = 5
-			st.content_margin_right = 5
-			st.content_margin_top = 0
-			st.content_margin_bottom = 0
-			bb.add_theme_stylebox_override("panel", st)
-			bb.add_child(badge)
-			bb.position = Vector2(56, -6)
-			bb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			bb.name = "BadgeBox"
-			bb.visible = false
-			b.add_child(bb)
 
 
 func _left_action(a: String) -> void:
-	if a == "army":
+	if a == "army" or a == "build_menu":
 		if eat_tap:
 			eat_tap = false
 			return
 		close_groups()
-		_army_tip()
+		_hold_tip("army" if a == "army" else "buildings")
 	Sfx.play("click")
 	if a == "build_menu":
 		# build without selecting a worker first: the nearest one goes
@@ -261,28 +257,41 @@ func _left_action(a: String) -> void:
 	cmd.action(a)
 
 
-# ---------------------------------------------------------------- group select (hold ARMY)
+# ---------------------------------------------------------------- group select (hold ARMY or BUILDINGS)
 
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
 
-func _army_down() -> void:
+func _hold_down(kind: String) -> void:
 	eat_tap = false
 	if group_menu:
 		close_groups()
+	hold_kind = kind
 	hold_t = _now()
 
 
-## Open the group menu beside the left buttons. `slide`: it follows the finger that is
-## still holding ARMY, and picks whatever group that finger lifts on.
-func open_groups(slide: bool) -> void:
+func _held_btn() -> Button:
+	return bld_btn if hold_kind == "buildings" else army_btn
+
+
+## Open the group menu beside the held button. `slide`: it follows the finger that is
+## still holding the button, and picks whatever group that finger lifts on.
+func open_groups(slide: bool, kind: String = "") -> void:
 	if group_menu or world.over:
 		return
+	if kind != "":
+		hold_kind = kind
 	group_menu = GroupMenu.new()
 	root.add_child(group_menu)
-	group_menu.build(world, pid)
-	group_menu.position = Vector2(104, 64)
+	group_menu.build(world, pid, "buildings" if hold_kind == "buildings" else "units")
+	# right of the button, lifted so the finger slides up and across into it, kept on screen
+	var br := _held_btn().get_global_rect()
+	var msz := group_menu.get_combined_minimum_size()
+	var top := root.get_global_rect().position.y + 60.0
+	var bottom := root.get_global_rect().end.y - 8.0
+	var y := clampf(br.end.y - msz.y * 0.6, top, maxf(top, bottom - msz.y))
+	group_menu.global_position = Vector2(br.end.x + 10.0, y)
 	group_menu.picked.connect(pick_group)
 	blockers.append(group_menu)
 	sliding = slide
@@ -307,23 +316,31 @@ func pick_group(kind: String) -> void:
 	cmd.set_selection(list)
 	Sfx.play("click")
 	Input.vibrate_handheld(12)
+	var line := "%s selected. Tap where to send them." % GroupMenu.describe(kind, list.size())
+	if kind.begins_with("btype:"):
+		# buildings: look at them, and say how to train from all of them at once
+		rig.look_at_ground(GroupMenu.cluster_center(list))
+		var trains: bool = (list[0] as Building).produces().size() > 0
+		line = "%s selected.%s" % [GroupMenu.describe(kind, list.size()), " Each tap on a unit trains it in the least busy one." if trains and list.size() > 1 else ""]
 	# one line for the latest pick, not a stack of them
 	for c in msg_box.get_children():
 		if c.has_meta("group"):
 			msg_box.remove_child(c)
 			c.queue_free()
-	show_message("%s selected. Tap where to send them." % GroupMenu.describe(kind, list.size()), "hint")
+	show_message(line, "hint")
 	for c in msg_box.get_children():
-		if String(c.get_meta("text", "")).ends_with("Tap where to send them."):
+		if String(c.get_meta("text", "")) == line:
 			c.set_meta("group", true)
 
 
-## The first few ARMY taps teach the hold.
-func _army_tip() -> void:
-	var n := int(Prefs.get_v("army_tip"))
+## The first few taps on ARMY or BUILDINGS teach the hold.
+func _hold_tip(kind: String) -> void:
+	var key := "army_tip" if kind == "army" else "bld_tip"
+	var n := int(Prefs.get_v(key))
 	if n < 3:
-		Prefs.set_v("army_tip", n + 1)
-		show_message("Tip: hold ARMY and slide to pick ground, air, workers or one unit type", "hint")
+		Prefs.set_v(key, n + 1)
+		show_message("Tip: hold ARMY and slide to pick ground, air, workers or one unit type" if kind == "army"
+			else "Tip: hold BUILDINGS and slide to select every building of one type", "hint")
 
 
 func _input(ev: InputEvent) -> void:
@@ -356,13 +373,13 @@ func _input(ev: InputEvent) -> void:
 				var k := group_menu.hot_at(pos)
 				if k != "":
 					pick_group(k)
-				elif not army_btn.get_global_rect().has_point(pos):
+				elif not _held_btn().get_global_rect().has_point(pos):
 					close_groups()
-				# lifted on ARMY itself: the menu stays open for a tap
+				# lifted on the button itself: the menu stays open for a tap
 		return
-	# a new press: inside the menu or on ARMY is theirs; anywhere else just closes it
+	# a new press: inside the menu or on its button is theirs; anywhere else just closes it
 	if group_menu and not sliding:
-		if group_menu.get_global_rect().has_point(pos) or army_btn.get_global_rect().has_point(pos):
+		if group_menu.get_global_rect().has_point(pos) or _held_btn().get_global_rect().has_point(pos):
 			return
 		close_groups()
 		close_frame = Engine.get_process_frames()
@@ -551,16 +568,10 @@ func _process(delta: float) -> void:
 	lbl_supply.add_theme_color_override("font_color", UiKit.BAD if used >= cap and cap < Defs.SUPPLY_MAX else UiKit.TEXT)
 	lbl_time.text = UiKit.fmt_time(world.time)
 	var workers := 0
-	var idle := 0
 	for u in world.units:
 		if u.owner_id == pid and u.is_worker and not u.dead:
 			workers += 1
-			if u.order == Unit.O.IDLE:
-				idle += 1
 	lbl_workers.text = str(workers)
-	var bb: Control = idle_btn.get_node("BadgeBox")
-	bb.visible = idle > 0
-	(bb.get_node("Badge") as Label).text = str(idle)
 	refresh_t += delta
 	if refresh_t > 0.2:
 		refresh_t = 0.0
@@ -789,6 +800,8 @@ func _single(e) -> void:
 		tr.position = Vector2(4, 4)
 		sel_content.add_child(tr)
 	var x0 := 96.0
+	# everything right of the portrait wraps or trims inside the panel, never past its edge
+	var text_w := sel_content.custom_minimum_size.x - x0 - 4.0
 	var name: String = e.def.get("name", "")
 	if e is ResourceNode:
 		name = "Golden Crystals" if e.kind == "mineral" else "Void Slime"
@@ -797,6 +810,9 @@ func _single(e) -> void:
 		owner_txt = "  (enemy)"
 	var t := UiKit.head(name.to_upper() + owner_txt, 16, UiKit.BAD if owner_txt != "" else UiKit.TEXT)
 	t.position = Vector2(x0, 0)
+	t.custom_minimum_size = Vector2(text_w, 0)
+	t.clip_text = true
+	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	sel_content.add_child(t)
 	if not (e is ResourceNode):
 		var bar_bg := ColorRect.new()
@@ -819,12 +835,17 @@ func _single(e) -> void:
 		var hits := "air & ground" if bool(w["air"]) and bool(w["ground"]) else ("air" if bool(w["air"]) else "ground")
 		st += "\n%s dmg, range %s, hits %s" % [str(w["dmg"]), str(w["range"]), hits]
 	var desc: String = e.def.get("desc", "")
+	var queued: bool = e is Building and e.owner_id == pid and e.queue.size() > 0
 	var s := UiKit.label(st if st != "" else desc, 14, UiKit.TEXT)
 	s.position = Vector2(x0, 64)
-	s.size = Vector2(270, 60)
+	s.custom_minimum_size = Vector2(text_w, 0)
 	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	s.max_lines_visible = 1 if queued else 3
+	s.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	s.name = "Status"
 	sel_content.add_child(s)
-	if e is Building and e.owner_id == pid and e.queue.size() > 0:
+	s.size = Vector2(text_w, 0)   # grows to its wrapped lines
+	if queued:
 		var h := HBoxContainer.new()
 		h.position = Vector2(x0, 92)
 		h.add_theme_constant_override("separation", 4)

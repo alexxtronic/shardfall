@@ -46,7 +46,7 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
 
 - **Start.** Each side begins with a main base and 6 workers.
 - **Economy.** Workers harvest golden crystals on their own (5 per trip). A worker carries a crystal only while it is bringing one back. Void Slime, the second resource, needs an extractor built on a black slime pile first: the Void Machine for Ambron, the Void Maw for Void. Three workers per extractor saturate it.
-- **Base and production.** Every main base trains workers and is a drop-off. Supply structures raise the supply cap, which tops out at 200. The tech tree runs:
+- **Base and production.** Every main base trains workers and is a drop-off. Supply structures raise the supply cap, which tops out at 200. A unit takes supply when it comes out, not when it is queued: at full supply you can still queue, and a finished unit waits at the door until there is room. The tech tree runs:
   - main base;
   - infantry building (ranged and heavy infantry);
   - vehicle building, or beast building for Void (flame and missile units);
@@ -59,8 +59,9 @@ New players can press **Tutorial** on the title screen. It plays a guided first 
   - Tap to select. Double-tap or hold a unit to select every unit of that type on screen. Hold, then drag, to draw a selection box.
   - With an army selected, tap the ground to attack-move or tap an enemy to attack it. With workers selected, tapping the ground moves them and tapping crystals or an extractor sends them to harvest.
   - Drag to pan, pinch to zoom, and tap the minimap to jump the camera.
-  - ARMY selects every fighter, IDLE selects idle workers, and BASE jumps to your main. BUILD opens the structures; the nearest worker builds them.
+  - BASE, BUILDINGS and ARMY sit on the left, stacked above the minimap where the left thumb rests, with ARMY at the bottom, closest to it. ARMY selects every fighter. Each tap on BASE goes to your next base, in the order you built them. BUILDINGS opens the structures, and the nearest worker builds them. Idle workers are in the hold-ARMY menu (and on the `.` key).
   - **Group select.** Hold ARMY for a moment and a menu opens: all army, ground, air, workers, idle workers, and one entry per unit type you have, each with its count. Slide your finger onto a group and let go to select all of it, wherever it is on the map, then tap where to send it. If you let go on ARMY itself, the menu stays open so you can tap a group instead.
+  - **Building select.** Hold BUILDINGS the same way for one entry per building type you have finished. Let go on one to select every building of that type and jump the camera to them. Each tap on a unit then trains it in the least busy one, so three taps with three Assembly Bays selected start three Lancers at once.
 - **High ground.** Plateaus sit 2.6 m above the ground below, edged by cliffs that nothing walks over. Ramps are the only way up. A ground unit can't see up a cliff until it climbs, and a ground shot fired uphill misses 30% of the time. Flyers ignore both.
 - **Winning.** Destroy every enemy building.
 
@@ -111,7 +112,7 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
     - `map_gen.gd` builds it, authoring player 1's half and mirroring it;
     - `weather.gd` adds the particles.
   - **Interface:**
-    - `commander.gd` (touch input and orders), `hud.gd`, `group_menu.gd` (the hold-ARMY group select), `minimap.gd`, `overlay.gd`, `camera_rig.gd`;
+    - `commander.gd` (touch input and orders), `hud.gd`, `group_menu.gd` (the hold-ARMY and hold-BUILDINGS group select), `minimap.gd`, `overlay.gd`, `camera_rig.gd`;
     - `title.gd` and the overlays `settings_panel.gd`, `leaderboard_panel.gd` and `credits_panel.gd`;
     - `tutorial.gd`, the guided first match;
     - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads.
@@ -140,6 +141,8 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
   - `seats`: neither seat starts ahead (mirrored grid, equal harvest, equal march to the enemy);
   - `tutorial`: every lesson passes on the player's action, the bot waits, Skip works, and the leaderboard is untouched;
   - `groups`: hold ARMY and slide (real touch events) to select ground, air, workers or one unit type.
+  - `buildings`: hold BUILDINGS and slide to select a building type (camera jump, training spread across them), BASE cycling, and the selection card's text staying inside its panel.
+  - `supply`: queued units don't take supply; a trained unit waits at the door until there is room.
 
   `--only=previews` is not a test. It re-bakes the map previews (`assets/ui/maps/`), the app icon and the boot splash after a map or art change.
 - **Balance.** It runs headless and rewrites `docs/BALANCE.md`:

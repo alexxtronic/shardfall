@@ -71,7 +71,7 @@ Both races must have identical power per resource spent. Never give one race a u
 
 ## Audio (Alex, 2026-11-14)
 
-- **Licences.** Only CC0 audio, or CC-BY with the credit added. Every new file goes in `assets/CREDITS.md` and in `scripts/credits_panel.gd`.
+- **Licences.** Only CC0 audio, or CC-BY with the credit added. Alex's own tracks (made with Suno, like the match music `theme_pulse`) are allowed and credited to him. Every new file goes in `assets/CREDITS.md` and in `scripts/credits_panel.gd`.
 - **Conversion.** Source packs are downloaded into their own folders outside the repo and converted with ffmpeg:
   - effects: mono 44.1 kHz Ogg, trimmed, loudness-matched, `<name>_N.ogg` for variants;
   - music: loudness-normalised stereo Ogg;

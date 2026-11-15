@@ -24,6 +24,8 @@ var hud = null
 var pid: int = 0
 var selection: Array = []
 var mode: int = M.NONE
+var base_i: int = 0              # the base BASE last went to
+var base_tap_t: float = -99.0
 var place_id: String = ""
 var place_cell: Vector2i = Vector2i.ZERO
 var place_ok: bool = false
@@ -510,17 +512,27 @@ func action(a: String) -> void:
 			set_selection([u])
 			rig.look_at_ground(u.p)
 		"base":
+			# each tap goes to your next base, in the order you built them; after a pause
+			# (and nothing of it selected) the first tap goes home to the main again
 			var mains: Array = []
 			for b in world.buildings:
 				if b.owner_id == pid and b.slot == "main" and not b.dead:
 					mains.append(b)
 			if mains.is_empty():
 				return
-			var pick_b = mains[0]
+			var now := Time.get_ticks_msec() / 1000.0
+			var i := 0
 			if selection.size() == 1 and mains.has(selection[0]):
-				pick_b = mains[(mains.find(selection[0]) + 1) % mains.size()]
+				i = (mains.find(selection[0]) + 1) % mains.size()
+			elif now - base_tap_t < 6.0:
+				i = (base_i + 1) % mains.size()
+			base_i = i
+			base_tap_t = now
+			var pick_b = mains[i]
 			set_selection([pick_b])
 			rig.look_at_ground(pick_b.p)
+			if mains.size() > 1:
+				_say("Base %d of %d%s" % [i + 1, mains.size(), "" if pick_b.built else " (building)"], "hint")
 		"cancel":
 			cancel_mode()
 		"confirm":
@@ -537,10 +549,7 @@ func _train(uid: String) -> void:
 		return
 	bs.sort_custom(func(a, b2): return a.queue.size() < b2.queue.size())
 	var err: String = world.queue_unit(bs[0], uid)
-	if err == "supply":
-		var sname: String = Defs.buildings[Defs.building_id(world.players[pid].race, "supply")]["name"]
-		_say("Not enough supply: build a %s" % sname, "error")
-	elif err != "":
+	if err != "":
 		_say(err, "error")
 	else:
 		Sfx.play("click")

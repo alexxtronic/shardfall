@@ -110,6 +110,10 @@ func _run() -> void:
 		await _tutorial()
 	if want("groups"):
 		await _groups()
+	if want("buildings"):
+		await _buildings_hold()
+	if want("supply"):
+		await _supply_rule()
 	if only == "previews":
 		await _previews()
 		await _brand()
@@ -574,6 +578,135 @@ func _groups() -> void:
 	await _release(army_c)
 	hud.close_groups()
 	await frames(2)
+
+
+## Hold BUILDINGS and slide: every finished building of one type is selected and the camera
+## looks at them; each tap on a unit then trains it in the least busy one. A quick tap still
+## opens the build menu. BASE goes to each base in turn. The selection card keeps its text
+## inside the panel.
+func _buildings_hold() -> void:
+	await start(["void", "ambron"], false)
+	var w: World = m.world
+	var hud: Hud = m.hud
+	var pl: PlayerState = w.players[0]
+	pl.minerals += 5000
+	var home: Vector2 = w.sites[pl.start_site]["center"]
+	var bar_id := Defs.building_id("void", "barracks")
+	var bars: Array = []
+	for i in 3:
+		var c = _free_cell(bar_id, home + Vector2(9, -8 + i * 5))
+		if c != null:
+			bars.append(w.spawn_building(bar_id, 0, c, true))
+	var sup_id := Defs.building_id("void", "supply")
+	for i in 2:
+		var c2 = _free_cell(sup_id, home + Vector2(-9, -6 + i * 5))
+		if c2 != null:
+			w.spawn_building(sup_id, 0, c2, true)
+	await frames(3)
+	check(hud.find_child("Idle", true, false) == null and hud.bld_btn != null and (hud.bld_btn.find_child("Title", true, false) as Label).text == "BUILDINGS", "IDLE is gone and BUILD is now BUILDINGS")
+	var mm: Rect2 = hud.minimap.get_parent().get_global_rect()
+	var lb: Rect2 = (hud.root.find_child("LeftButtons", true, false) as Control).get_global_rect()
+	check(lb.end.y <= mm.position.y and mm.position.y - lb.end.y < 24.0 and lb.end.y > 420.0, "the left buttons sit just above the minimap (%d..%d, minimap at %d)" % [lb.position.y, lb.end.y, mm.position.y])
+	var bc: Vector2 = hud.bld_btn.get_global_rect().get_center()
+	# a quick tap still opens the build menu (after a few frames, so a first-frame
+	# shader stall can't stretch the tap into a hold)
+	await frames(10)
+	await _tap(bc)
+	check(hud.card_state == "build_free" and hud.group_menu == null, "a quick BUILDINGS tap opens the build menu (state '%s', menu %s, eat %s, hold %.2f)" % [hud.card_state, hud.group_menu != null, hud.eat_tap, hud.hold_t])
+	# hold and slide to the barracks type
+	m.rig.look_at_ground(home + Vector2(-40, 30))
+	var f0: Vector2 = m.rig.focus
+	await _press(bc)
+	await get_tree().create_timer(0.45).timeout
+	check(hud.group_menu != null and hud.group_menu.mode == "buildings", "holding BUILDINGS opens the building types")
+	if hud.group_menu:
+		await frames(2)
+		var to: Vector2 = hud.group_menu.option_center("btype:" + bar_id)
+		await _slide(bc, to)
+		await shot("97_buildings_slide")
+		await _release(to)
+	var sel: Array = m.cmd.selection
+	var all_bars := sel.size() == bars.size()
+	for e in sel:
+		if not (e is Building and e.def_id == bar_id):
+			all_bars = false
+	check(all_bars and bars.size() == 3, "slide to %s, lift: all %d selected (%d)" % [Defs.buildings[bar_id]["name"], bars.size(), sel.size()])
+	check(m.rig.focus.distance_to(f0) > 10.0 and m.rig.focus.distance_to(GroupMenu.cluster_center(bars)) < 1.0, "the camera jumps to them")
+	await frames(3)
+	await shot("98_buildings_selected")
+	# mass-produce: three taps, one unit in each
+	var inf_id := Defs.unit_id("void", "infantry")
+	for i in 3:
+		m.cmd.action("train:" + inf_id)
+	var spread := true
+	for b in bars:
+		if b.queue.size() != 1:
+			spread = false
+	check(spread, "three taps on a unit train one in each selected building")
+	# BASE: each tap goes to the next base
+	var main_id := Defs.building_id("void", "main")
+	var nat: Dictionary = {}
+	for st in w.sites:
+		if int(st["taken_by"]) < 0:
+			nat = st
+			break
+	var m2 := w.spawn_building(main_id, 0, nat["cell"], true)
+	var m1: Building = null
+	for b in w.buildings:
+		if b.owner_id == 0 and b.slot == "main" and b != m2:
+			m1 = b
+	var base_c: Vector2 = (hud.root.find_child("Base", true, false) as Button).get_global_rect().get_center()
+	m.cmd.set_selection([])
+	m.cmd.base_tap_t = -99.0
+	await _tap(base_c)
+	var s1 = m.cmd.selection[0] if m.cmd.selection.size() == 1 else null
+	await _tap(base_c)
+	var s2 = m.cmd.selection[0] if m.cmd.selection.size() == 1 else null
+	await _tap(base_c)
+	var s3 = m.cmd.selection[0] if m.cmd.selection.size() == 1 else null
+	check(s1 == m1 and s2 == m2 and s3 == m1, "BASE taps go main, expansion, main again")
+	check(m.rig.focus.distance_to(m1.p) < 1.0, "and the camera follows")
+	# the Citadel card: nothing runs past the panel
+	m.cmd.set_selection([m1])
+	await frames(3)
+	hud._refresh_selection(true)
+	await frames(2)
+	var edge: float = hud.sel_panel.get_global_rect().end.x
+	var worst := 0.0
+	for c in hud.sel_content.get_children():
+		if c is Label and c.visible:
+			worst = maxf(worst, (c as Label).get_global_rect().end.x - edge)
+	var st_l := hud.sel_content.find_child("Status", false, false) as Label
+	var shown := st_l != null and st_l.text != "" and st_l.get_global_rect().size.y >= 14.0 and st_l.get_visible_line_count() >= 1
+	check(worst <= 0.0 and shown, "the base's card shows its text and keeps it inside the panel (%+.0f px, %s)" % [worst, st_l.text if st_l else "no text"])
+	await shot("99_main_card")
+	hud.close_groups()
+	await frames(2)
+
+
+## Supply is taken when a unit comes out, not when it is queued: at full supply a unit can
+## still be queued, trains, then waits at the door until there is room.
+func _supply_rule() -> void:
+	await start(["void", "ambron"], false)
+	var w: World = m.world
+	var pl: PlayerState = w.players[0]
+	pl.minerals += 5000
+	var home: Vector2 = w.sites[pl.start_site]["center"]
+	var bar_id := Defs.building_id("void", "barracks")
+	var bar := w.spawn_building(bar_id, 0, _free_cell(bar_id, home + Vector2(9, -6)), true)
+	var inf_id := Defs.unit_id("void", "infantry")
+	var cap := w.supply_cap(0)
+	while w.supply_used(0) + int(Defs.units[inf_id]["supply"]) <= cap:
+		w.spawn_unit(inf_id, 0, home + Vector2(-6, 9))
+	var used := w.supply_used(0)
+	check(w.queue_unit(bar, inf_id) == "" and w.queue_unit(bar, inf_id) == "", "at full supply (%d/%d) units can still be queued" % [used, cap])
+	check(w.supply_used(0) == used, "queued units don't count against supply (%d)" % w.supply_used(0))
+	ff(float(Defs.units[inf_id]["time"]) + 2.0)
+	check(bar.queue.size() == 2 and bar.supply_blocked and bar.status_text().contains("needs supply"), "a trained unit waits for supply (%s)" % bar.status_text())
+	var sup_id := Defs.building_id("void", "supply")
+	w.spawn_building(sup_id, 0, _free_cell(sup_id, home + Vector2(-9, -6)), true)
+	ff(0.2)
+	check(bar.queue.size() == 1 and not bar.supply_blocked and w.supply_used(0) == used + int(Defs.units[inf_id]["supply"]), "room again: it comes out, and only then takes supply")
 
 
 func _press(sp: Vector2) -> void:

@@ -27,6 +27,7 @@ var weapon: Dictionary = {}    # towers
 var cd: float = 0.0
 var target = null
 var facing: float = 0.0
+var supply_blocked: bool = false  # the next unit is trained and waits for supply
 
 
 func setup(w, id: String, owner: int, c: Vector2i) -> void:
@@ -82,12 +83,22 @@ func step(dt: float) -> void:
 	if not weapon.is_empty():
 		_defend(dt)
 	if queue.size() > 0:
-		prod_t += dt
 		var ud: Dictionary = Defs.units[queue[0]]
-		if prod_t >= float(ud["time"]):
+		var t := float(ud["time"])
+		prod_t = minf(prod_t + dt, t)
+		if prod_t >= t:
+			# supply is taken when the unit comes out, not when it is queued
+			if world.supply_used(owner_id) + int(ud["supply"]) > world.supply_cap(owner_id):
+				if not supply_blocked:
+					supply_blocked = true
+					world.on_supply_blocked(self)
+				return
+			supply_blocked = false
 			var uid: String = queue.pop_front()
 			prod_t = 0.0
 			world.spawn_from(self, uid)
+	else:
+		supply_blocked = false
 
 
 ## Towers: keep shooting the nearest enemy in range.
@@ -141,6 +152,8 @@ func status_text() -> String:
 	if not built:
 		return "Building %d%%" % int(progress * 100.0)
 	if queue.size() > 0:
+		if supply_blocked:
+			return "%s ready: needs supply" % Defs.units[queue[0]]["name"]
 		return "Training %s %d%%" % [Defs.units[queue[0]]["name"], int(queue_progress() * 100.0)]
 	if needs_power and world and not world.is_powered(self):
 		return "Unpowered: build a Power Relay nearby"

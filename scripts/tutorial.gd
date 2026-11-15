@@ -44,9 +44,9 @@ func setup(w: World, h: Hud, r: CameraRig, c: Commander) -> void:
 	steps = [
 		["LOOK AROUND", "Drag one finger to move the camera. Pinch (or scroll) to zoom.", _looked],
 		["MORE WORKERS", "Your workers harvest crystals on their own. Tap your %s, then tap the worker button to train one more." % main_n, _trained_worker],
-		["SUPPLY", "Every unit takes supply. Tap BUILD (left), choose %s, tap the ground to place it, then tap again or ✓." % _a(sup_n), _has.bind("supply")],
-		["PRODUCTION", "Now place %s from BUILD.%s" % [_a(bar_n), power], _has.bind("barracks")],
-		["AN ARMY", "When the %s is finished, tap it and train 4 %ss." % [bar_n, inf_n], _army_of.bind(4)],
+		["SUPPLY", "Every unit takes supply. Tap BUILDINGS (left), choose %s, tap the ground to place it, then tap again or ✓." % _a(sup_n), _has.bind("supply")],
+		["PRODUCTION", "Now place %s from BUILDINGS.%s" % [_a(bar_n), power], _has.bind("barracks")],
+		["AN ARMY", "When the %s is finished, tap it and train 4 %ss. (Later, hold BUILDINGS and slide to select every one you own and train from all of them.)" % [bar_n, inf_n], _army_of.bind(4)],
 		["MOVE OUT", "Tap ARMY to select every fighter (hold ARMY and slide to pick just ground, air or one unit type). Then tap Attack and tap the ground ahead: they fight anything they meet on the way.", _moving],
 		["DESTROY THEM", "The enemy is awake. Their base is the red mark at the top right of the minimap. Climb the ramps: units can't see up a cliff, and shots fired uphill miss 30% of the time. Destroy every enemy building!", func() -> bool: return false],
 	]
