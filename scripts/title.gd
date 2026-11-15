@@ -4,6 +4,7 @@ extends CanvasLayer
 ## chosen map's overhead view fills the background. Choices are remembered (Prefs).
 
 signal play(cfg: Dictionary)
+signal bench
 
 var race: String = "ambron"
 var enemy: String = "random"
@@ -342,6 +343,7 @@ func _open_settings() -> void:
 	Sfx.play("click")
 	var s := SettingsPanel.new()
 	s.name = "Settings"
+	s.bench_cb = func() -> void: bench.emit()
 	root.add_child(s)
 
 

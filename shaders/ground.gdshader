@@ -2,13 +2,20 @@ shader_type spatial;
 // The ground of every map. The mesh is raised to the Terrain's corner heights (plateaus,
 // ramps and the cliff bands between them), then into rough mounds under rock walls and
 // beyond the map edge, with gentle swells elsewhere; base sites stay flat and paved.
-// The surface gets cracked plates, craters, pebbles and mineral veins from world-space
-// noise, layered rock on cliff faces, and per map: snow (Frostspire), frozen lakes,
-// and flowing lava with glowing veins (Ember Rift). Colours come from Maps.THEMES.
+// The surface gets cracked plates, craters, pebbles and mineral veins, layered rock on
+// cliff faces, and per map: snow (Frostspire), frozen lakes, and flowing lava with glowing
+// veins (Ember Rift). Colours come from Maps.THEMES.
+//
+// Cost matters here: the ground fills the screen. All the noise is baked once into two
+// tileable textures (GroundBake), so a pixel costs a few texture reads; snow, ice, lava and
+// cliff strata only run on the pixels that have them. Computing the noise per pixel kept a
+// phone's GPU flat out (2026-11-15).
 render_mode diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D mask : filter_linear, repeat_disable;   // R rock, G base site, B lava 1 / ice 0.5
 uniform sampler2D hmap : filter_linear, repeat_disable;   // Terrain corner heights
+uniform sampler2D detail_tex : filter_linear_mipmap_anisotropic, repeat_enable;   // GroundBake.detail
+uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;                // GroundBake.noise
 uniform float map_size = 144.0;
 uniform vec3 dust : source_color = vec3(0.33, 0.29, 0.33);
 uniform vec3 rust : source_color = vec3(0.47, 0.35, 0.29);
@@ -35,39 +42,19 @@ varying float rimv;     // 1 along the top lip of a cliff
 varying float footv;    // 1 at the foot of a cliff
 varying float levelv;   // terrain height here
 
+const float DETAIL_T = 36.0;     // metres covered by one tile of detail_tex
+const float NS = 0.125;          // noise_tex holds 8 lattice cells per tile
+
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 vec2 hash2(vec2 p) {
 	return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
 }
-float noise(vec2 p) {
-	vec2 i = floor(p); vec2 f = fract(p);
-	vec2 u = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
-}
-float fbm3(vec2 p) {
-	float v = 0.0; float a = 0.5;
-	for (int i = 0; i < 3; i++) { v += a * noise(p); p *= 2.07; a *= 0.5; }
-	return v;
-}
-float fbm5(vec2 p) {
-	float v = 0.0; float a = 0.5;
-	for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
-	return v;
-}
-// x: distance to the nearest cell point, y: gap to the second (0 on a crack)
-vec2 voro(vec2 p) {
-	vec2 i = floor(p); vec2 f = fract(p);
-	float d1 = 8.0; float d2 = 8.0;
-	for (int y = -1; y <= 1; y++) {
-		for (int x = -1; x <= 1; x++) {
-			vec2 g = vec2(float(x), float(y));
-			vec2 o = hash2(i + g) * 0.85 + 0.075;
-			float d = length(g + o - f);
-			if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
-		}
-	}
-	return vec2(d1, d2 - d1);
-}
+// 3-octave noise at lattice position q, read from the baked tile (level 0: safe in branches
+// and in the vertex stage, and these are always magnified)
+float n3(vec2 q) { return textureLod(noise_tex, q * NS, 0.0).g + 0.5; }
+float n5(vec2 q) { return textureLod(noise_tex, q * NS, 0.0).b; }
+// gap between the two nearest Voronoi points at q (0 on a crack)
+float vgap(vec2 q) { return textureLod(noise_tex, q * NS, 0.0).r; }
 // sparse craters on a 9 m lattice: a bowl with a raised rim
 float crater(vec2 p) {
 	vec2 c = floor(p / 9.0);
@@ -100,20 +87,10 @@ float terrain_h(vec2 p) {
 float coarse_h(vec2 p) {
 	vec4 m = mask_at(p);
 	float r = smoothstep(0.45, 1.0, m.r);
-	float mound = r * (0.25 + 0.85 * fbm3(p * 0.21 + 5.0));
-	float swell = (fbm3(p * 0.09) - 0.5) * 0.16 * (1.0 - m.g);
+	float mound = r * (0.25 + 0.85 * n3(p * 0.21 + 5.0));
+	float swell = (n3(p * 0.09) - 0.5) * 0.16 * (1.0 - m.g);
 	float lava = smoothstep(0.7, 0.95, m.b);
 	return terrain_h(p) + mound + swell - lava * 0.35;
-}
-
-// small shapes, lighting only: plates, cracks, pebbles, craters
-float detail_h(vec2 p, float site, out float crack, out float peb) {
-	vec2 v = voro(p * 0.45);
-	crack = 1.0 - smoothstep(0.0, 0.035, v.y);
-	vec2 s = voro(p * 2.6 + 11.0);
-	peb = (1.0 - smoothstep(0.08, 0.32, s.x)) * step(0.82, hash(floor(p * 2.6 + 11.0))) * (1.0 - smoothstep(0.2, 0.7, site));
-	float plates = fbm3(p * 0.7) * 0.35 + (0.5 - v.x) * 0.12;
-	return plates - crack * 0.22 + peb * 0.12 + crater(p);
 }
 
 void vertex() {
@@ -144,26 +121,28 @@ void vertex() {
 
 void fragment() {
 	vec2 p = wpos.xz;
-	float crack; float peb;
-	float e = 0.06;
-	float h = detail_h(p, sitev, crack, peb);
-	float c2; float p2;
-	float hx = detail_h(p + vec2(e, 0.0), sitev, c2, p2);
-	float hz = detail_h(p + vec2(0.0, e), sitev, c2, p2);
+	// plates, cracks, pebbles and grain: one read of the baked tile
+	vec4 d = texture(detail_tex, p / DETAIL_T);
+	float crack = clamp((0.5 - d.b) * 2.0, 0.0, 1.0);
+	float peb = clamp((d.b - 0.5) * 2.0, 0.0, 1.0) * (1.0 - smoothstep(0.2, 0.7, sitev));
+	float fine = d.a;
+	vec2 slope = (d.rg - 0.5) * 5.0;
 	float flat_site = 1.0 - sitev * 0.75;
 	float steep = 1.0 - smoothstep(0.72, 0.92, wnorm.y);
 	// snow settles on flat and gently sloped ground and fills the cracks, thinning in patches
-	float drift = smoothstep(0.42, 0.66, fbm3(p * 0.11 + 3.0) + fbm3(p * 0.6) * 0.25);
-	float snowk = snow * drift * smoothstep(0.8, 0.95, wnorm.y) * (1.0 - sitev * 0.7);
-	vec3 n = normalize(wnorm + vec3(-(hx - h) / e, 0.0, -(hz - h) / e) * 0.85 * bump * flat_site * (1.0 - icev * 0.8) * (1.0 - snowk * 0.85) * (1.0 - steep * 0.85));
+	float snowk = 0.0;
+	if (snow > 0.0) {
+		float drift = smoothstep(0.42, 0.66, n3(p * 0.11 + 3.0) + n3(p * 0.6) * 0.25);
+		snowk = snow * drift * smoothstep(0.8, 0.95, wnorm.y) * (1.0 - sitev * 0.7);
+	}
+	vec3 n = normalize(wnorm + vec3(slope.x, 0.0, slope.y) * bump * flat_site * (1.0 - icev * 0.8) * (1.0 - snowk * 0.85) * (1.0 - steep * 0.85));
 
-	float big = fbm5(p * 0.03);
-	float mid = fbm3(p * 0.16 + 7.0);
-	float fine = noise(p * 3.1);
+	float big = n5(p * 0.03);
+	float mid = n3(p * 0.16 + 7.0);
 	vec3 col = mix(dust, rust, smoothstep(0.45, 0.72, big));
 	col = mix(col, basalt * 1.4, smoothstep(0.58, 0.85, mid) * 0.4);
 	// mineral veins
-	float v = abs(fbm3(p * 0.08 + 31.0) - 0.5);
+	float v = abs(n3(p * 0.08 + 31.0) - 0.5);
 	float vein_k = (1.0 - smoothstep(0.0, vein_w, v)) * (1.0 - steep);
 	col = mix(col, vein, vein_k * vein_mix);
 	// cracks and crater bowls are dark, rims and pebbles catch light
@@ -185,10 +164,14 @@ void fragment() {
 	col = mix(col, rockcol, rk * 0.85);
 
 	// cliff faces: layered rock in bands that follow the height, with no ground cracks
-	float strata = fbm3(vec2(wpos.y * 2.6 + fbm3(p * 0.6) * 1.5, (p.x + p.y) * 0.35));
-	float ledges = smoothstep(0.55, 0.6, fract(wpos.y * 1.3 + fbm3(p * 0.4) * 0.6));
-	vec3 cliffcol = mix(cliff_a, cliff_b, smoothstep(0.3, 0.75, strata)) * (0.75 + fine * 0.3 + ledges * 0.25);
-	col = mix(col, cliffcol, steep);
+	float strata = 0.0;
+	if (steep > 0.001) {
+		float wob = n3(p * 0.6);
+		strata = n3(vec2(wpos.y * 2.6 + wob * 1.5, (p.x + p.y) * 0.35));
+		float ledges = smoothstep(0.55, 0.6, fract(wpos.y * 1.3 + wob * 0.6));
+		vec3 cliffcol = mix(cliff_a, cliff_b, smoothstep(0.3, 0.75, strata)) * (0.75 + fine * 0.3 + ledges * 0.25);
+		col = mix(col, cliffcol, steep);
+	}
 	// a sunlit lip along the top of each cliff and shade at its foot, so levels read from above
 	float flatk = 1.0 - steep;
 	col = mix(col, col * 1.45 + vec3(0.06), rimv * flatk * 0.7);
@@ -196,28 +179,35 @@ void fragment() {
 	col *= 1.0 + levelv * 0.035;
 
 	// snow, plus a dusting on cliff ledges
-	col = mix(col, vec3(0.9, 0.94, 1.0) * (0.94 + fine * 0.08), snowk);
-	col = mix(col, vec3(0.86, 0.9, 0.97), snow * steep * smoothstep(0.55, 0.75, strata) * 0.5);
+	if (snow > 0.0) {
+		col = mix(col, vec3(0.9, 0.94, 1.0) * (0.94 + fine * 0.08), snowk);
+		col = mix(col, vec3(0.86, 0.9, 0.97), snow * steep * smoothstep(0.55, 0.75, strata) * 0.5);
+	}
 
 	// frozen lakes: smooth blue ice with pale cracks
-	vec2 iv = voro(p * 0.32 + 4.0);
-	float icecrack = 1.0 - smoothstep(0.0, 0.05, iv.y);
-	vec3 icecol = mix(hazard * 0.75, hazard * 1.15, fbm3(p * 0.2)) + vec3(icecrack * 0.25);
-	col = mix(col, icecol, icev);
+	if (icev > 0.001) {
+		float icecrack = 1.0 - smoothstep(0.0, 0.05, vgap(p * 0.32 + 4.0));
+		vec3 icecol = mix(hazard * 0.75, hazard * 1.15, n3(p * 0.2)) + vec3(icecrack * 0.25);
+		col = mix(col, icecol, icev);
+	}
 
 	// lava: a slow flow of molten rock under a cracked dark crust
-	vec2 flow = p * 0.3 + vec2(TIME * 0.06, TIME * 0.04);
-	vec2 lv = voro(flow + fbm3(p * 0.2 + TIME * 0.05) * 1.5);
-	float crust = smoothstep(0.02, 0.16, lv.y) * smoothstep(0.35, 0.6, fbm3(flow * 1.3));
-	float heat = (1.0 - crust) * (0.75 + 0.25 * sin(TIME * 1.7 + p.x * 0.3 + p.y * 0.2));
-	vec3 lavacol = mix(hazard * 1.1, basalt * 0.5, crust);
-	col = mix(col, lavacol, lavav);
+	float heat = 0.0;
+	if (lavav > 0.001) {
+		vec2 flow = p * 0.3 + vec2(TIME * 0.06, TIME * 0.04);
+		float gap = vgap(flow + n3(p * 0.2 + TIME * 0.05) * 1.5);
+		float crust = smoothstep(0.02, 0.16, gap) * smoothstep(0.35, 0.6, n3(flow * 1.3));
+		heat = (1.0 - crust) * (0.75 + 0.25 * sin(TIME * 1.7 + p.x * 0.3 + p.y * 0.2));
+		col = mix(col, mix(hazard * 1.1, basalt * 0.5, crust), lavav);
+	}
 
 	ALBEDO = col;
 	ROUGHNESS = clamp(0.93 - sitev * 0.28 - peb * 0.1 - icev * 0.8 - snowk * 0.15, 0.08, 1.0);
 	METALLIC = 0.0;
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 	vec3 glow = hazard * hazard_glow * heat * lavav;
-	glow += vein * vein_glow * vein_k * (0.6 + 0.4 * sin(TIME * 1.3 + p.x * 0.2 + p.y * 0.1)) * (1.0 - snowk);
+	if (vein_glow > 0.0) {
+		glow += vein * vein_glow * vein_k * (0.6 + 0.4 * sin(TIME * 1.3 + p.x * 0.2 + p.y * 0.1)) * (1.0 - snowk);
+	}
 	EMISSION = glow;
 }

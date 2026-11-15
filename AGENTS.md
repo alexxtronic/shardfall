@@ -98,6 +98,14 @@ Animated units carry an armature with `idle_loop`, `walk_loop` (or `fly_loop` fo
 - **Resting thumb (2026-11-15):** players hold the phone, so a thumb rests on the screen. `Commander._drop_resting` forgets a finger that has sat still for `LONG_PRESS` when another lands, and touches outside the safe area or in the quick buttons' gaps are ignored. Without this a resting thumb turned every slide into a pinch zoom and swallowed every tap, rally points included. The `grip` autotest guards it; keep it passing after any touch change.
 - **Graphics:** the Settings slider's levels live in `Graphics.LEVELS`. Phones default to Balanced (60 fps cap). Keep a frame cap on phones: uncapped, an iPhone runs at 120 fps and gets hot.
 
+## Performance on phones (Alex, 2026-11-15)
+
+Alex's iPhone ran "extremely hot" even on the lowest graphics level. The cause was the ground shader: about 300 noise samples per pixel per frame, three-quarters of the GPU's work, so the phone could not even reach the frame cap.
+
+- **Full-screen shaders read textures.** Never compute noise per pixel in `ground.gdshader` or anything else that covers the screen. Add the pattern to a bake shader (`shaders/bake_*.gdshader`, run once by `GroundBake`) and read it. Effects that only some pixels have (snow, ice, lava, cliff strata) go behind a branch.
+- **Measure, don't guess.** `Bench` (Settings > Performance check, or `SHARDFALL_BENCH=<level>`) times a bot match with one suspect off at a time. Desktop timings swing with the Mac's core scheduling, so compare phases within one run, at a phone-like size (`--resolution 2560x1440`), and confirm on the phone.
+- **Low levels skip extra passes.** On Battery and Balanced the ground does not cast shadows and nothing upscales with FSR.
+
 ## Tests
 
 Run the autotest after gameplay changes, and the balance harness after stat or bot changes. Asset-only changes need just a re-import (`Godot --headless --path . --import`) and a look at the `models` section.

@@ -244,9 +244,20 @@ static func _terrain(w) -> void:
 	sm.set_shader_parameter("vein_w", float(th.get("vein_w", 0.014)))
 	sm.set_shader_parameter("vein_mix", float(th.get("vein_mix", 0.35)))
 	mi.material_override = sm
-	# cliffs throw shadows onto the ground below them
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if t.max_level > 0 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# cliffs throw shadows onto the ground below them, at the graphics levels that can
+	# afford drawing the whole ground again for each shadow pass
+	mi.set_meta("cliffs", t.max_level > 0)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if t.max_level > 0 and bool(Graphics.setting("ground_shadow")) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.extra_cull_margin = 8.0
+	# the surface's noise comes from two textures baked once per run; the ground shows
+	# when they are ready (a frame or two after the first map loads)
+	mi.visible = false
+	var baked := func() -> void:
+		sm.set_shader_parameter("detail_tex", GroundBake.detail)
+		sm.set_shader_parameter("noise_tex", GroundBake.noise)
+		if is_instance_valid(mi):
+			mi.visible = true
+	GroundBake.ensure(baked)
 	w.add_child(mi)
 	w.set_meta("height_tex", hmap)
 

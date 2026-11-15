@@ -11,6 +11,8 @@ var last_cfg: Dictionary = {}
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
+	if DisplayServer.get_name() != "headless":
+		GroundBake.ensure(func() -> void: pass)    # bake the ground's textures now, not at the first match
 	if Bench.requested() != -9:
 		var bench := Bench.new()
 		bench.main = self
@@ -36,6 +38,8 @@ func _ready() -> void:
 				"map": parts[2] if parts.size() > 2 else Maps.LIST[0]})
 			return
 	show_title()
+	if args.has("--bench-inapp"):     # the Settings > Performance check path, for testing it on a desktop
+		start_bench.call_deferred()
 
 
 func show_title() -> void:
@@ -46,6 +50,18 @@ func show_title() -> void:
 	title.name = "Title"
 	add_child(title)
 	title.play.connect(start_match)
+	title.bench.connect(start_bench)
+
+
+## Settings > Performance check: the Bench, at the current graphics level, then back here.
+func start_bench() -> void:
+	if title:
+		title.queue_free()
+		title = null
+	var bench := Bench.new()
+	bench.main = self
+	bench.in_app = true
+	add_child(bench)
 
 
 func start_match(cfg: Dictionary) -> void:

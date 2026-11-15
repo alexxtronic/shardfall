@@ -1103,7 +1103,7 @@ func _path_len(path: PackedVector2Array) -> float:
 func _profile() -> void:
 	Profile.reset()
 	check(Profile.rating() == 1000 and Profile.rank() > 1, "a new profile starts at 1000 (rank #%d)" % Profile.rank())
-	check(Profile.elo_delta(1200.0, "normal", true, 0) == 20 and Profile.elo_delta(1200.0, "normal", false, 20) == -12,
+	check(Profile.elo_delta(1200.0, "hard", true, 0) == 20 and Profile.elo_delta(1200.0, "hard", false, 20) == -12,
 		"Elo: an even game is worth +20 / -12 (K 40 new, 24 settled)")
 	await start(["ambron", "void"], true, "frostspire")
 	var w: World = m.world
@@ -1763,6 +1763,7 @@ func _fx() -> void:
 				if not ResourceLoader.exists(f + ".ogg"):
 					missing.append(f)
 		check(missing.is_empty(), "every music track, ambience and voice line exists (%s missing)" % [missing])
+		Sfx.voice_last.erase("look_out")     # an earlier section's alarm may still be cooling down
 		Sfx.announce("look_out")
 		check(Sfx.announcer.playing, "the announcer speaks")
 	var w: World = m.world

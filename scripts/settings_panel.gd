@@ -6,6 +6,8 @@ extends ColorRect
 
 signal closed
 
+var bench_cb: Callable = Callable()   # set by the title screen: runs the performance check
+
 
 func _ready() -> void:
 	color = Color(0, 0, 0, 0.72)
@@ -55,6 +57,24 @@ func _ready() -> void:
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(close)
 	row.add_child(b)
+	if bench_cb.is_valid():
+		p.offset_top = -262
+		p.offset_bottom = 262
+		var pc := Button.new()
+		pc.text = "Performance check (2 minutes, hands off)"
+		pc.name = "Bench"
+		pc.flat = true
+		pc.focus_mode = Control.FOCUS_NONE
+		pc.custom_minimum_size = Vector2(0, 40)
+		pc.add_theme_font_size_override("font_size", 15)
+		pc.add_theme_color_override("font_color", UiKit.DIM)
+		pc.pressed.connect(func():
+			Sfx.play("click")
+			var cb := bench_cb
+			closed.emit()
+			queue_free()
+			cb.call())
+		v.add_child(pc)
 
 
 ## Graphics: one slider from Battery to Max, with what the level means under it.

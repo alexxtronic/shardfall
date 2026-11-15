@@ -109,9 +109,16 @@ func _intro() -> void:
 	tw.tween_callback(layer.queue_free)
 
 
+func _ground_shadow() -> void:
+	var g := world.find_child("Ground", true, false) as MeshInstance3D if world else null
+	if g:
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if bool(g.get_meta("cliffs", false)) and bool(Graphics.setting("ground_shadow")) else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
 func _on_pref(key: String) -> void:
 	if key == "graphics" and is_instance_valid(world_env):
 		world_env.environment.glow_enabled = bool(Graphics.setting("glow"))
+		_ground_shadow()
 
 
 func _environment(th: Dictionary) -> void:

@@ -94,11 +94,21 @@ The ladder ranks you among 13 AI rival commanders with fixed ratings. The end sc
 | Level | Frame cap | 3D resolution | Shadows | Anti-aliasing | Glow | Weather particles |
 |---|---|---|---|---|---|---|
 | Battery | 30 fps | 60% | 1024, hard | off | off | 40% |
-| Balanced (phone default) | 60 fps | 75%, FSR | 2048, soft | off | on | 70% |
+| Balanced (phone default) | 60 fps | 75% | 2048, soft | off | on | 70% |
 | High | 60 fps | 100% | 4096, soft | MSAA 2× | on | 100% |
 | Max (desktop default) | none | 100% | 4096, soft | MSAA 2× | on | 100% |
 
-`graphics.gd` holds the table. Without the cap, an iPhone runs the game at 120 fps, which is what made it hot.
+`graphics.gd` holds the table. Cliffs cast shadows onto the ground below only on High and Max, because that draws the whole ground again for each shadow pass.
+
+**Why it runs cool.** The ground fills the screen, and its cracks, pebbles, veins, snow and lava used to be computed from noise for every pixel of every frame: about three-quarters of all the GPU's work, enough to keep a phone's GPU flat out at any level. Now `ground_bake.gd` computes that noise once at startup into two small tileable textures, and the ground shader reads them.
+
+**Performance check.** Settings on the title screen has a Performance check. It plays a bot match for about two minutes with one part of the picture switched off at a time, and writes what each part costs to `user://bench.txt`. To fetch that from an iPhone:
+
+```bash
+xcrun devicectl device copy from --device <udid> --domain-type appDataContainer --domain-identifier com.alexdamore.shardfall --source Documents/bench.txt --destination bench.txt
+```
+
+On a desktop, `SHARDFALL_BENCH=1` in the environment (the number is the graphics level) runs the same check and quits.
 
 ## Units
 
@@ -132,7 +142,8 @@ The counters form a web, measured in [docs/BALANCE.md](docs/BALANCE.md):
     - `quick_buttons.gd` (which quick buttons show and where) and `quick_buttons_editor.gd` (Settings > Customize buttons);
     - `title.gd` and the overlays `settings_panel.gd`, `leaderboard_panel.gd` and `credits_panel.gd`;
     - `tutorial.gd`, the guided first match;
-    - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads; `graphics.gd` (the quality levels behind the Graphics slider).
+    - `prefs.gd` (settings) and `profile.gd` (rating, scores, history), both autoloads; `graphics.gd` (the quality levels behind the Graphics slider);
+    - `ground_bake.gd` (bakes the ground's noise into textures once per run) and `bench.gd` (the Performance check).
   - **Opponent:** `bot_ai.gd`, the bot, which plays by the same rules at four levels: easy, normal, hard and extreme. Easy and normal build slowly, keep their army to about one wave's worth, and leave you alone for the first 9 and 7 minutes; hard and extreme are the full-strength bots. The balance harness and the bot-vs-bot tests play on hard.
   - **Look and sound:**
     - `models.gd` loads GLBs and animates them; `fx.gd` makes the effects.

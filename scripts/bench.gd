@@ -2,11 +2,15 @@ class_name Bench
 extends Node
 ## On-device performance check: what makes the phone hot.
 ##
-## Launch with the environment variable SHARDFALL_BENCH=<graphics level 0-3> (with devicectl:
-## DEVICECTL_CHILD_SHARDFALL_BENCH=0), or `-- --bench=<level>` on a desktop. It plays a
+## Start it from Settings > Performance check on the title screen (it uses the current graphics
+## level and ends on a Done screen), or launch with the environment variable
+## SHARDFALL_BENCH=<graphics level 0-3> (with devicectl: DEVICECTL_CHILD_SHARDFALL_BENCH=0), or
+## `-- --bench=<level>` on a desktop. It plays a
 ## bot-vs-bot match on Shatterfield, fast-forwards to mid-game, then times frames with one
-## suspect switched off at a time and prints BENCH lines, then quits. Settings and the
-## profile are never written, and the sound is muted.
+## suspect switched off at a time and writes BENCH lines to the error stream and to
+## user://bench.txt (on an iPhone: `xcrun devicectl device copy from --domain-type
+## appDataContainer --domain-identifier com.alexdamore.shardfall --source Documents/bench.txt`).
+## Settings and the profile are never written, and the sound is muted.
 ##
 ##   xcrun devicectl device process launch --console --terminate-existing --device <udid> \
 ##     com.alexdamore.shardfall      (with DEVICECTL_CHILD_SHARDFALL_BENCH=0 in the environment)
@@ -17,6 +21,9 @@ const LOG := "user://bench.txt"
 
 var main
 var level: int = 1
+var in_app: bool = false          # started from Settings: keep the level, end on a Done screen
+var banner: Label
+var keep: Array = [true, true]
 var m: Match
 var w: World
 var rid: RID
@@ -70,7 +77,15 @@ func _wait(s: float) -> void:
 
 
 func _run() -> void:
-	Prefs.set_v("graphics", level)
+	if in_app:
+		# nothing from this run may reach the saved settings or the leaderboard
+		keep = [Prefs.persist, Profile.persist]
+		Prefs.persist = false
+		Profile.persist = false
+		level = Graphics.level()
+		AudioServer.set_bus_mute(0, true)
+	else:
+		Prefs.set_v("graphics", level)
 	m = Match.new()
 	main.add_child(m)
 	main.match_node = m
@@ -79,6 +94,15 @@ func _run() -> void:
 	await _frames(5)
 	w = m.world
 	var vp := get_viewport()
+	var layer := CanvasLayer.new()
+	layer.layer = 60
+	add_child(layer)
+	banner = UiKit.label("Performance check: please leave the phone alone for about two minutes", 20, UiKit.GOLD)
+	banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	banner.position.y = 70
+	banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	banner.add_theme_constant_override("outline_size", 6)
+	layer.add_child(banner)
 	_out("BENCH start level %d (%s), window %s, 3D scale %.2f, msaa %d, fps cap %d, %s" % [level,
 		Graphics.LEVELS[Graphics.level()]["name"], str(DisplayServer.window_get_size()), vp.scaling_3d_scale,
 		vp.msaa_3d, Engine.max_fps, OS.get_model_name()])
@@ -117,9 +141,32 @@ func _run() -> void:
 		await _phase("no fog", _fog.bind(false), _fog.bind(true))
 	await _phase("no particles", _particles.bind(false), _particles.bind(true))
 	await _phase("no 2D redraw", _ui.bind(false), _ui.bind(true))
+	await _phase("no glow", _glow.bind(false), _glow.bind(bool(Graphics.setting("glow"))))
 	await _phase("all cheap", _cheap.bind(true), _cheap.bind(false))
 	_out("BENCH DONE")
-	get_tree().quit()
+	if not in_app:
+		get_tree().quit()
+		return
+	w.running = true
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+	Graphics.apply(vp)
+	Prefs.persist = keep[0]
+	Profile.persist = keep[1]
+	AudioServer.set_bus_mute(0, false)
+	Prefs.apply()
+	banner.text = "Performance check done. Thank you!"
+	var back := Button.new()
+	back.text = "Back"
+	back.name = "Back"
+	back.theme = UiKit.make_theme()
+	back.custom_minimum_size = Vector2(220, 70)
+	back.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	back.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	back.grow_vertical = Control.GROW_DIRECTION_BOTH
+	back.pressed.connect(func() -> void:
+		main.show_title()
+		queue_free())
+	banner.get_parent().add_child(back)
 
 
 func _nop() -> void:
@@ -142,6 +189,11 @@ func _ground_shadow(on: bool) -> void:
 
 func _shadows(on: bool) -> void:
 	m.sun.shadow_enabled = on
+
+
+func _glow(on: bool) -> void:
+	if is_instance_valid(m.world_env):
+		m.world_env.environment.glow_enabled = on
 
 
 func _fog(on: bool) -> void:
