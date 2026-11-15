@@ -40,6 +40,33 @@ var close_frame: int = -1
 const HOLD_OPEN := 0.3          # seconds of holding ARMY before the group menu opens
 
 
+## On a phone, pull every panel in from the notch or Dynamic Island, the rounded corners
+## and the home bar. The overlay (health bars, selection box) stays full screen, since it
+## draws at the units' screen positions. Desktop windows keep the full rect.
+func _fit_safe_area() -> void:
+	var l := 0.0
+	var t := 0.0
+	var r := 0.0
+	var b := 0.0
+	var win := Vector2(DisplayServer.window_get_size())
+	if OS.has_feature("mobile") and win.x > 0.0 and win.y > 0.0:
+		var k := get_viewport().get_visible_rect().size / win
+		var safe := Rect2(DisplayServer.get_display_safe_area())
+		l = maxf(safe.position.x * k.x, 0.0)
+		t = maxf(safe.position.y * k.y, 0.0)
+		r = maxf((win.x - safe.end.x) * k.x, 0.0)
+		b = maxf((win.y - safe.end.y) * k.y, 0.0)
+	root.offset_left = l
+	root.offset_top = t
+	root.offset_right = -r
+	root.offset_bottom = -b
+	if overlay:
+		overlay.offset_left = -l
+		overlay.offset_top = -t
+		overlay.offset_right = r
+		overlay.offset_bottom = b
+
+
 func setup(w: World, c: Commander, r: CameraRig) -> void:
 	world = w
 	cmd = c
@@ -57,6 +84,8 @@ func setup(w: World, c: Commander, r: CameraRig) -> void:
 	overlay.rig = r
 	overlay.cmd = c
 	root.add_child(overlay)
+	_fit_safe_area()
+	get_viewport().size_changed.connect(_fit_safe_area)
 	_top_bar()
 	_left_buttons()
 	_minimap()

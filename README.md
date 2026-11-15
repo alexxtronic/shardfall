@@ -30,6 +30,16 @@ The mouse stands in for a finger (one press is one touch). You can also use thes
 - Tab to jump to your base;
 - Ctrl plus 1–5 to save a control group.
 
+### On an iPhone
+
+With the phone paired to this Mac (once, over USB in Xcode), unlocked, in Developer Mode and on the same Wi-Fi:
+
+```bash
+tools/ios.sh
+```
+
+It exports a release build with Godot (`export_presets.cfg`, preset "iOS"), signs it automatically as Apple Development for team HFC498ZVXN, installs it over Wi-Fi or USB and launches it. `tools/ios.sh --no-build` reinstalls the last build, and `tools/ios.sh iPad` targets the iPad instead. The build lands in `build/ios/` (ignored by git). The HUD keeps clear of the Dynamic Island, rounded corners and home bar using the phone's safe area.
+
 ## How to play
 
 New players can press **Tutorial** on the title screen. It plays a guided first match on Shatterfield against an easy bot, one lesson at a time: look around, train a worker, build supply, build a barracks, train infantry, move out, and destroy the enemy. The bot waits until the last lesson, and tutorial games stay off the leaderboard.
@@ -160,6 +170,6 @@ The game is playable end to end:
 
 The core units come from Tripo: ChatGPT concept art goes to a Tripo model, then `art/tripo/build.py` decimates it, splits the team and glow materials, rigs it and animates it in Blender (see [art/tripo/README.md](art/tripo/README.md)). The Ambron Harvester is Alex's own Tripo "robot crystal harvester". All 16 buildings (8 per race, towers included) are Kiln models: each starts from a ChatGPT concept in `art/<race>_buildings/concepts/`, is built in Kiln JavaScript to match it (`art/kiln/<id>.kiln.js`, review sheet in `art/kiln/review/`), then `art/kiln/finish.py` merges it in Blender into one `body` mesh plus any `float_*` or `turret` node, and `art/kiln/icons.py` renders its build-menu icon. Resources and the rest of the art are built procedurally in Blender.
 
-iOS export needs Godot's export templates installed. Until then the game runs on the Mac in a landscape window. Two plans cover what comes next:
+It runs on the Mac in a landscape window and on iPhone and iPad as a development build (see "On an iPhone" above). Two plans cover what comes next:
 - [docs/MOBILE_MULTIPLAYER.md](docs/MOBILE_MULTIPLAYER.md): shipping to the stores, and ranked real-time 1v1 online;
 - [docs/ROADMAP.md](docs/ROADMAP.md): what to build next.
